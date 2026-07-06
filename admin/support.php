@@ -1,0 +1,41 @@
+<?php
+$pageTitle = 'Support Help Desk';
+$pageDescription = 'Stonefellow support inbox for member tickets, billing issues, content access, merch, and technical support.';
+$pageClass = 'membership-page admin-catalog-page';
+require __DIR__ . '/../includes/admin_catalog.php';
+require_once __DIR__ . '/../includes/member_lifecycle_support.php';
+if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
+  $action = $_POST['action'] ?? '';
+  $ticketId = (int)($_POST['ticket_id'] ?? 0);
+  if ($action === 'create_ticket') {
+    $id = sf_support_create_ticket((int)($_POST['user_id'] ?? 0),(string)($_POST['subject'] ?? ''),(string)($_POST['body'] ?? ''),(string)($_POST['category'] ?? 'other'),(string)($_POST['priority'] ?? 'medium'),'admin');
+    sf_admin_flash($id ? 'success' : 'error', $id ? 'Support ticket created.' : 'Ticket was not created. Run migration 016.');
+    sf_admin_redirect($id ? sf_url('admin/support.php?ticket_id=' . $id) : null);
+  }
+  if ($action === 'reply_ticket') { sf_support_add_message($ticketId, sf_current_user_id() ?: 0, (string)($_POST['message'] ?? ''), 'admin', !empty($_POST['is_internal'])); sf_admin_flash('success','Reply added.'); }
+  if ($action === 'update_ticket') { sf_support_update_ticket($ticketId,(string)($_POST['status'] ?? 'open'),(string)($_POST['priority'] ?? ''),sf_current_user_id() ?: 0); sf_admin_flash('success','Ticket updated.'); }
+  sf_admin_redirect($ticketId ? sf_url('admin/support.php?ticket_id=' . $ticketId) : null);
+}
+require __DIR__ . '/../includes/header.php';
+$status = trim((string)($_GET['status'] ?? ''));
+$tickets = sf_support_tickets(0,$status,200);
+$summary = sf_support_summary();
+$ticketId = (int)($_GET['ticket_id'] ?? ($tickets[0]['id'] ?? 0));
+$ticket = $ticketId ? sf_support_ticket($ticketId) : null;
+$messages = $ticketId ? sf_support_messages($ticketId) : [];
+$members = sf_ops_table_exists('users') ? sf_ops_fetch_all("SELECT id,email,display_name FROM users WHERE role<>'admin' ORDER BY created_at DESC LIMIT 200") : [];
+sf_admin_shell_start('Support', 'Help desk v1', 'Manage support tickets for account, billing, technical, content, merch, and feedback issues with member-linked context.', 'support');
+?>
+<section class="sf-admin-card-grid">
+  <div class="sf-admin-action-card"><span>Total</span><strong><?= (int)$summary['total'] ?></strong><small>All support tickets.</small></div>
+  <div class="sf-admin-action-card"><span>New</span><strong><?= (int)$summary['new'] ?></strong><small>Needs triage.</small></div>
+  <div class="sf-admin-action-card"><span>Open</span><strong><?= (int)$summary['open'] + (int)$summary['pending_admin'] ?></strong><small>Needs admin action.</small></div>
+  <div class="sf-admin-action-card"><span>Urgent</span><strong><?= (int)$summary['urgent'] ?></strong><small>High-priority launch issues.</small></div>
+  <a class="sf-admin-action-card" href="<?= sf_url('support.php') ?>"><span>Member</span><strong>Help Page</strong><small>Public member support form.</small></a>
+</section>
+<section class="sf-admin-two-col sf-admin-two-col-wide">
+  <article class="sf-admin-panel"><div class="sf-admin-panel-head"><div><span class="sf-panel-eyebrow">Inbox</span><h2><?= count($tickets) ?> tickets</h2></div><a href="<?= sf_url('api/support-tickets.php') ?>">API</a></div><div class="sf-upload-bucket-row"><a class="<?= $status===''?'is-active':'' ?>" href="<?= sf_url('admin/support.php') ?>">All</a><?php foreach(['new','open','pending_admin','pending_member','resolved','closed'] as $s): ?><a class="<?= $status===$s?'is-active':'' ?>" href="<?= sf_url('admin/support.php?status=' . $s) ?>"><?= sf_admin_h(ucfirst(str_replace('_',' ',$s))) ?></a><?php endforeach; ?></div><div class="sf-admin-table-wrap"><table class="sf-admin-table"><thead><tr><th>Ticket</th><th>Member</th><th>Category</th><th>Priority</th><th>Status</th></tr></thead><tbody><?php foreach($tickets as $t): ?><tr><td><strong><a href="<?= sf_url('admin/support.php?ticket_id=' . (int)$t['id']) ?>"><?= sf_admin_h($t['ticket_number']) ?></a></strong><small><?= sf_admin_h($t['subject']) ?></small></td><td><?= sf_admin_h($t['display_name'] ?: $t['email'] ?: 'Guest') ?></td><td><?= sf_admin_h($t['category']) ?></td><td><?= sf_admin_h($t['priority']) ?></td><td><?= sf_admin_status_badge($t['status']) ?></td></tr><?php endforeach; ?><?php if(!$tickets): ?><tr><td colspan="5">No support tickets yet.</td></tr><?php endif; ?></tbody></table></div></article>
+  <aside class="sf-admin-panel"><div class="sf-admin-panel-head"><div><span class="sf-panel-eyebrow">Ticket Detail</span><h2><?= $ticket ? sf_admin_h($ticket['ticket_number']) : 'New ticket' ?></h2></div></div><?php if($ticket): ?><div class="sf-admin-detail-list"><div><span>Subject</span><strong><?= sf_admin_h($ticket['subject']) ?></strong></div><div><span>Member</span><strong><?= sf_admin_h($ticket['display_name'] ?: $ticket['email'] ?: 'Guest') ?></strong></div><div><span>Linked Context</span><strong><?= sf_admin_h(trim(($ticket['content_type'] ?? '') . ' ' . ($ticket['content_slug'] ?? '')) ?: '—') ?></strong></div><div><span>Created</span><strong><?= sf_admin_h($ticket['created_at']) ?></strong></div></div><form class="sf-admin-form" method="post"><?= sf_csrf_field() ?><input type="hidden" name="action" value="update_ticket"><input type="hidden" name="ticket_id" value="<?= (int)$ticket['id'] ?>"><div class="sf-admin-form-grid"><label>Status<?= sf_admin_select('status',['new'=>'New','open'=>'Open','pending_member'=>'Pending Member','pending_admin'=>'Pending Admin','resolved'=>'Resolved','closed'=>'Closed'],$ticket['status']) ?></label><label>Priority<?= sf_admin_select('priority',['low'=>'Low','medium'=>'Medium','high'=>'High','urgent'=>'Urgent'],$ticket['priority']) ?></label></div><div class="sf-admin-form-actions"><button type="submit"<?= sf_admin_form_disabled_attr() ?>>Update Ticket</button></div></form><div class="sf-admin-list"><?php foreach($messages as $m): ?><article class="sf-admin-list-row"><strong><?= sf_admin_h(ucfirst($m['sender_type'])) ?><?= !empty($m['is_internal']) ? ' · Internal' : '' ?></strong><span><?= sf_admin_h($m['created_at']) ?> · <?= sf_admin_h($m['display_name'] ?: $m['email'] ?: '') ?></span><p><?= nl2br(sf_admin_h($m['message'])) ?></p></article><?php endforeach; ?></div><form class="sf-admin-form" method="post"><?= sf_csrf_field() ?><input type="hidden" name="action" value="reply_ticket"><input type="hidden" name="ticket_id" value="<?= (int)$ticket['id'] ?>"><label>Reply<textarea name="message" rows="5" required<?= sf_admin_form_disabled_attr() ?>></textarea></label><label class="sf-admin-check"><input type="checkbox" name="is_internal" value="1"<?= sf_admin_form_disabled_attr() ?>> Internal note only</label><div class="sf-admin-form-actions"><button type="submit"<?= sf_admin_form_disabled_attr() ?>>Add Reply</button></div></form><?php else: ?><p class="sf-admin-copy">No ticket selected.</p><?php endif; ?></aside>
+</section>
+<section class="sf-admin-panel"><div class="sf-admin-panel-head"><div><span class="sf-panel-eyebrow">Create Ticket</span><h2>Admin-created support item</h2></div></div><form class="sf-admin-form" method="post"><?= sf_csrf_field() ?><input type="hidden" name="action" value="create_ticket"><div class="sf-admin-form-grid"><label>Member<select name="user_id"><option value="0">No member / guest</option><?php foreach($members as $m): ?><option value="<?= (int)$m['id'] ?>"><?= sf_admin_h(($m['display_name'] ?: $m['email']) . ' — ' . $m['email']) ?></option><?php endforeach; ?></select></label><label>Category<?= sf_admin_select('category',['account'=>'Account','billing'=>'Billing','technical'=>'Technical','content'=>'Content','merch'=>'Merch','feedback'=>'Feedback','other'=>'Other'],'other') ?></label></div><div class="sf-admin-form-grid"><label>Priority<?= sf_admin_select('priority',['low'=>'Low','medium'=>'Medium','high'=>'High','urgent'=>'Urgent'],'medium') ?></label><label>Subject<input name="subject" required<?= sf_admin_form_disabled_attr() ?>></label></div><label>Body<textarea name="body" rows="4" required<?= sf_admin_form_disabled_attr() ?>></textarea></label><div class="sf-admin-form-actions"><button type="submit"<?= sf_admin_form_disabled_attr() ?>>Create Ticket</button></div></form></section>
+<?php sf_admin_shell_end(); require __DIR__ . '/../includes/footer.php'; ?>

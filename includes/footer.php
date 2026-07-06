@@ -11,6 +11,7 @@
           <a href="<?= sf_url('series.php') ?>">Series</a>
           <a href="<?= sf_url('episodes.php') ?>">Episodes</a>
           <a href="<?= sf_url('music.php') ?>">Music</a>
+          <a href="<?= sf_url('feed.php') ?>">Feed</a>
           <a href="<?= sf_url('search.php') ?>">Search</a>
           <a href="<?= sf_url('cast.php') ?>">Cast</a>
           <a href="<?= sf_url('merch.php') ?>">Merch</a>
@@ -25,6 +26,7 @@
         </div>
         <div>
           <h4>Support</h4>
+          <a href="<?= sf_url('support.php') ?>">Support Center</a>
           <a href="<?= sf_url('signin.php') ?>">Sign In</a>
           <a href="<?= sf_url('signup.php') ?>">Create Account</a>
           <a href="<?= sf_url('forgot-password.php') ?>">Forgot Password</a>
