@@ -1,0 +1,105 @@
+<?php
+$pageTitle = 'Content Import';
+$pageDescription = 'Preview and commit CSV/JSON imports for Stonefellow content records.';
+$pageClass = 'membership-page admin-catalog-page';
+require __DIR__ . '/../includes/importer.php';
+
+$types = sf_importer_types();
+$selectedType = array_key_exists($_GET['type'] ?? '', $types) ? (string)$_GET['type'] : array_key_first($types);
+$preview = null;
+$rawRows = [];
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+  $action = (string)($_POST['action'] ?? 'preview');
+  $selectedType = array_key_exists($_POST['import_type'] ?? '', $types) ? (string)$_POST['import_type'] : $selectedType;
+  if (!sf_importer_tables_ready()) {
+    sf_admin_flash('warning', 'Import tables are not ready. Run migration 011 before previewing or committing imports.');
+    sf_admin_redirect(sf_url('admin/import.php?type=' . urlencode($selectedType)));
+  }
+  try {
+    $rawRows = sf_importer_parse_payload($_FILES['import_file'] ?? null, (string)($_POST['pasted_json'] ?? ''));
+    if (!$rawRows) {
+      sf_admin_flash('error', 'No import rows were found. Upload a CSV/JSON file or paste a JSON array.');
+      sf_admin_redirect(sf_url('admin/import.php?type=' . urlencode($selectedType)));
+    }
+    $preview = sf_importer_preview($selectedType, $rawRows);
+    if ($action === 'commit') {
+      if (!$preview['ok']) {
+        sf_admin_flash('error', 'Import has validation errors. Fix the rows before committing.');
+      } else {
+        $source = trim((string)($_FILES['import_file']['name'] ?? '')) ?: 'pasted-json';
+        $result = sf_importer_run($selectedType, $rawRows, $source);
+        sf_admin_flash(!empty($result['ok']) ? 'success' : 'error', ($result['message'] ?? 'Import completed.') . (!empty($result['batch_id']) ? ' Batch #' . (int)$result['batch_id'] . '.' : ''));
+        sf_admin_redirect(sf_url('admin/seed-manager.php'));
+      }
+    }
+  } catch (Throwable $e) {
+    sf_admin_flash('error', 'Import parse failed: ' . $e->getMessage());
+  }
+}
+
+$samples = sf_importer_sample_rows($selectedType);
+require __DIR__ . '/../includes/header.php';
+sf_admin_shell_start('Content Import', 'Import CSV or JSON content', 'Preview, validate, and commit catalog rows with audit logging and rollback support.', 'import');
+?>
+<section class="sf-admin-card-grid">
+  <a class="sf-admin-action-card" href="<?= sf_url('admin/seed-manager.php') ?>"><span>Seeds</span><strong>Seed Manager</strong><small>Run starter catalog seeds and rollback batches.</small></a>
+  <a class="sf-admin-action-card" href="<?= sf_url('admin/demo-content.php') ?>"><span>Samples</span><strong>Demo Content</strong><small>View starter rows and JSON examples.</small></a>
+  <a class="sf-admin-action-card" href="<?= sf_url('docs/CONTENT_IMPORT_SEED_MANAGER_V1.md') ?>"><span>Docs</span><strong>Import Guide</strong><small>Supported fields, SQL, and workflow notes.</small></a>
+</section>
+
+<section class="sf-admin-two-col sf-admin-two-col-wide">
+  <article class="sf-admin-panel">
+    <div class="sf-admin-panel-head">
+      <div><span class="sf-panel-eyebrow">Upload + Preview</span><h2><?= sf_admin_h($types[$selectedType] ?? 'Import') ?></h2></div>
+    </div>
+    <form class="sf-admin-form" method="post" enctype="multipart/form-data">
+      <?= sf_csrf_field() ?>
+      <input type="hidden" name="action" value="preview">
+      <label>Import Type
+        <select name="import_type">
+          <?php foreach ($types as $type => $label): ?>
+            <option value="<?= sf_admin_h($type) ?>" <?= $type === $selectedType ? 'selected' : '' ?>><?= sf_admin_h($label) ?></option>
+          <?php endforeach; ?>
+        </select>
+      </label>
+      <label>CSV or JSON File <input type="file" name="import_file" accept=".csv,.json"></label>
+      <label>Or Paste JSON Rows <textarea name="pasted_json" rows="10" placeholder='[{"title":"The Road Is Calling","slug":"the-road-is-calling"}]'><?= sf_admin_h((string)($_POST['pasted_json'] ?? '')) ?></textarea></label>
+      <div class="sf-admin-form-actions">
+        <button type="submit">Preview Import</button>
+        <button type="submit" name="action" value="commit" onclick="return confirm('Commit this import after validation?')">Commit Import</button>
+      </div>
+    </form>
+  </article>
+
+  <article class="sf-admin-panel">
+    <div class="sf-admin-panel-head"><div><span class="sf-panel-eyebrow">Sample</span><h2>Starter row</h2></div><a href="<?= sf_url('admin/import.php?type=' . urlencode($selectedType)) ?>">Reset</a></div>
+    <pre class="sf-admin-code"><code><?= sf_admin_h(json_encode($samples, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES)) ?></code></pre>
+    <p class="sf-admin-copy">CSV headers use the same field names as the JSON keys. Slug fields can be omitted for albums, songs, videos, products, plans, and episodes when a title or name is present.</p>
+  </article>
+</section>
+
+<?php if ($preview): ?>
+<section class="sf-admin-panel">
+  <div class="sf-admin-panel-head">
+    <div><span class="sf-panel-eyebrow">Preview Result</span><h2><?= (int)$preview['total'] ?> rows / <?= (int)$preview['errors'] ?> errors</h2></div>
+  </div>
+  <div class="sf-admin-table-wrap">
+    <table class="sf-admin-table">
+      <thead><tr><th>Row</th><th>Status</th><th>Unique Key</th><th>Payload</th><th>Errors</th></tr></thead>
+      <tbody>
+        <?php foreach ($preview['rows'] as $item): ?>
+          <tr>
+            <td>#<?= (int)$item['row_number'] ?></td>
+            <td><?= !empty($item['ok']) ? '<span class="sf-admin-status sf-admin-status-published">Ready</span>' : '<span class="sf-admin-status sf-admin-status-draft">Fix</span>' ?></td>
+            <td><small><?= sf_admin_h($item['unique_key'] ?? '') ?></small></td>
+            <td><pre class="sf-admin-table-pre"><?= sf_admin_h(json_encode($item['payload'] ?? [], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES)) ?></pre></td>
+            <td><?= sf_admin_h(implode('; ', $item['errors'] ?? [])) ?></td>
+          </tr>
+        <?php endforeach; ?>
+      </tbody>
+    </table>
+  </div>
+</section>
+<?php endif; ?>
+<?php sf_admin_shell_end(); require __DIR__ . '/../includes/footer.php'; ?>
