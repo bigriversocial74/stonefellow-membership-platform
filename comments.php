@@ -6,7 +6,11 @@ $slug = trim((string)($_GET['slug'] ?? $_POST['slug'] ?? ''));
 if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
   if (!sf_verify_csrf($_POST['csrf_token'] ?? null)) { sf_auth_flash('error', 'Security check failed.'); sf_redirect(sf_url('comments.php')); }
   $user = sf_require_login();
-  $result = sf_comment_create((int)$user['id'], $contentType, $contentId, $slug, (string)($_POST['body'] ?? ''), isset($_POST['parent_comment_id']) ? (int)$_POST['parent_comment_id'] : null);
+  if (($_POST['action'] ?? '') === 'react') {
+    $result = sf_comment_react((int)$user['id'], (string)($_POST['target_type'] ?? 'comment'), (int)($_POST['target_id'] ?? 0), (string)($_POST['reaction_type'] ?? 'like'));
+  } else {
+    $result = sf_comment_create((int)$user['id'], $contentType, $contentId, $slug, (string)($_POST['body'] ?? ''), isset($_POST['parent_comment_id']) ? (int)$_POST['parent_comment_id'] : null);
+  }
   sf_auth_flash(!empty($result['ok']) ? 'success' : 'error', $result['message'] ?? 'Comment action complete.');
   sf_redirect(sf_url('comments.php?content_type=' . urlencode($contentType) . '&content_id=' . $contentId . ($slug ? '&slug=' . urlencode($slug) : '')));
 }
@@ -32,7 +36,7 @@ require __DIR__ . '/includes/header.php';
   </section>
   <section class="sf-member-section">
     <div class="sf-member-section-head"><div><span class="sf-panel-eyebrow">Community</span><h2><?= count($comments) ?> approved comments</h2></div></div>
-    <div class="sf-admin-list"><?php foreach ($comments as $comment): ?><article class="sf-admin-list-row"><strong><?= htmlspecialchars($comment['author_name'] ?? $comment['display_name'] ?? $comment['email'] ?? 'Member') ?></strong><span><?= htmlspecialchars($comment['created_at'] ?? '') ?></span><p><?= nl2br(htmlspecialchars($comment['body'] ?? '')) ?></p><em><?= (int)($comment['reaction_count'] ?? 0) ?> reactions</em><?php if (sf_auth_user()): ?><form method="post" action="<?= sf_url('api/comments.php') ?>"><input type="hidden" name="action" value="react"><input type="hidden" name="target_type" value="comment"><input type="hidden" name="target_id" value="<?= (int)($comment['id'] ?? 0) ?>"><button class="sf-secondary-action" type="submit">Like</button></form><?php endif; ?></article><?php endforeach; ?><?php if (!$comments): ?><article class="sf-admin-list-row"><strong>No approved comments yet.</strong><p>Be the first to start the thread.</p></article><?php endif; ?></div>
+    <div class="sf-admin-list"><?php foreach ($comments as $comment): ?><article class="sf-admin-list-row"><strong><?= htmlspecialchars($comment['author_name'] ?? $comment['display_name'] ?? $comment['email'] ?? 'Member') ?></strong><span><?= htmlspecialchars($comment['created_at'] ?? '') ?></span><p><?= nl2br(htmlspecialchars($comment['body'] ?? '')) ?></p><em><?= (int)($comment['reaction_count'] ?? 0) ?> reactions</em><?php if (sf_auth_user()): ?><form method="post"><?= sf_csrf_field() ?><input type="hidden" name="content_type" value="<?= htmlspecialchars($contentType) ?>"><input type="hidden" name="content_id" value="<?= (int)$contentId ?>"><input type="hidden" name="slug" value="<?= htmlspecialchars($slug) ?>"><input type="hidden" name="action" value="react"><input type="hidden" name="target_type" value="comment"><input type="hidden" name="target_id" value="<?= (int)($comment['id'] ?? 0) ?>"><button class="sf-secondary-action" type="submit">Like</button></form><?php endif; ?></article><?php endforeach; ?><?php if (!$comments): ?><article class="sf-admin-list-row"><strong>No approved comments yet.</strong><p>Be the first to start the thread.</p></article><?php endif; ?></div>
   </section>
 </section>
 <?php require __DIR__ . '/includes/footer.php'; ?>
