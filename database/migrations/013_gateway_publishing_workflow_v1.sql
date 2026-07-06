@@ -1,4 +1,4 @@
--- Stonefellow migration 013: gateway production pass, publishing workflow, member library, search discovery, and activity ops.
+-- Stonefellow migration 013: gateway production pass, publishing workflow, library, search, activity ops, notifications, and comments.
 -- Run after migration 012.
 
 CREATE TABLE IF NOT EXISTS publishing_events (
@@ -115,6 +115,73 @@ CREATE TABLE IF NOT EXISTS content_ops_tasks (
   UNIQUE KEY uniq_content_ops_task_key (task_key),
   INDEX idx_content_ops_tasks_status (status, priority, due_at),
   CONSTRAINT fk_content_ops_tasks_user FOREIGN KEY (assigned_user_id) REFERENCES users(id) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS member_notifications (
+  id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  user_id INT NOT NULL,
+  notification_type VARCHAR(80) NOT NULL DEFAULT 'system',
+  title VARCHAR(190) NOT NULL,
+  body TEXT DEFAULT NULL,
+  action_url VARCHAR(255) DEFAULT NULL,
+  status ENUM('unread','read','dismissed') NOT NULL DEFAULT 'unread',
+  metadata_json JSON DEFAULT NULL,
+  read_at DATETIME DEFAULT NULL,
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP NULL DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP,
+  INDEX idx_member_notifications_user_status (user_id, status, created_at),
+  INDEX idx_member_notifications_type (notification_type, created_at),
+  CONSTRAINT fk_member_notifications_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS fan_comments (
+  id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  user_id INT NOT NULL,
+  parent_comment_id BIGINT UNSIGNED DEFAULT NULL,
+  content_type ENUM('episode','video','song','album','post','product') NOT NULL,
+  content_id INT NOT NULL DEFAULT 0,
+  content_slug VARCHAR(190) DEFAULT NULL,
+  body TEXT NOT NULL,
+  status ENUM('pending','approved','rejected','hidden','spam') NOT NULL DEFAULT 'pending',
+  is_pinned TINYINT(1) NOT NULL DEFAULT 0,
+  reaction_count INT NOT NULL DEFAULT 0,
+  ip_address VARCHAR(64) DEFAULT NULL,
+  user_agent VARCHAR(255) DEFAULT NULL,
+  moderated_by_user_id INT DEFAULT NULL,
+  moderated_at DATETIME DEFAULT NULL,
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP NULL DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP,
+  INDEX idx_fan_comments_content (content_type, content_id, content_slug, status, created_at),
+  INDEX idx_fan_comments_user (user_id, created_at),
+  INDEX idx_fan_comments_parent (parent_comment_id),
+  CONSTRAINT fk_fan_comments_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+  CONSTRAINT fk_fan_comments_parent FOREIGN KEY (parent_comment_id) REFERENCES fan_comments(id) ON DELETE CASCADE,
+  CONSTRAINT fk_fan_comments_moderator FOREIGN KEY (moderated_by_user_id) REFERENCES users(id) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS fan_reactions (
+  id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  user_id INT NOT NULL,
+  target_type ENUM('comment','episode','video','song','album','post','product') NOT NULL,
+  target_id INT NOT NULL,
+  reaction_type ENUM('like','love','fire','laugh','wow') NOT NULL DEFAULT 'like',
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP NULL DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP,
+  UNIQUE KEY uniq_fan_reaction (user_id, target_type, target_id),
+  INDEX idx_fan_reactions_target (target_type, target_id, reaction_type),
+  CONSTRAINT fk_fan_reactions_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS comment_moderation_events (
+  id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  comment_id BIGINT UNSIGNED NOT NULL,
+  moderator_user_id INT DEFAULT NULL,
+  action VARCHAR(60) NOT NULL,
+  note TEXT DEFAULT NULL,
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  INDEX idx_comment_moderation_events_comment (comment_id, created_at),
+  CONSTRAINT fk_comment_moderation_comment FOREIGN KEY (comment_id) REFERENCES fan_comments(id) ON DELETE CASCADE,
+  CONSTRAINT fk_comment_moderation_user FOREIGN KEY (moderator_user_id) REFERENCES users(id) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 INSERT INTO payment_gateway_settings (provider, mode, public_key, webhook_endpoint, status, metadata_json)

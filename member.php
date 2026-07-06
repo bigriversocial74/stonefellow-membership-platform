@@ -1,12 +1,15 @@
 <?php
 require __DIR__ . '/includes/library.php';
+require_once __DIR__ . '/includes/engagement.php';
 
 $user = sf_require_login();
 $member = sf_member_snapshot();
 $librarySummary = sf_library_summary((int)$user['id']);
 $libraryItems = sf_library_items((int)$user['id']);
+$notificationSummary = sf_member_notification_summary((int)$user['id']);
+$commentSummary = sf_comment_summary();
 $pageTitle = 'Member Dashboard';
-$pageDescription = 'Stonefellow member dashboard for library, watchlist, video progress, audio history, playlists, and access status.';
+$pageDescription = 'Stonefellow member dashboard for notifications, comments, library, watchlist, video progress, audio history, playlists, and access status.';
 $pageClass = 'member-dashboard-page membership-page';
 require __DIR__ . '/includes/header.php';
 ?>
@@ -15,26 +18,28 @@ require __DIR__ . '/includes/header.php';
     <div>
       <span class="sf-panel-eyebrow">Membership</span>
       <h1>Your Stonefellow home base</h1>
-      <p>One place for member access, saved library items, watchlist, episode progress, audio tracking, private playlists, and premium unlocks.</p>
+      <p>One place for member access, notifications, fan comments, saved library items, watchlist, episode progress, audio tracking, private playlists, and premium unlocks.</p>
       <div class="sf-episode-action-row">
         <a class="sf-primary-action" href="<?= sf_url('library.php') ?>">My Library</a>
-        <a class="sf-secondary-action" href="<?= sf_url('watchlist.php') ?>">Watchlist</a>
-        <a class="sf-secondary-action" href="<?= sf_url('search.php') ?>">Search</a>
+        <a class="sf-secondary-action" href="<?= sf_url('notifications.php') ?>">Notifications</a>
+        <a class="sf-secondary-action" href="<?= sf_url('comments.php') ?>">Comments</a>
         <a class="sf-secondary-action" href="<?= sf_url('account-billing.php') ?>">Billing</a>
       </div>
     </div>
     <article class="sf-member-status-card">
       <span>Current Access</span>
       <strong><?= htmlspecialchars($member['access_label']) ?></strong>
-      <small><?= (int)$librarySummary['total'] ?> library items · <?= $member['can_watch_episodes'] ? 'streaming enabled' : 'subscribe to unlock full streaming' ?></small>
-      <a href="<?= sf_url('account-billing.php') ?>">Manage Billing</a>
+      <small><?= (int)$notificationSummary['unread'] ?> unread notifications · <?= (int)$librarySummary['total'] ?> library items</small>
+      <a href="<?= sf_url('notifications.php') ?>">Open Notifications</a>
     </article>
   </section>
 
   <section class="sf-member-grid">
+    <article class="sf-member-panel"><span class="sf-panel-eyebrow">Notifications</span><h2><?= (int)$notificationSummary['unread'] ?></h2><p>Unread member center updates for comments, account, billing, and streaming.</p><a href="<?= sf_url('notifications.php') ?>">Open Inbox</a></article>
+    <article class="sf-member-panel"><span class="sf-panel-eyebrow">Comments</span><h2><?= (int)$commentSummary['comments'] ?></h2><p>Fan threads and reactions across episodes, videos, songs, and posts.</p><a href="<?= sf_url('comments.php') ?>">Open Comments</a></article>
     <article class="sf-member-panel"><span class="sf-panel-eyebrow">Library</span><h2><?= (int)$librarySummary['total'] ?></h2><p>Saved songs, videos, albums, episodes, merch, and completed content.</p><a href="<?= sf_url('library.php') ?>">Open Library</a></article>
     <article class="sf-member-panel"><span class="sf-panel-eyebrow">Watchlist</span><h2><?= (int)$librarySummary['watchlist'] ?></h2><p>Your next episodes, videos, and live sessions.</p><a href="<?= sf_url('watchlist.php') ?>">Open Watchlist</a></article>
-    <article class="sf-member-panel"><span class="sf-panel-eyebrow">Playlists</span><h2><?= count($memberPlaylists) ?></h2><p>Private playlists are limited to signed-in members and stored against the user account.</p><a href="<?= sf_url('playlists.php') ?>">Manage Playlists</a></article>
+    <article class="sf-member-panel"><span class="sf-panel-eyebrow">Playlists</span><h2><?= count($memberPlaylists) ?></h2><p>Private playlists are limited to signed-in members.</p><a href="<?= sf_url('playlists.php') ?>">Manage Playlists</a></article>
   </section>
 
   <section class="sf-member-section">
