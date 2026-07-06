@@ -82,21 +82,24 @@ function sf_load_site_settings(): void {
 }
 
 function sf_system_health_checks(): array {
+  global $database;
   $root = realpath(__DIR__ . '/..') ?: dirname(__DIR__);
   $checks = [];
   $checks[] = ['label' => 'PHP version 8.1+', 'ok' => version_compare(PHP_VERSION, '8.1.0', '>='), 'detail' => PHP_VERSION];
   $checks[] = ['label' => 'PDO extension', 'ok' => extension_loaded('pdo'), 'detail' => extension_loaded('pdo') ? 'Loaded' : 'Missing'];
   $checks[] = ['label' => 'PDO MySQL extension', 'ok' => extension_loaded('pdo_mysql'), 'detail' => extension_loaded('pdo_mysql') ? 'Loaded' : 'Missing'];
   $checks[] = ['label' => 'mbstring extension', 'ok' => extension_loaded('mbstring'), 'detail' => extension_loaded('mbstring') ? 'Loaded' : 'Optional fallback active'];
-  $checks[] = ['label' => 'Database credentials', 'ok' => getenv('SF_DB_HOST') && getenv('SF_DB_NAME') && getenv('SF_DB_USER'), 'detail' => getenv('SF_DB_HOST') ? 'Configured' : 'Not configured'];
+  $hasDb = !empty($database['host']) && !empty($database['name']) && !empty($database['user']);
+  $checks[] = ['label' => 'Database credentials', 'ok' => $hasDb, 'detail' => $hasDb ? 'Configured' : 'Not configured'];
   $checks[] = ['label' => 'Database connection', 'ok' => sf_db() instanceof PDO, 'detail' => sf_db() instanceof PDO ? 'Connected' : 'Static/no-database mode'];
-  foreach (['media_assets','users','subscription_plans','songs','episodes','videos','products','orders','email_templates','site_settings'] as $table) {
+  foreach (['media_assets','users','subscription_plans','songs','episodes','videos','products','orders','email_templates','site_settings','schema_migrations'] as $table) {
     $checks[] = ['label' => 'Table: ' . $table, 'ok' => sf_settings_table_exists($table), 'detail' => sf_settings_table_exists($table) ? 'Installed' : 'Missing/not checked'];
   }
-  foreach (['assets/images/uploads','assets/audio/uploads','assets/video/uploads','assets/documents/uploads'] as $dir) {
+  foreach (['assets/images/uploads','assets/audio/uploads','assets/video/uploads','assets/documents/uploads','config','storage'] as $dir) {
     $path = $root . '/' . $dir;
     $checks[] = ['label' => 'Writable: ' . $dir, 'ok' => is_dir($path) && is_writable($path), 'detail' => is_dir($path) ? (is_writable($path) ? 'Writable' : 'Not writable') : 'Missing'];
   }
+  $checks[] = ['label' => 'Installer lock', 'ok' => function_exists('sf_is_installed') ? sf_is_installed() : is_file($root . '/storage/install.lock'), 'detail' => is_file($root . '/storage/install.lock') ? 'Locked' : 'Installer open'];
   return $checks;
 }
 
