@@ -130,3 +130,7 @@ VALUES
   ('revenue_snapshot_daily','revenue_snapshot','Revenue snapshot','Save daily launch revenue dashboard snapshot.', 'daily', '23:00:00', 'active', DATE_ADD(NOW(), INTERVAL 1 DAY), NULL),
   ('engagement_score_refresh_weekly','engagement_score_refresh','Engagement score refresh','Recalculate member engagement scores weekly.', 'weekly', '07:00:00', 'active', DATE_ADD(NOW(), INTERVAL 7 DAY), NULL)
 ON DUPLICATE KEY UPDATE title=VALUES(title), description=VALUES(description), job_type=VALUES(job_type), frequency=VALUES(frequency), schedule_time=VALUES(schedule_time), status=VALUES(status);
+
+INSERT INTO email_templates (template_key, name, category, subject, html_body, text_body, variables_json, status)
+VALUES ('member_message_notice','Member Message Notice','member','{{message_subject}}','<h1>{{message_subject}}</h1><p>{{message_body}}</p><p><a href="{{action_url}}">Open message</a></p>','{{message_subject}}\n\n{{message_text}}\n\n{{action_url}}', JSON_ARRAY('message_subject','message_body','message_text','action_url'), 'active')
+ON DUPLICATE KEY UPDATE name=VALUES(name), category=VALUES(category), subject=VALUES(subject), html_body=VALUES(html_body), text_body=VALUES(text_body), variables_json=VALUES(variables_json), status=VALUES(status), updated_at=NOW();
