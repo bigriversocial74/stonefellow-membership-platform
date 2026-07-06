@@ -11,11 +11,14 @@
           <a href="<?= sf_url('series.php') ?>">Series</a>
           <a href="<?= sf_url('episodes.php') ?>">Episodes</a>
           <a href="<?= sf_url('music.php') ?>">Music</a>
+          <a href="<?= sf_url('search.php') ?>">Search</a>
           <a href="<?= sf_url('cast.php') ?>">Cast</a>
           <a href="<?= sf_url('merch.php') ?>">Merch</a>
           <a href="<?= sf_url('cart.php') ?>">Cart</a>
           <a href="<?= sf_url('checkout.php') ?>">Checkout</a>
           <a href="<?= sf_url('member.php') ?>">Member Dashboard</a>
+          <a href="<?= sf_url('library.php') ?>">Library</a>
+          <a href="<?= sf_url('watchlist.php') ?>">Watchlist</a>
           <a href="<?= sf_url('account.php') ?>">Account</a>
           <a href="<?= sf_url('playlists.php') ?>">Playlists</a>
           <a href="<?= sf_url('admin/index.php') ?>">Admin</a>
@@ -25,6 +28,7 @@
           <a href="<?= sf_url('signin.php') ?>">Sign In</a>
           <a href="<?= sf_url('signup.php') ?>">Create Account</a>
           <a href="<?= sf_url('forgot-password.php') ?>">Forgot Password</a>
+          <a href="<?= sf_url('offline.php') ?>">Offline Shell</a>
           <a href="<?= sf_url('logout.php') ?>">Logout</a>
         </div>
       </div>
@@ -45,5 +49,6 @@
     </div>
   </footer>
   <script src="<?= sf_asset('js/stonefellow.js') ?>"></script>
+  <script src="<?= sf_asset('js/pwa-upload.js') ?>"></script>
 </body>
 </html>
