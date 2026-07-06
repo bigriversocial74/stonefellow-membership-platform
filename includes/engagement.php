@@ -1,0 +1,110 @@
+<?php
+require_once __DIR__ . '/membership.php';
+require_once __DIR__ . '/notifications.php';
+require_once __DIR__ . '/data.php';
+
+function sf_eng_db(): ?PDO { return sf_db(); }
+function sf_eng_table_exists(string $table): bool { $pdo = sf_eng_db(); if (!$pdo) return false; try { $s = $pdo->prepare('SHOW TABLES LIKE ?'); $s->execute([$table]); return (bool)$s->fetchColumn(); } catch (Throwable $e) { return false; } }
+function sf_eng_fetch_all(string $sql, array $params = []): array { $pdo = sf_eng_db(); if (!$pdo) return []; try { $s = $pdo->prepare($sql); $s->execute($params); return $s->fetchAll() ?: []; } catch (Throwable $e) { error_log('Stonefellow engagement fetch failed: ' . $e->getMessage()); return []; } }
+function sf_eng_fetch_one(string $sql, array $params = []): ?array { $rows = sf_eng_fetch_all($sql, $params); return $rows[0] ?? null; }
+function sf_eng_execute(string $sql, array $params = []): bool { $pdo = sf_eng_db(); if (!$pdo) return false; try { $s = $pdo->prepare($sql); return $s->execute($params); } catch (Throwable $e) { error_log('Stonefellow engagement execute failed: ' . $e->getMessage()); return false; } }
+function sf_eng_h($value): string { return htmlspecialchars((string)$value, ENT_QUOTES, 'UTF-8'); }
+function sf_eng_content_url(string $type, string $slug = '', int $id = 0): string { $slug = trim($slug); if ($type === 'episode') return sf_url('episode.php' . ($slug ? '?slug=' . urlencode($slug) : '')); if ($type === 'video') return sf_url('watch.php' . ($slug ? '?slug=' . urlencode($slug) : '')); if ($type === 'song') return sf_url('song.php' . ($slug ? '?slug=' . urlencode($slug) : '')); if ($type === 'album') return sf_url('album.php' . ($slug ? '?slug=' . urlencode($slug) : '')); if ($type === 'post') return sf_url('comments.php?content_type=post&content_id=' . $id); return sf_url('comments.php?content_type=' . urlencode($type) . '&content_id=' . $id); }
+
+function sf_member_notification_static(): array {
+  $logs = function_exists('sf_notify_recent_logs') ? sf_notify_recent_logs(20) : [];
+  $rows = [];
+  foreach ($logs as $log) {
+    $rows[] = ['id'=>(int)($log['id'] ?? 0),'title'=>$log['subject'] ?? 'Stonefellow notification','body'=>$log['body_preview'] ?? ($log['rendered_text'] ?? ''),'notification_type'=>$log['notification_type'] ?? 'system','status'=>($log['status'] ?? '') === 'sent' ? 'read' : 'unread','action_url'=>sf_url('notifications.php'),'created_at'=>$log['created_at'] ?? date('Y-m-d H:i:s')];
+  }
+  if ($rows) return $rows;
+  return [
+    ['id'=>1,'title'=>'Welcome to Stonefellow','body'=>'Your member dashboard, library, watchlist, comments, and streaming access are ready.','notification_type'=>'welcome','status'=>'unread','action_url'=>sf_url('member.php'),'created_at'=>date('Y-m-d H:i:s')],
+    ['id'=>2,'title'=>'Follow the soundtrack','body'=>'Open the player and save your favorite songs to your library.','notification_type'=>'music','status'=>'unread','action_url'=>sf_url('player.php'),'created_at'=>date('Y-m-d H:i:s')],
+  ];
+}
+function sf_member_notifications(int $userId, string $status = '', int $limit = 100): array {
+  $limit = max(1, min(200, $limit));
+  if (!$userId || !sf_eng_table_exists('member_notifications')) return sf_member_notification_static();
+  $where = 'WHERE user_id = ?'; $params = [$userId];
+  if ($status !== '') { $where .= ' AND status = ?'; $params[] = $status; }
+  return sf_eng_fetch_all("SELECT * FROM member_notifications {$where} ORDER BY created_at DESC, id DESC LIMIT {$limit}", $params);
+}
+function sf_member_notification_summary(int $userId): array {
+  $summary = ['total'=>0,'unread'=>0,'read'=>0,'dismissed'=>0];
+  if (!$userId || !sf_eng_table_exists('member_notifications')) { $rows = sf_member_notification_static(); foreach ($rows as $row) { $summary['total']++; $summary[(string)($row['status'] ?? 'unread')] = ($summary[(string)($row['status'] ?? 'unread')] ?? 0) + 1; } return $summary; }
+  $rows = sf_eng_fetch_all('SELECT status, COUNT(*) AS total FROM member_notifications WHERE user_id = ? GROUP BY status', [$userId]);
+  foreach ($rows as $row) { $status = (string)$row['status']; $summary[$status] = (int)$row['total']; $summary['total'] += (int)$row['total']; }
+  return $summary;
+}
+function sf_member_notification_create(int $userId, string $title, string $body = '', string $type = 'system', string $url = '', array $meta = []): int {
+  if (!$userId || !sf_eng_table_exists('member_notifications')) return 0;
+  $ok = sf_eng_execute('INSERT INTO member_notifications (user_id, notification_type, title, body, action_url, status, metadata_json) VALUES (?, ?, ?, ?, ?, "unread", ?)', [$userId, $type, $title, $body, $url, json_encode($meta, JSON_UNESCAPED_SLASHES)]);
+  return $ok ? (int)(sf_eng_db()?->lastInsertId() ?: 0) : 0;
+}
+function sf_member_notification_update(int $userId, int $id, string $status): bool {
+  if (!$userId || $id <= 0 || !in_array($status, ['unread','read','dismissed'], true) || !sf_eng_table_exists('member_notifications')) return false;
+  $readSql = $status === 'read' ? ', read_at = COALESCE(read_at, NOW())' : '';
+  return sf_eng_execute("UPDATE member_notifications SET status = ?{$readSql}, updated_at = NOW() WHERE id = ? AND user_id = ?", [$status, $id, $userId]);
+}
+function sf_member_notifications_mark_all_read(int $userId): bool { if (!$userId || !sf_eng_table_exists('member_notifications')) return false; return sf_eng_execute("UPDATE member_notifications SET status='read', read_at=COALESCE(read_at, NOW()), updated_at=NOW() WHERE user_id=? AND status='unread'", [$userId]); }
+
+function sf_comment_static(string $type = 'episode', int $id = 0): array {
+  return [
+    ['id'=>1,'author_name'=>'Stonefellow Fan','body'=>'This chapter feels like the story and music are starting to collide.','status'=>'approved','reaction_count'=>8,'created_at'=>date('Y-m-d H:i:s', time()-3600)],
+    ['id'=>2,'author_name'=>'Member Preview','body'=>'The fan engagement layer is ready for database-backed comments after install.','status'=>'approved','reaction_count'=>3,'created_at'=>date('Y-m-d H:i:s', time()-7200)],
+  ];
+}
+function sf_comments_for(string $type, int $id = 0, string $slug = '', string $status = 'approved', int $limit = 100): array {
+  $limit = max(1, min(200, $limit));
+  if (!sf_eng_table_exists('fan_comments')) return sf_comment_static($type, $id);
+  $where = 'WHERE content_type = ?'; $params = [$type];
+  if ($id > 0) { $where .= ' AND content_id = ?'; $params[] = $id; }
+  if ($slug !== '') { $where .= ' AND content_slug = ?'; $params[] = $slug; }
+  if ($status !== '') { $where .= ' AND status = ?'; $params[] = $status; }
+  return sf_eng_fetch_all("SELECT fc.*, u.display_name, u.email FROM fan_comments fc LEFT JOIN users u ON u.id=fc.user_id {$where} ORDER BY fc.is_pinned DESC, fc.created_at DESC, fc.id DESC LIMIT {$limit}", $params);
+}
+function sf_comment_create(int $userId, string $type, int $id, string $slug, string $body, ?int $parentId = null): array {
+  $body = trim($body);
+  $type = strtolower(trim($type));
+  if (!$userId) return ['ok'=>false,'message'=>'Login required.'];
+  if ($body === '' || strlen($body) > 2000) return ['ok'=>false,'message'=>'Comment must be 1–2000 characters.'];
+  if (!in_array($type, ['episode','video','song','album','post','product'], true)) return ['ok'=>false,'message'=>'Unsupported content type.'];
+  if (!sf_eng_table_exists('fan_comments')) return ['ok'=>true,'message'=>'Comment preview accepted. Database comments are not installed yet.'];
+  $requiresApproval = (getenv('SF_COMMENTS_REQUIRE_APPROVAL') ?: '1') !== '0';
+  $status = sf_current_access_level() === 'admin' || !$requiresApproval ? 'approved' : 'pending';
+  $ok = sf_eng_execute('INSERT INTO fan_comments (user_id, parent_comment_id, content_type, content_id, content_slug, body, status, ip_address, user_agent) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)', [$userId, $parentId, $type, $id, $slug ?: null, $body, $status, $_SERVER['REMOTE_ADDR'] ?? null, substr((string)($_SERVER['HTTP_USER_AGENT'] ?? ''), 0, 255)]);
+  $commentId = $ok ? (int)(sf_eng_db()?->lastInsertId() ?: 0) : 0;
+  if ($commentId && sf_eng_table_exists('member_activity_events')) {
+    sf_eng_execute('INSERT INTO member_activity_events (user_id, event_type, event_group, content_type, content_id, title, detail, action_url, severity) VALUES (?, "comment_created", "activity", ?, ?, ?, ?, ?, ?)', [$userId, $type, $id, 'New comment posted', substr($body, 0, 160), sf_eng_content_url($type, $slug, $id), $status === 'pending' ? 'warning' : 'info']);
+  }
+  return ['ok'=>$ok,'message'=>$status === 'pending' ? 'Comment submitted for moderation.' : 'Comment posted.','status'=>$status,'comment_id'=>$commentId];
+}
+function sf_comment_update_status(int $commentId, string $status): bool {
+  if ($commentId <= 0 || !in_array($status, ['pending','approved','rejected','hidden','spam'], true) || !sf_eng_table_exists('fan_comments')) return false;
+  $ok = sf_eng_execute('UPDATE fan_comments SET status=?, moderated_by_user_id=?, moderated_at=NOW(), updated_at=NOW() WHERE id=?', [$status, sf_current_user_id(), $commentId]);
+  if ($ok && sf_eng_table_exists('comment_moderation_events')) sf_eng_execute('INSERT INTO comment_moderation_events (comment_id, moderator_user_id, action, created_at) VALUES (?, ?, ?, NOW())', [$commentId, sf_current_user_id(), $status]);
+  return $ok;
+}
+function sf_comment_react(int $userId, string $type, int $targetId, string $reaction = 'like'): array {
+  if (!$userId) return ['ok'=>false,'message'=>'Login required.'];
+  if (!in_array($type, ['comment','episode','video','song','album','post','product'], true)) return ['ok'=>false,'message'=>'Unsupported target.'];
+  if (!in_array($reaction, ['like','love','fire','laugh','wow'], true)) $reaction = 'like';
+  if (!sf_eng_table_exists('fan_reactions')) return ['ok'=>true,'message'=>'Reaction preview accepted.'];
+  $ok = sf_eng_execute('INSERT INTO fan_reactions (user_id, target_type, target_id, reaction_type) VALUES (?, ?, ?, ?) ON DUPLICATE KEY UPDATE reaction_type=VALUES(reaction_type), updated_at=NOW()', [$userId, $type, $targetId, $reaction]);
+  return ['ok'=>$ok,'message'=>$ok?'Reaction saved.':'Reaction failed.'];
+}
+function sf_comment_summary(): array {
+  $summary = ['comments'=>0,'pending'=>0,'approved'=>0,'hidden'=>0,'reactions'=>0];
+  if (sf_eng_table_exists('fan_comments')) { $rows = sf_eng_fetch_all('SELECT status, COUNT(*) AS total FROM fan_comments GROUP BY status'); foreach ($rows as $row) { $status=(string)$row['status']; $summary[$status] = (int)$row['total']; $summary['comments'] += (int)$row['total']; } }
+  if (sf_eng_table_exists('fan_reactions')) $summary['reactions'] = (int)(sf_eng_fetch_one('SELECT COUNT(*) AS total FROM fan_reactions')['total'] ?? 0);
+  if (!$summary['comments']) $summary['comments'] = count(sf_comment_static());
+  return $summary;
+}
+function sf_comment_moderation_queue(int $limit = 100): array {
+  $limit = max(1, min(200, $limit));
+  if (!sf_eng_table_exists('fan_comments')) return sf_comment_static();
+  return sf_eng_fetch_all("SELECT fc.*, u.email, u.display_name FROM fan_comments fc LEFT JOIN users u ON u.id=fc.user_id WHERE fc.status IN ('pending','hidden','spam') ORDER BY fc.created_at ASC, fc.id ASC LIMIT {$limit}");
+}
+function sf_engagement_dashboard(): array { return ['notifications'=>sf_member_notification_summary(sf_current_user_id() ?: 0),'comments'=>sf_comment_summary(),'queue'=>sf_comment_moderation_queue(20)]; }
+?>
