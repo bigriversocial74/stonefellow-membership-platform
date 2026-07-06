@@ -1,6 +1,7 @@
 <?php
 require __DIR__ . '/includes/library.php';
 require_once __DIR__ . '/includes/engagement.php';
+require_once __DIR__ . '/includes/ops_scheduler_messaging.php';
 
 $user = sf_require_login();
 $member = sf_member_snapshot();
@@ -8,8 +9,9 @@ $librarySummary = sf_library_summary((int)$user['id']);
 $libraryItems = sf_library_items((int)$user['id']);
 $notificationSummary = sf_member_notification_summary((int)$user['id']);
 $commentSummary = sf_comment_summary();
+$messageUnread = count(sf_msg_member_messages((int)$user['id'], 'unread', 200));
 $pageTitle = 'Member Dashboard';
-$pageDescription = 'Stonefellow member dashboard for notifications, comments, library, watchlist, video progress, audio history, playlists, and access status.';
+$pageDescription = 'Stonefellow member dashboard for messages, notifications, comments, library, watchlist, video progress, audio history, playlists, and access status.';
 $pageClass = 'member-dashboard-page membership-page';
 require __DIR__ . '/includes/header.php';
 ?>
@@ -18,23 +20,24 @@ require __DIR__ . '/includes/header.php';
     <div>
       <span class="sf-panel-eyebrow">Membership</span>
       <h1>Your Stonefellow home base</h1>
-      <p>One place for member access, notifications, fan comments, saved library items, watchlist, episode progress, audio tracking, private playlists, and premium unlocks.</p>
+      <p>One place for member access, messages, notifications, fan comments, saved library items, watchlist, episode progress, audio tracking, private playlists, and premium unlocks.</p>
       <div class="sf-episode-action-row">
         <a class="sf-primary-action" href="<?= sf_url('library.php') ?>">My Library</a>
+        <a class="sf-secondary-action" href="<?= sf_url('messages.php') ?>">Messages</a>
         <a class="sf-secondary-action" href="<?= sf_url('notifications.php') ?>">Notifications</a>
-        <a class="sf-secondary-action" href="<?= sf_url('comments.php') ?>">Comments</a>
         <a class="sf-secondary-action" href="<?= sf_url('account-billing.php') ?>">Billing</a>
       </div>
     </div>
     <article class="sf-member-status-card">
       <span>Current Access</span>
       <strong><?= htmlspecialchars($member['access_label']) ?></strong>
-      <small><?= (int)$notificationSummary['unread'] ?> unread notifications · <?= (int)$librarySummary['total'] ?> library items</small>
-      <a href="<?= sf_url('notifications.php') ?>">Open Notifications</a>
+      <small><?= (int)$messageUnread ?> unread messages · <?= (int)$notificationSummary['unread'] ?> unread notifications</small>
+      <a href="<?= sf_url('messages.php') ?>">Open Messages</a>
     </article>
   </section>
 
   <section class="sf-member-grid">
+    <article class="sf-member-panel"><span class="sf-panel-eyebrow">Messages</span><h2><?= (int)$messageUnread ?></h2><p>Official member updates, launch notices, and admin messages.</p><a href="<?= sf_url('messages.php') ?>">Open Messages</a></article>
     <article class="sf-member-panel"><span class="sf-panel-eyebrow">Notifications</span><h2><?= (int)$notificationSummary['unread'] ?></h2><p>Unread member center updates for comments, account, billing, and streaming.</p><a href="<?= sf_url('notifications.php') ?>">Open Inbox</a></article>
     <article class="sf-member-panel"><span class="sf-panel-eyebrow">Comments</span><h2><?= (int)$commentSummary['comments'] ?></h2><p>Fan threads and reactions across episodes, videos, songs, and posts.</p><a href="<?= sf_url('comments.php') ?>">Open Comments</a></article>
     <article class="sf-member-panel"><span class="sf-panel-eyebrow">Library</span><h2><?= (int)$librarySummary['total'] ?></h2><p>Saved songs, videos, albums, episodes, merch, and completed content.</p><a href="<?= sf_url('library.php') ?>">Open Library</a></article>
