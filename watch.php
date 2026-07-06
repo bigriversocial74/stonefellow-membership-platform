@@ -10,6 +10,7 @@ $requiredLevel = $currentVideo['access_level'] ?? 'subscriber';
 $canWatch = sf_access_allows($requiredLevel, $member['access_level']);
 $isPublished = ($currentVideo['status'] ?? 'draft') === 'published';
 $playback = sf_media_video_playback($currentVideo, $canWatch && $isPublished);
+$playbackReady = $playback['url'] !== '' && !empty($playback['exists']);
 $nextVideo = sf_media_video_next($videoCatalog, $currentVideo);
 $nextUrl = $nextVideo ? sf_url('watch.php?slug=' . urlencode($nextVideo['slug'])) : '';
 $chapters = [
@@ -40,7 +41,7 @@ require __DIR__ . '/includes/header.php';
 
   <section class="sf-video-stage">
     <video class="sf-watch-video" controls preload="metadata" poster="<?= sf_asset($currentVideo['poster']) ?>" data-sf-video-player>
-      <?php if ($playback['url'] !== ''): ?>
+      <?php if ($playbackReady): ?>
         <source src="<?= htmlspecialchars($playback['url']) ?>" type="<?= htmlspecialchars($playback['mime_type']) ?>">
       <?php endif; ?>
       Your browser does not support the video tag.
@@ -60,11 +61,11 @@ require __DIR__ . '/includes/header.php';
         <p>This video is registered in the catalog and access system. Publish it from the admin catalog when ready.</p>
         <a href="<?= sf_url('episodes.php') ?>">Back to Episodes</a>
       </div>
-    <?php elseif ($playback['url'] === ''): ?>
+    <?php elseif (!$playbackReady): ?>
       <div class="sf-video-lock-overlay">
         <span>Source Needed</span>
         <h1><?= htmlspecialchars($currentVideo['title']) ?></h1>
-        <p>The secure watch page is ready. Add a stream or preview file in the video catalog.</p>
+        <p>The secure watch page is ready. Add the media file for <code><?= htmlspecialchars($playback['file_path'] ?: 'stream source') ?></code> or update the video catalog source path.</p>
         <a href="<?= sf_url('admin/videos.php') ?>">Open Video Admin</a>
       </div>
     <?php endif; ?>
