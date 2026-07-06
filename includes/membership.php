@@ -2,132 +2,34 @@
 require_once __DIR__ . '/auth.php';
 
 function sf_access_rank(string $level): int {
-  $ranks = [
-    'public' => 0,
-    'free_preview' => 0,
-    'free_account' => 1,
-    'subscriber' => 2,
-    'monthly-access' => 2,
-    'annual-access' => 2,
-    'premium' => 3,
-    'founding_fan' => 4,
-    'founding-fan' => 4,
-    'admin' => 9,
-  ];
+  $ranks = ['public'=>0,'free_preview'=>0,'free_account'=>1,'subscriber'=>2,'monthly-access'=>2,'annual-access'=>2,'premium'=>3,'founding_fan'=>4,'founding-fan'=>4,'admin'=>9];
   return $ranks[$level] ?? 0;
 }
-
 function sf_access_label(string $level): string {
-  $labels = [
-    'public' => 'Public',
-    'free_preview' => 'Public Preview',
-    'free_account' => 'Free Account',
-    'subscriber' => 'Subscriber',
-    'monthly-access' => 'Monthly Access',
-    'annual-access' => 'Annual Access',
-    'premium' => 'Premium',
-    'founding_fan' => 'Founding Fan',
-    'founding-fan' => 'Founding Fan',
-    'admin' => 'Admin',
-  ];
+  $labels = ['public'=>'Public','free_preview'=>'Public Preview','free_account'=>'Free Account','subscriber'=>'Subscriber','monthly-access'=>'Monthly Access','annual-access'=>'Annual Access','premium'=>'Premium','founding_fan'=>'Founding Fan','founding-fan'=>'Founding Fan','admin'=>'Admin'];
   return $labels[$level] ?? ucfirst(str_replace(['_', '-'], ' ', $level));
 }
+function sf_normalize_access_level(?string $level): string { $level=(string)$level; if($level==='founding-fan')return 'founding_fan'; if($level==='monthly-access'||$level==='annual-access')return 'subscriber'; return $level ?: 'public'; }
+function sf_entitlement_grace_days(): int { $days=getenv('SF_SUBSCRIPTION_GRACE_DAYS'); return is_numeric($days)?max(0,min(30,(int)$days)):3; }
 
-function sf_normalize_access_level(?string $level): string {
-  $level = (string)$level;
-  if ($level === 'founding-fan') {
-    return 'founding_fan';
-  }
-  if ($level === 'monthly-access' || $level === 'annual-access') {
-    return 'subscriber';
-  }
-  return $level ?: 'public';
+function sf_subscription_candidate(?int $userId = null): ?array {
+  $userId = $userId ?: sf_current_user_id(); $pdo = sf_db(); if (!$userId || !$pdo) return null;
+  try { $grace = sf_entitlement_grace_days(); $stmt = $pdo->prepare("\n      SELECT us.*, sp.name AS plan_name, sp.slug AS plan_slug, sp.plan_tier, sp.price_cents, sp.billing_interval,\n             sp.allows_full_music, sp.allows_video_streaming, sp.allows_episode_tracking, sp.allows_playlists, sp.allows_offline_downloads, sp.status AS plan_status\n      FROM user_subscriptions us\n      INNER JOIN subscription_plans sp ON sp.id = us.plan_id\n      WHERE us.user_id = ? AND sp.status = 'active' AND us.status IN ('active','trialing','past_due')\n        AND (us.current_period_end IS NULL OR us.current_period_end >= DATE_SUB(NOW(), INTERVAL {$grace} DAY))\n      ORDER BY FIELD(us.status,'active','trialing','past_due'), us.current_period_end DESC, us.id DESC LIMIT 1\n    "); $stmt->execute([$userId]); $row=$stmt->fetch(); return $row ?: null; }
+  catch(Throwable $e){ error_log('Stonefellow entitlement subscription lookup failed: '.$e->getMessage()); return null; }
 }
+function sf_plan_access_level(?array $subscription): string { if(!$subscription)return 'free_account'; $tier=(string)($subscription['plan_tier']??''); $slug=(string)($subscription['plan_slug']??$subscription['slug']??''); if($tier==='founding_fan'||$slug==='founding-fan')return 'founding_fan'; if(!empty($subscription['allows_offline_downloads'])||$tier==='premium')return 'premium'; return 'subscriber'; }
+function sf_user_has_direct_grant(string $contentType, ?int $contentId = null, ?int $userId = null): bool { $userId=$userId?:sf_current_user_id(); $pdo=sf_db(); if(!$userId||!$pdo)return false; try{$stmt=$pdo->prepare("SELECT id FROM content_access_grants WHERE user_id=? AND content_type=? AND (content_id IS NULL OR content_id=?) AND (starts_at IS NULL OR starts_at<=NOW()) AND (expires_at IS NULL OR expires_at>=NOW()) LIMIT 1"); $stmt->execute([$userId,$contentType,$contentId]); return (bool)$stmt->fetch();}catch(Throwable $e){return false;} }
+function sf_user_feature_grant_level(?int $userId = null): ?string { $userId=$userId?:sf_current_user_id(); $pdo=sf_db(); if(!$userId||!$pdo)return null; try{$stmt=$pdo->prepare("SELECT access_level FROM content_access_grants WHERE user_id=? AND content_type IN ('site_feature','platform','all_access') AND (starts_at IS NULL OR starts_at<=NOW()) AND (expires_at IS NULL OR expires_at>=NOW()) ORDER BY FIELD(access_level,'admin','founding_fan','premium','subscriber','free_account','public'), id DESC LIMIT 1"); $stmt->execute([$userId]); $level=$stmt->fetchColumn(); return $level?sf_normalize_access_level((string)$level):null;}catch(Throwable $e){return null;} }
+function sf_user_role_for_access(int $userId): ?string { $pdo=sf_db(); if(!$pdo)return null; try{$stmt=$pdo->prepare('SELECT role FROM users WHERE id=? LIMIT 1'); $stmt->execute([$userId]); $role=$stmt->fetchColumn(); return $role?(string)$role:null;}catch(Throwable $e){return null;} }
+function sf_access_level_for_user(?int $userId): string { if(!$userId)return 'public'; if(sf_user_role_for_access($userId)==='admin')return 'admin'; if(!sf_db())return 'free_account'; $subscriptionLevel=sf_plan_access_level(sf_subscription_candidate($userId)); $grantLevel=sf_user_feature_grant_level($userId)?:'free_account'; return sf_access_rank($grantLevel)>sf_access_rank($subscriptionLevel)?$grantLevel:$subscriptionLevel; }
+function sf_current_access_level(): string { $demoLevel=getenv('SF_DEMO_ACCESS_LEVEL'); if($demoLevel)return sf_normalize_access_level($demoLevel); $user=sf_auth_user(); if(!$user)return 'public'; return sf_access_level_for_user((int)$user['id']); }
+function sf_access_allows(string $requiredLevel, ?string $currentLevel = null): bool { $requiredLevel=sf_normalize_access_level($requiredLevel); $currentLevel=sf_normalize_access_level($currentLevel?:sf_current_access_level()); return sf_access_rank($currentLevel)>=sf_access_rank($requiredLevel); }
 
-function sf_current_access_level(): string {
-  $demoLevel = getenv('SF_DEMO_ACCESS_LEVEL');
-  if ($demoLevel) {
-    return sf_normalize_access_level($demoLevel);
-  }
-
-  $user = sf_auth_user();
-  if (!$user) {
-    return 'public';
-  }
-
-  if (($user['role'] ?? '') === 'admin') {
-    return 'admin';
-  }
-
-  $pdo = sf_db();
-  if (!$pdo) {
-    return 'free_account';
-  }
-
-  try {
-    $stmt = $pdo->prepare("\n      SELECT sp.slug, sp.plan_tier, us.status\n      FROM user_subscriptions us\n      INNER JOIN subscription_plans sp ON sp.id = us.plan_id\n      WHERE us.user_id = ?\n        AND us.status IN ('active','trialing')\n        AND sp.status = 'active'\n        AND (us.current_period_end IS NULL OR us.current_period_end >= NOW())\n      ORDER BY us.current_period_end DESC, us.id DESC\n      LIMIT 1\n    ");
-    $stmt->execute([(int)$user['id']]);
-    $row = $stmt->fetch();
-    if ($row) {
-      $tier = (string)($row['plan_tier'] ?? '');
-      $slug = (string)($row['slug'] ?? '');
-      if ($tier === 'founding_fan' || $slug === 'founding-fan') {
-        return 'founding_fan';
-      }
-      if ($tier === 'annual' || $tier === 'monthly' || $slug !== '') {
-        return 'subscriber';
-      }
-    }
-  } catch (Throwable $e) {
-    error_log('Stonefellow access lookup failed: ' . $e->getMessage());
-  }
-
-  return 'free_account';
+function sf_entitlement_snapshot(?int $userId = null): array {
+  $user = $userId ? null : sf_auth_user(); $userId = $userId ?: ($user ? (int)$user['id'] : sf_current_user_id()); $subscription = $userId ? sf_subscription_candidate($userId) : null; $level = $userId ? sf_access_level_for_user($userId) : 'public';
+  $periodEnd=$subscription['current_period_end']??null; $status=$subscription['status']??($userId?'free_account':'guest'); $inGrace=$status==='past_due'||($periodEnd&&strtotime((string)$periodEnd)<time());
+  return ['user_id'=>$userId,'status'=>$status,'access_level'=>$level,'access_label'=>sf_access_label($level),'subscription'=>$subscription,'plan_name'=>$subscription['plan_name']??null,'plan_slug'=>$subscription['plan_slug']??null,'period_end'=>$periodEnd,'grace_days'=>sf_entitlement_grace_days(),'in_grace_period'=>(bool)$inGrace,'can_stream_full_music'=>sf_access_allows('subscriber',$level),'can_watch_episodes'=>sf_access_allows('subscriber',$level),'can_manage_playlists'=>sf_access_allows('subscriber',$level),'can_view_premium_video'=>sf_access_allows('premium',$level),'can_download_offline'=>sf_access_allows('premium',$level)];
 }
-
-function sf_access_allows(string $requiredLevel, ?string $currentLevel = null): bool {
-  $requiredLevel = sf_normalize_access_level($requiredLevel);
-  $currentLevel = sf_normalize_access_level($currentLevel ?: sf_current_access_level());
-  return sf_access_rank($currentLevel) >= sf_access_rank($requiredLevel);
-}
-
-function sf_user_has_direct_grant(string $contentType, ?int $contentId = null, ?int $userId = null): bool {
-  $userId = $userId ?: sf_current_user_id();
-  $pdo = sf_db();
-  if (!$userId || !$pdo) {
-    return false;
-  }
-  try {
-    $stmt = $pdo->prepare("\n      SELECT id\n      FROM content_access_grants\n      WHERE user_id = ?\n        AND content_type = ?\n        AND (content_id IS NULL OR content_id = ?)\n        AND (starts_at IS NULL OR starts_at <= NOW())\n        AND (expires_at IS NULL OR expires_at >= NOW())\n      LIMIT 1\n    ");
-    $stmt->execute([$userId, $contentType, $contentId]);
-    return (bool)$stmt->fetch();
-  } catch (Throwable $e) {
-    return false;
-  }
-}
-
-function sf_member_snapshot(): array {
-  $user = sf_auth_user();
-  $level = sf_current_access_level();
-  $subscription = $user ? sf_user_subscription((int)$user['id']) : null;
-  return [
-    'user_id' => $user ? (int)$user['id'] : null,
-    'email' => $user['email'] ?? null,
-    'display_name' => $user['display_name'] ?? null,
-    'role' => $user['role'] ?? null,
-    'subscription' => $subscription,
-    'plan_name' => $subscription['plan_name'] ?? null,
-    'plan_slug' => $subscription['plan_slug'] ?? null,
-    'access_level' => $level,
-    'access_label' => sf_access_label($level),
-    'can_stream_full_music' => sf_access_allows('subscriber', $level),
-    'can_watch_episodes' => sf_access_allows('subscriber', $level),
-    'can_manage_playlists' => sf_access_allows('subscriber', $level),
-    'can_view_premium_video' => sf_access_allows('premium', $level),
-  ];
-}
-
-function sf_access_gate_markup(string $title, string $message, string $cta = 'Subscribe Now'): string {
-  return '<div class="sf-access-gate"><span>Membership Required</span><h2>' . sf_auth_h($title) . '</h2><p>' . sf_auth_h($message) . '</p><div class="sf-episode-action-row"><a class="sf-primary-action" href="' . sf_url('subscribe.php') . '">' . sf_auth_h($cta) . '</a><a class="sf-secondary-action" href="' . sf_url('signin.php') . '">Sign In</a></div></div>';
-}
+function sf_member_snapshot(): array { $user=sf_auth_user(); $snapshot=sf_entitlement_snapshot($user?(int)$user['id']:null); return array_merge($snapshot,['email'=>$user['email']??null,'display_name'=>$user['display_name']??null,'role'=>$user['role']??null]); }
+function sf_access_gate_markup(string $title, string $message, string $cta = 'Subscribe Now'): string { return '<div class="sf-access-gate"><span>Membership Required</span><h2>'.sf_auth_h($title).'</h2><p>'.sf_auth_h($message).'</p><div class="sf-episode-action-row"><a class="sf-primary-action" href="'.sf_url('subscribe.php').'">'.sf_auth_h($cta).'</a><a class="sf-secondary-action" href="'.sf_url('signin.php').'">Sign In</a></div></div>'; }
 ?>
