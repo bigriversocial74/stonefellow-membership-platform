@@ -1,5 +1,5 @@
 <?php
-require __DIR__ . '/../includes/billing.php';
+require __DIR__ . '/../includes/billing_provider_runtime.php';
 
 $raw = file_get_contents('php://input') ?: '';
 $payload = json_decode($raw, true);
