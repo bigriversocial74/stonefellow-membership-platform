@@ -1,0 +1,56 @@
+name: Extract Stonefellow Source Lite
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - stonefellow-github-source-lite.zip
+      - .github/workflows/extract-source-lite.yml
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  extract-source:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Prepare source branch
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git checkout -B platform-foundation-import
+
+      - name: Extract source archive
+        run: |
+          test -f stonefellow-github-source-lite.zip
+          unzip -o stonefellow-github-source-lite.zip -d .stonefellow_extract
+          find . -mindepth 1 -maxdepth 1 ! -name .git ! -name .stonefellow_extract -exec rm -rf {} +
+          cp -a .stonefellow_extract/stonefellow/. .
+          rm -rf .stonefellow_extract stonefellow-github-source-lite.zip
+
+      - name: Commit extracted platform source
+        run: |
+          git add -A
+          git commit -m "Initial Stonefellow membership platform foundation" || echo "No changes to commit"
+          git push --force-with-lease origin platform-foundation-import
+
+      - name: Open pull request
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh pr create \
+            --base main \
+            --head platform-foundation-import \
+            --title "Initial Stonefellow membership platform foundation" \
+            --body "Extracts the GitHub-safe Stonefellow source-lite package into reviewable source files. Includes the platform foundation, SQL migrations, admin tools, member auth, media catalog, billing, merch runtime, notifications, settings, payment adapter, QA harness, and documentation." \
+          || gh pr edit platform-foundation-import \
+            --title "Initial Stonefellow membership platform foundation" \
+            --body "Extracts the GitHub-safe Stonefellow source-lite package into reviewable source files. Includes the platform foundation, SQL migrations, admin tools, member auth, media catalog, billing, merch runtime, notifications, settings, payment adapter, QA harness, and documentation."
