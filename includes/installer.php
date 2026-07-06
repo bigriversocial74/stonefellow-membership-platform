@@ -1,8 +1,5 @@
 <?php
-if (session_status() === PHP_SESSION_NONE) {
-  session_start();
-}
-
+if (session_status() === PHP_SESSION_NONE) { session_start(); }
 function sf_install_root(): string { return realpath(__DIR__ . '/..') ?: dirname(__DIR__); }
 function sf_install_config_dir(): string { return sf_install_root() . '/config'; }
 function sf_install_storage_dir(): string { return sf_install_root() . '/storage'; }
@@ -14,27 +11,25 @@ function sf_install_current_url(): string { $https=(!empty($_SERVER['HTTPS'])&&$
 function sf_install_flash(string $type, string $message): void { $_SESSION['sf_install_flash'][]=['type'=>$type,'message'=>$message]; }
 function sf_install_flashes(): array { $m=$_SESSION['sf_install_flash']??[]; unset($_SESSION['sf_install_flash']); return is_array($m)?$m:[]; }
 function sf_install_redirect(string $step='server'): void { header('Location: install.php?step='.urlencode($step)); exit; }
-
-function sf_install_plan(): array {
-  return [
-    'base'=>['label'=>'Base streaming platform schema','file'=>'database/stonefellow_streaming_platform.sql'],
-    '001'=>['label'=>'Membership video tracking','file'=>'database/migrations/001_membership_video_tracking.sql'],
-    '002'=>['label'=>'Video playlist runtime seed','file'=>'database/migrations/002_video_playlist_runtime_seed.sql'],
-    '003'=>['label'=>'Media upload storage metadata','file'=>'database/migrations/003_media_upload_storage_metadata.sql'],
-    '004'=>['label'=>'Billing entitlements','file'=>'database/migrations/004_billing_entitlements.sql'],
-    '005'=>['label'=>'Merch order runtime','file'=>'database/migrations/005_merch_order_runtime.sql'],
-    '006'=>['label'=>'Email notifications','file'=>'database/migrations/006_email_notifications.sql'],
-    '007'=>['label'=>'Site settings installer','file'=>'database/migrations/007_site_settings_installer.sql'],
-    '008'=>['label'=>'Payment gateway adapter','file'=>'database/migrations/008_payment_gateway_adapter.sql'],
-    '009'=>['label'=>'Episode video admin v2','file'=>'database/migrations/009_episode_video_admin_v2.sql'],
-    '010'=>['label'=>'Production readiness QA harness','file'=>'database/migrations/010_production_readiness_qa_harness.sql'],
-    '011'=>['label'=>'Content import seed manager','file'=>'database/migrations/011_content_import_seed_manager.sql'],
-    '012'=>['label'=>'Audio player entitlements v2','file'=>'database/migrations/012_audio_player_entitlements_v2.sql'],
-    '013'=>['label'=>'Gateway publishing workflow v1','file'=>'database/migrations/013_gateway_publishing_workflow_v1.sql'],
-    '014'=>['label'=>'Feed personalization and engagement analytics','file'=>'database/migrations/014_feed_personalization_engagement_analytics.sql'],
-    '015'=>['label'=>'Membership tiers and launch revenue dashboard','file'=>'database/migrations/015_membership_tiers_revenue_dashboard.sql'],
-  ];
-}
+function sf_install_plan(): array { return [
+'base'=>['label'=>'Base streaming platform schema','file'=>'database/stonefellow_streaming_platform.sql'],
+'001'=>['label'=>'Membership video tracking','file'=>'database/migrations/001_membership_video_tracking.sql'],
+'002'=>['label'=>'Video playlist runtime seed','file'=>'database/migrations/002_video_playlist_runtime_seed.sql'],
+'003'=>['label'=>'Media upload storage metadata','file'=>'database/migrations/003_media_upload_storage_metadata.sql'],
+'004'=>['label'=>'Billing entitlements','file'=>'database/migrations/004_billing_entitlements.sql'],
+'005'=>['label'=>'Merch order runtime','file'=>'database/migrations/005_merch_order_runtime.sql'],
+'006'=>['label'=>'Email notifications','file'=>'database/migrations/006_email_notifications.sql'],
+'007'=>['label'=>'Site settings installer','file'=>'database/migrations/007_site_settings_installer.sql'],
+'008'=>['label'=>'Payment gateway adapter','file'=>'database/migrations/008_payment_gateway_adapter.sql'],
+'009'=>['label'=>'Episode video admin v2','file'=>'database/migrations/009_episode_video_admin_v2.sql'],
+'010'=>['label'=>'Production readiness QA harness','file'=>'database/migrations/010_production_readiness_qa_harness.sql'],
+'011'=>['label'=>'Content import seed manager','file'=>'database/migrations/011_content_import_seed_manager.sql'],
+'012'=>['label'=>'Audio player entitlements v2','file'=>'database/migrations/012_audio_player_entitlements_v2.sql'],
+'013'=>['label'=>'Gateway publishing workflow v1','file'=>'database/migrations/013_gateway_publishing_workflow_v1.sql'],
+'014'=>['label'=>'Feed personalization and engagement analytics','file'=>'database/migrations/014_feed_personalization_engagement_analytics.sql'],
+'015'=>['label'=>'Membership tiers and launch revenue dashboard','file'=>'database/migrations/015_membership_tiers_revenue_dashboard.sql'],
+'016'=>['label'=>'Member lifecycle and support help desk','file'=>'database/migrations/016_member_lifecycle_support_helpdesk.sql'],
+]; }
 function sf_install_checks(): array { $root=sf_install_root(); $dirs=['config'=>sf_install_config_dir(),'storage'=>sf_install_storage_dir(),'assets/images/uploads'=>$root.'/assets/images/uploads','assets/audio/uploads'=>$root.'/assets/audio/uploads','assets/video/uploads'=>$root.'/assets/video/uploads','assets/documents/uploads'=>$root.'/assets/documents/uploads']; $checks=[['label'=>'PHP 8.1+','ok'=>version_compare(PHP_VERSION,'8.1.0','>='),'detail'=>PHP_VERSION],['label'=>'PDO extension','ok'=>extension_loaded('pdo'),'detail'=>extension_loaded('pdo')?'Loaded':'Missing'],['label'=>'PDO MySQL extension','ok'=>extension_loaded('pdo_mysql'),'detail'=>extension_loaded('pdo_mysql')?'Loaded':'Missing'],['label'=>'JSON extension','ok'=>extension_loaded('json'),'detail'=>extension_loaded('json')?'Loaded':'Missing'],['label'=>'Fileinfo extension','ok'=>extension_loaded('fileinfo'),'detail'=>extension_loaded('fileinfo')?'Loaded':'Recommended for uploads']]; foreach($dirs as $label=>$path){ if(!is_dir($path))@mkdir($path,0775,true); $checks[]=['label'=>'Writable: '.$label,'ok'=>is_dir($path)&&is_writable($path),'detail'=>is_dir($path)?(is_writable($path)?'Writable':'Not writable'):'Missing']; } foreach(sf_install_plan() as $key=>$item){ $file=$root.'/'.$item['file']; $checks[]=['label'=>'SQL: '.$key,'ok'=>is_file($file),'detail'=>$item['file']]; } return $checks; }
 function sf_install_check_score(array $checks): int { return $checks?(int)round((count(array_filter($checks,fn($c)=>!empty($c['ok'])))/count($checks))*100):0; }
 function sf_install_saved_db(): array { return $_SESSION['sf_install_db']??[]; }
