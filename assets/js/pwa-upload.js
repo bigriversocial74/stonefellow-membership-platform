@@ -1,9 +1,9 @@
 (function(){
+  const pwaConfig = window.STONEFELLOW_PWA || {};
   let deferredPrompt = null;
-  const canSW = 'serviceWorker' in navigator;
-  if (canSW) {
+  if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
-      navigator.serviceWorker.register('service-worker.js').catch((error) => console.warn('Stonefellow service worker registration failed:', error));
+      navigator.serviceWorker.register(pwaConfig.serviceWorker || 'service-worker.js').catch((error) => console.warn('Stonefellow service worker registration failed:', error));
     });
   }
 
@@ -41,7 +41,6 @@
     const preview = document.querySelector(zone.dataset.previewTarget || '[data-sf-upload-preview]');
     const titleInput = document.querySelector('[name="upload_title"]');
     if (!input) return;
-
     function showFile(file){
       if (!file || !preview) return;
       preview.classList.add('is-visible');
@@ -53,7 +52,6 @@
       else if (file.type.startsWith('audio/')) preview.insertAdjacentHTML('beforeend', `<audio controls preload="metadata" src="${url}"></audio>`);
       else if (file.type.startsWith('video/')) preview.insertAdjacentHTML('afterbegin', `<video controls preload="metadata" src="${url}"></video>`);
     }
-
     zone.addEventListener('click', () => input.click());
     zone.addEventListener('keydown', (event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); input.click(); } });
     ['dragenter','dragover'].forEach((name) => zone.addEventListener(name, (event) => { event.preventDefault(); zone.classList.add('is-dragover'); }));
@@ -72,11 +70,6 @@
   const mini = document.createElement('div');
   mini.className = 'sf-mobile-mini-player';
   mini.innerHTML = '<img src="assets/images/brand/logo-mark.png" alt="Stonefellow"><div><strong data-sf-mini-title>Stonefellow</strong><span data-sf-mini-status>Ready to stream</span></div><button type="button" data-sf-mini-open>♪</button>';
-  document.addEventListener('DOMContentLoaded', () => {
-    if (document.querySelector('[data-sf-music-app]')) document.body.appendChild(mini);
-  });
-  mini.addEventListener('click', () => {
-    const player = document.querySelector('[data-sf-player]');
-    if (player) player.scrollIntoView({behavior:'smooth', block:'center'});
-  });
+  document.addEventListener('DOMContentLoaded', () => { if (document.querySelector('[data-sf-music-app]')) document.body.appendChild(mini); });
+  mini.addEventListener('click', () => { const player = document.querySelector('[data-sf-player]'); if (player) player.scrollIntoView({behavior:'smooth', block:'center'}); });
 })();
