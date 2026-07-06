@@ -1,4 +1,4 @@
--- Stonefellow migration 013: gateway production pass, publishing workflow, member library, and search discovery.
+-- Stonefellow migration 013: gateway production pass, publishing workflow, member library, search discovery, and activity ops.
 -- Run after migration 012.
 
 CREATE TABLE IF NOT EXISTS publishing_events (
@@ -74,6 +74,47 @@ CREATE TABLE IF NOT EXISTS content_search_index (
   UNIQUE KEY uniq_content_search_index (content_type, content_id),
   FULLTEXT KEY ft_content_search (title, description, keywords),
   INDEX idx_content_search_filter (status, content_type, access_level, is_featured, weight)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS member_activity_events (
+  id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  user_id INT DEFAULT NULL,
+  actor_name VARCHAR(190) DEFAULT NULL,
+  event_type VARCHAR(90) NOT NULL,
+  event_group ENUM('member','stream','library','commerce','notification','payment','publish','admin','activity') NOT NULL DEFAULT 'activity',
+  content_type VARCHAR(60) DEFAULT NULL,
+  content_id INT DEFAULT NULL,
+  title VARCHAR(190) NOT NULL,
+  detail TEXT DEFAULT NULL,
+  action_url VARCHAR(255) DEFAULT NULL,
+  severity ENUM('info','warning','critical') NOT NULL DEFAULT 'info',
+  metadata_json JSON DEFAULT NULL,
+  occurred_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  INDEX idx_member_activity_events_user (user_id, occurred_at),
+  INDEX idx_member_activity_events_group (event_group, occurred_at),
+  INDEX idx_member_activity_events_type (event_type, severity, occurred_at),
+  CONSTRAINT fk_member_activity_events_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS content_ops_tasks (
+  id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  task_key VARCHAR(120) NOT NULL,
+  task_type ENUM('content','media','commerce','payment','notification','publishing','qa','admin') NOT NULL DEFAULT 'admin',
+  priority ENUM('low','medium','high','critical') NOT NULL DEFAULT 'medium',
+  title VARCHAR(190) NOT NULL,
+  detail TEXT DEFAULT NULL,
+  action_url VARCHAR(255) DEFAULT NULL,
+  status ENUM('open','in_progress','done','dismissed') NOT NULL DEFAULT 'open',
+  assigned_user_id INT DEFAULT NULL,
+  metadata_json JSON DEFAULT NULL,
+  due_at DATETIME DEFAULT NULL,
+  completed_at DATETIME DEFAULT NULL,
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP NULL DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP,
+  UNIQUE KEY uniq_content_ops_task_key (task_key),
+  INDEX idx_content_ops_tasks_status (status, priority, due_at),
+  CONSTRAINT fk_content_ops_tasks_user FOREIGN KEY (assigned_user_id) REFERENCES users(id) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 INSERT INTO payment_gateway_settings (provider, mode, public_key, webhook_endpoint, status, metadata_json)
