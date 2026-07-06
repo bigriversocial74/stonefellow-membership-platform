@@ -82,7 +82,6 @@ require __DIR__ . '/includes/header.php';
         <span data-sf-video-save-state>Tracking ready</span>
       </div>
       <div class="sf-episode-action-row">
-        <?php if ($playback['url'] !== ''): ?><button class="sf-secondary-action" type="button" data-sf-resume-button>Resume</button><?php endif; ?>
         <?php if ($nextVideo): ?><a class="sf-secondary-action" href="<?= htmlspecialchars($nextUrl) ?>">Next: <?= htmlspecialchars($nextVideo['title']) ?></a><?php endif; ?>
       </div>
     </article>
@@ -91,8 +90,7 @@ require __DIR__ . '/includes/header.php';
       <span class="sf-panel-eyebrow">Resume Tracking</span>
       <h2 data-sf-resume-label>0:00 saved</h2>
       <div class="sf-wide-progress"><i data-sf-video-progress-bar style="width:0%"></i></div>
-      <p>Playback uses signed URLs through <code>stream.php</code>. Progress events sync to <code>api/video-track.php</code>.</p>
-      <label class="sf-admin-check"><input type="checkbox" data-sf-autoplay-next checked> Autoplay next episode</label>
+      <p>Playback uses signed URLs through <code>stream.php</code>. Progress events sync to <code>api/video-track.php</code>. The current browser resumes automatically when saved progress exists.</p>
     </aside>
   </section>
 
@@ -100,11 +98,11 @@ require __DIR__ . '/includes/header.php';
     <div class="sf-member-section-head"><div><span class="sf-panel-eyebrow">Chapter Markers</span><h2>Episode timeline</h2></div></div>
     <div class="sf-video-card-grid">
       <?php foreach ($chapters as $chapter): ?>
-        <button class="sf-video-card" type="button" data-sf-video-chapter="<?= htmlspecialchars($chapter['time']) ?>">
+        <article class="sf-video-card">
           <span><?= htmlspecialchars($chapter['time']) ?></span>
           <strong><?= htmlspecialchars($chapter['label']) ?></strong>
-          <small>Jump marker</small>
-        </button>
+          <small>Chapter marker</small>
+        </article>
       <?php endforeach; ?>
     </div>
   </section>
