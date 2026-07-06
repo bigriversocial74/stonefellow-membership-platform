@@ -36,6 +36,7 @@ function sf_install_plan(): array {
     '009' => ['label'=>'Episode video admin v2','file'=>'database/migrations/009_episode_video_admin_v2.sql'],
     '010' => ['label'=>'Production readiness QA harness','file'=>'database/migrations/010_production_readiness_qa_harness.sql'],
     '011' => ['label'=>'Content import seed manager','file'=>'database/migrations/011_content_import_seed_manager.sql'],
+    '012' => ['label'=>'Audio player entitlements v2','file'=>'database/migrations/012_audio_player_entitlements_v2.sql'],
   ];
 }
 
@@ -49,114 +50,24 @@ function sf_install_checks(): array {
     ['label'=>'JSON extension','ok'=>extension_loaded('json'),'detail'=>extension_loaded('json')?'Loaded':'Missing'],
     ['label'=>'Fileinfo extension','ok'=>extension_loaded('fileinfo'),'detail'=>extension_loaded('fileinfo')?'Loaded':'Recommended for uploads'],
   ];
-  foreach ($dirs as $label=>$path) {
-    if (!is_dir($path)) { @mkdir($path, 0775, true); }
-    $checks[] = ['label'=>'Writable: '.$label,'ok'=>is_dir($path)&&is_writable($path),'detail'=>is_dir($path)?(is_writable($path)?'Writable':'Not writable'):'Missing'];
-  }
-  foreach (sf_install_plan() as $key=>$item) {
-    $file = $root . '/' . $item['file'];
-    $checks[] = ['label'=>'SQL: '.$key,'ok'=>is_file($file),'detail'=>$item['file']];
-  }
+  foreach ($dirs as $label=>$path) { if (!is_dir($path)) { @mkdir($path, 0775, true); } $checks[] = ['label'=>'Writable: '.$label,'ok'=>is_dir($path)&&is_writable($path),'detail'=>is_dir($path)?(is_writable($path)?'Writable':'Not writable'):'Missing']; }
+  foreach (sf_install_plan() as $key=>$item) { $file = $root . '/' . $item['file']; $checks[] = ['label'=>'SQL: '.$key,'ok'=>is_file($file),'detail'=>$item['file']]; }
   return $checks;
 }
 function sf_install_check_score(array $checks): int { return $checks ? (int)round((count(array_filter($checks, fn($c)=>!empty($c['ok']))) / count($checks))*100) : 0; }
-
 function sf_install_saved_db(): array { return $_SESSION['sf_install_db'] ?? []; }
-function sf_install_connect(array $db): PDO {
-  $host = trim((string)($db['host'] ?? ''));
-  $port = trim((string)($db['port'] ?? '3306')) ?: '3306';
-  $name = trim((string)($db['name'] ?? ''));
-  $user = trim((string)($db['user'] ?? ''));
-  $pass = (string)($db['pass'] ?? '');
-  $charset = trim((string)($db['charset'] ?? 'utf8mb4')) ?: 'utf8mb4';
-  if ($host==='' || $name==='' || $user==='') throw new RuntimeException('Database host, name, and user are required.');
-  $dsn = "mysql:host={$host};port={$port};dbname={$name};charset={$charset}";
-  return new PDO($dsn, $user, $pass, [PDO::ATTR_ERRMODE=>PDO::ERRMODE_EXCEPTION, PDO::ATTR_DEFAULT_FETCH_MODE=>PDO::FETCH_ASSOC, PDO::ATTR_EMULATE_PREPARES=>false]);
-}
+function sf_install_connect(array $db): PDO { $host=trim((string)($db['host']??'')); $port=trim((string)($db['port']??'3306'))?:'3306'; $name=trim((string)($db['name']??'')); $user=trim((string)($db['user']??'')); $pass=(string)($db['pass']??''); $charset=trim((string)($db['charset']??'utf8mb4'))?:'utf8mb4'; if($host===''||$name===''||$user==='') throw new RuntimeException('Database host, name, and user are required.'); return new PDO("mysql:host={$host};port={$port};dbname={$name};charset={$charset}",$user,$pass,[PDO::ATTR_ERRMODE=>PDO::ERRMODE_EXCEPTION,PDO::ATTR_DEFAULT_FETCH_MODE=>PDO::FETCH_ASSOC,PDO::ATTR_EMULATE_PREPARES=>false]); }
 function sf_install_table_exists(PDO $pdo, string $table): bool { $s=$pdo->prepare('SHOW TABLES LIKE ?'); $s->execute([$table]); return (bool)$s->fetchColumn(); }
 function sf_install_column_exists(PDO $pdo, string $table, string $column): bool { $s=$pdo->prepare('SHOW COLUMNS FROM `'.str_replace('`','',$table).'` LIKE ?'); $s->execute([$column]); return (bool)$s->fetchColumn(); }
-function sf_install_schema_table(PDO $pdo): void {
-  $pdo->exec("CREATE TABLE IF NOT EXISTS schema_migrations (id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY, migration_key VARCHAR(40) NOT NULL UNIQUE, file_path VARCHAR(255) NOT NULL, checksum_sha256 VARCHAR(64) NOT NULL, applied_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
-}
-function sf_install_migration_applied(PDO $pdo, string $key, string $checksum): bool {
-  if (!sf_install_table_exists($pdo, 'schema_migrations')) return false;
-  $s=$pdo->prepare('SELECT checksum_sha256 FROM schema_migrations WHERE migration_key=? LIMIT 1'); $s->execute([$key]); $old=$s->fetchColumn(); return is_string($old) && $old === $checksum;
-}
-function sf_install_mark_migration(PDO $pdo, string $key, string $file, string $checksum): void {
-  $s=$pdo->prepare('INSERT INTO schema_migrations (migration_key,file_path,checksum_sha256) VALUES (?,?,?) ON DUPLICATE KEY UPDATE file_path=VALUES(file_path), checksum_sha256=VALUES(checksum_sha256), applied_at=NOW()');
-  $s->execute([$key,$file,$checksum]);
-}
-function sf_install_split_sql(string $sql): array {
-  $out=[]; $buf=''; $quote=null; $len=strlen($sql);
-  for($i=0;$i<$len;$i++){ $ch=$sql[$i]; $next=$sql[$i+1]??'';
-    if($quote){ $buf.=$ch; if($ch==='\\' && $i+1<$len){$buf.=$sql[++$i]; continue;} if($ch===$quote){$quote=null;} continue; }
-    if($ch==="'" || $ch==='"' || $ch==='`'){ $quote=$ch; $buf.=$ch; continue; }
-    if($ch==='-' && $next==='-'){ while($i<$len && $sql[$i]!=="\n") $i++; $buf.="\n"; continue; }
-    if($ch==='#'){ while($i<$len && $sql[$i]!=="\n") $i++; $buf.="\n"; continue; }
-    if($ch==='/' && $next==='*'){ $i+=2; while($i<$len-1 && !($sql[$i]==='*' && $sql[$i+1]==='/')) $i++; $i++; continue; }
-    if($ch===';'){ $stmt=trim($buf); if($stmt!=='') $out[]=$stmt; $buf=''; continue; }
-    $buf.=$ch;
-  }
-  $stmt=trim($buf); if($stmt!=='') $out[]=$stmt; return $out;
-}
-function sf_install_execute_statement(PDO $pdo, string $stmt): void {
-  try { $pdo->exec($stmt); return; }
-  catch (PDOException $e) {
-    if (preg_match('/^ALTER\s+TABLE\s+`?([a-zA-Z0-9_]+)`?\s+(.*)$/is', trim($stmt), $m) && stripos($m[2], 'ADD COLUMN IF NOT EXISTS') !== false) {
-      $table = $m[1]; $parts = preg_split('/,\s*(?=ADD\s+COLUMN\s+IF\s+NOT\s+EXISTS)/i', trim($m[2]));
-      foreach ($parts as $part) {
-        if (preg_match('/^ADD\s+COLUMN\s+IF\s+NOT\s+EXISTS\s+`?([a-zA-Z0-9_]+)`?\s+(.*)$/is', trim($part), $cm)) {
-          if (!sf_install_column_exists($pdo, $table, $cm[1])) { $pdo->exec('ALTER TABLE `'.str_replace('`','',$table).'` ADD COLUMN `'.str_replace('`','',$cm[1]).'` '.$cm[2]); }
-        } else { $pdo->exec('ALTER TABLE `'.str_replace('`','',$table).'` '.$part); }
-      }
-      return;
-    }
-    throw $e;
-  }
-}
-function sf_install_run_sql(PDO $pdo): array {
-  sf_install_schema_table($pdo); $results=[]; $root=sf_install_root();
-  foreach (sf_install_plan() as $key=>$item) {
-    $path=$root.'/'.$item['file']; if(!is_file($path)){ $results[]=['key'=>$key,'label'=>$item['label'],'status'=>'missing','detail'=>'File missing']; continue; }
-    $sql=(string)file_get_contents($path); $checksum=hash('sha256',$sql);
-    if(sf_install_migration_applied($pdo,$key,$checksum)){ $results[]=['key'=>$key,'label'=>$item['label'],'status'=>'skipped','detail'=>'Already applied']; continue; }
-    try { $pdo->beginTransaction(); foreach(sf_install_split_sql($sql) as $stmt){ sf_install_execute_statement($pdo,$stmt); } sf_install_mark_migration($pdo,$key,$item['file'],$checksum); $pdo->commit(); $results[]=['key'=>$key,'label'=>$item['label'],'status'=>'applied','detail'=>'Applied successfully']; }
-    catch(Throwable $e){ if($pdo->inTransaction()) $pdo->rollBack(); $results[]=['key'=>$key,'label'=>$item['label'],'status'=>'failed','detail'=>$e->getMessage()]; break; }
-  }
-  $_SESSION['sf_install_sql_results']=$results; return $results;
-}
-function sf_install_write_config(array $db, array $site): void {
-  if(!is_dir(sf_install_config_dir())) @mkdir(sf_install_config_dir(),0775,true);
-  $config=['site'=>['name'=>$site['site_name']??'Stonefellow','tagline'=>$site['site_tagline']??'Watch the show. Stream the music. Wear the story.','base_url'=>$site['base_url']??'','support_email'=>$site['support_email']??'support@stonefellow.tv'],'database'=>['host'=>$db['host'],'port'=>$db['port']??'3306','name'=>$db['name'],'user'=>$db['user'],'pass'=>$db['pass'],'charset'=>$db['charset']??'utf8mb4'],'installed_at'=>date('c')];
-  $php="<?php\nreturn ".var_export($config,true).";\n"; if(file_put_contents(sf_install_config_path(),$php)===false) throw new RuntimeException('Could not write config/local.php. Check folder permissions.'); @chmod(sf_install_config_path(),0640);
-}
-function sf_install_create_admin(PDO $pdo, array $admin): int {
-  $name=trim((string)($admin['name']??'')); $email=strtolower(trim((string)($admin['email']??''))); $pass=(string)($admin['password']??''); $confirm=(string)($admin['password_confirm']??'');
-  if($name===''||!filter_var($email,FILTER_VALIDATE_EMAIL)||strlen($pass)<8||$pass!==$confirm) throw new RuntimeException('Admin name, valid email, and matching 8+ character passwords are required.');
-  $cols=['email'=>$email,'password_hash'=>password_hash($pass,PASSWORD_DEFAULT),'display_name'=>$name,'role'=>'admin','status'=>'active'];
-  if(sf_install_column_exists($pdo,'users','email_verified_at')) $cols['email_verified_at']=date('Y-m-d H:i:s');
-  $existing=$pdo->prepare('SELECT id FROM users WHERE email=? LIMIT 1'); $existing->execute([$email]); $id=(int)($existing->fetchColumn()?:0);
-  if($id>0){ $sets=[]; foreach($cols as $k=>$v){$sets[]='`'.$k.'`=?';} $pdo->prepare('UPDATE users SET '.implode(',',$sets).' WHERE id=?')->execute(array_merge(array_values($cols),[$id])); return $id; }
-  $keys=array_keys($cols); $pdo->prepare('INSERT INTO users (`'.implode('`,`',$keys).'`) VALUES ('.implode(',',array_fill(0,count($keys),'?')).')')->execute(array_values($cols)); return (int)$pdo->lastInsertId();
-}
-function sf_install_save_settings(PDO $pdo, array $site, ?int $adminId=null): void {
-  if(!sf_install_table_exists($pdo,'site_settings')) return;
-  $rows=['site_name'=>$site['site_name']??'Stonefellow','site_tagline'=>$site['site_tagline']??'Watch the show. Stream the music. Wear the story.','base_url'=>$site['base_url']??'','support_email'=>$site['support_email']??'support@stonefellow.tv','admin_email'=>$site['admin_email']??($site['support_email']??'support@stonefellow.tv'),'payment_provider'=>$site['payment_provider']??'sandbox','member_signup_enabled'=>'1','checkout_enabled'=>'1'];
-  $hasUser=sf_install_column_exists($pdo,'site_settings','updated_by_user_id');
-  foreach($rows as $k=>$v){ if($hasUser){$pdo->prepare('INSERT INTO site_settings (setting_key,setting_value,setting_group,is_public,updated_by_user_id) VALUES (?,?,?,?,?) ON DUPLICATE KEY UPDATE setting_value=VALUES(setting_value), is_public=VALUES(is_public), updated_by_user_id=VALUES(updated_by_user_id), updated_at=NOW()')->execute([$k,(string)$v,'site',1,$adminId]);} else {$pdo->prepare('INSERT INTO site_settings (setting_key,setting_value,setting_group,is_public) VALUES (?,?,?,?) ON DUPLICATE KEY UPDATE setting_value=VALUES(setting_value), is_public=VALUES(is_public)')->execute([$k,(string)$v,'site',1]);} }
-}
-function sf_install_finish(array $site, int $adminId): void {
-  if(!is_dir(sf_install_storage_dir())) @mkdir(sf_install_storage_dir(),0775,true);
-  $lock=['installed_at'=>date('c'),'admin_user_id'=>$adminId,'site_name'=>$site['site_name']??'Stonefellow','base_url'=>$site['base_url']??''];
-  if(file_put_contents(sf_install_lock_path(),json_encode($lock, JSON_PRETTY_PRINT|JSON_UNESCAPED_SLASHES))===false) throw new RuntimeException('Could not write storage/install.lock. Check folder permissions.'); @chmod(sf_install_lock_path(),0640);
-}
-function sf_install_handle_post(): void {
-  if(($_SERVER['REQUEST_METHOD']??'GET')!=='POST') return;
-  $action=(string)($_POST['action']??'');
-  try {
-    if($action==='test_db') { $db=['host'=>trim((string)$_POST['db_host']),'port'=>trim((string)($_POST['db_port']??'3306')),'name'=>trim((string)$_POST['db_name']),'user'=>trim((string)$_POST['db_user']),'pass'=>(string)($_POST['db_pass']??''),'charset'=>'utf8mb4']; $pdo=sf_install_connect($db); $pdo->query('SELECT 1'); $_SESSION['sf_install_db']=$db; sf_install_flash('success','Database connection confirmed.'); sf_install_redirect('sql'); }
-    if($action==='run_sql') { $db=sf_install_saved_db(); $pdo=sf_install_connect($db); $results=sf_install_run_sql($pdo); $failed=array_filter($results,fn($r)=>$r['status']==='failed'||$r['status']==='missing'); sf_install_flash($failed?'error':'success',$failed?'SQL install stopped. Review the failed item.':'SQL installed successfully.'); sf_install_redirect($failed?'sql':'admin'); }
-    if($action==='finish') { $db=sf_install_saved_db(); $site=['site_name'=>trim((string)($_POST['site_name']??'Stonefellow')),'site_tagline'=>trim((string)($_POST['site_tagline']??'')),'base_url'=>trim((string)($_POST['base_url']??'')),'support_email'=>trim((string)($_POST['support_email']??'')),'admin_email'=>trim((string)($_POST['admin_email']??'')),'payment_provider'=>'sandbox']; sf_install_write_config($db,$site); $pdo=sf_install_connect($db); $adminId=sf_install_create_admin($pdo,$_POST); sf_install_save_settings($pdo,$site,$adminId); sf_install_finish($site,$adminId); $_SESSION['sf_user_id']=$adminId; sf_install_flash('success','Installation complete. Installer is locked.'); header('Location: admin/index.php'); exit; }
-  } catch(Throwable $e){ sf_install_flash('error',$e->getMessage()); sf_install_redirect($_GET['step']??'server'); }
-}
+function sf_install_schema_table(PDO $pdo): void { $pdo->exec("CREATE TABLE IF NOT EXISTS schema_migrations (id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY, migration_key VARCHAR(40) NOT NULL UNIQUE, file_path VARCHAR(255) NOT NULL, checksum_sha256 VARCHAR(64) NOT NULL, applied_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci"); }
+function sf_install_migration_applied(PDO $pdo, string $key, string $checksum): bool { if(!sf_install_table_exists($pdo,'schema_migrations')) return false; $s=$pdo->prepare('SELECT checksum_sha256 FROM schema_migrations WHERE migration_key=? LIMIT 1'); $s->execute([$key]); $old=$s->fetchColumn(); return is_string($old)&&$old===$checksum; }
+function sf_install_mark_migration(PDO $pdo, string $key, string $file, string $checksum): void { $s=$pdo->prepare('INSERT INTO schema_migrations (migration_key,file_path,checksum_sha256) VALUES (?,?,?) ON DUPLICATE KEY UPDATE file_path=VALUES(file_path), checksum_sha256=VALUES(checksum_sha256), applied_at=NOW()'); $s->execute([$key,$file,$checksum]); }
+function sf_install_split_sql(string $sql): array { $out=[]; $buf=''; $quote=null; $len=strlen($sql); for($i=0;$i<$len;$i++){ $ch=$sql[$i]; $next=$sql[$i+1]??''; if($quote){ $buf.=$ch; if($ch==='\\'&&$i+1<$len){$buf.=$sql[++$i]; continue;} if($ch===$quote){$quote=null;} continue; } if($ch==="'"||$ch==='"'||$ch==='`'){ $quote=$ch; $buf.=$ch; continue; } if($ch==='-'&&$next==='-'){ while($i<$len&&$sql[$i]!=="\n")$i++; $buf.="\n"; continue; } if($ch==='#'){ while($i<$len&&$sql[$i]!=="\n")$i++; $buf.="\n"; continue; } if($ch==='/'&&$next==='*'){ $i+=2; while($i<$len-1&&!($sql[$i]==='*'&&$sql[$i+1]==='/'))$i++; $i++; continue; } if($ch===';'){ $stmt=trim($buf); if($stmt!=='')$out[]=$stmt; $buf=''; continue; } $buf.=$ch; } $stmt=trim($buf); if($stmt!=='')$out[]=$stmt; return $out; }
+function sf_install_execute_statement(PDO $pdo, string $stmt): void { try { $pdo->exec($stmt); return; } catch(PDOException $e){ if(preg_match('/^ALTER\s+TABLE\s+`?([a-zA-Z0-9_]+)`?\s+(.*)$/is',trim($stmt),$m)&&stripos($m[2],'ADD COLUMN IF NOT EXISTS')!==false){ $table=$m[1]; $parts=preg_split('/,\s*(?=ADD\s+COLUMN\s+IF\s+NOT\s+EXISTS)/i',trim($m[2])); foreach($parts as $part){ if(preg_match('/^ADD\s+COLUMN\s+IF\s+NOT\s+EXISTS\s+`?([a-zA-Z0-9_]+)`?\s+(.*)$/is',trim($part),$cm)){ if(!sf_install_column_exists($pdo,$table,$cm[1])){ $pdo->exec('ALTER TABLE `'.str_replace('`','',$table).'` ADD COLUMN `'.str_replace('`','',$cm[1]).'` '.$cm[2]); } } else { $pdo->exec('ALTER TABLE `'.str_replace('`','',$table).'` '.$part); } } return; } throw $e; } }
+function sf_install_run_sql(PDO $pdo): array { sf_install_schema_table($pdo); $results=[]; $root=sf_install_root(); foreach(sf_install_plan() as $key=>$item){ $path=$root.'/'.$item['file']; if(!is_file($path)){ $results[]=['key'=>$key,'label'=>$item['label'],'status'=>'missing','detail'=>'File missing']; continue; } $sql=(string)file_get_contents($path); $checksum=hash('sha256',$sql); if(sf_install_migration_applied($pdo,$key,$checksum)){ $results[]=['key'=>$key,'label'=>$item['label'],'status'=>'skipped','detail'=>'Already applied']; continue; } try { $pdo->beginTransaction(); foreach(sf_install_split_sql($sql) as $stmt){ sf_install_execute_statement($pdo,$stmt); } sf_install_mark_migration($pdo,$key,$item['file'],$checksum); $pdo->commit(); $results[]=['key'=>$key,'label'=>$item['label'],'status'=>'applied','detail'=>'Applied successfully']; } catch(Throwable $e){ if($pdo->inTransaction())$pdo->rollBack(); $results[]=['key'=>$key,'label'=>$item['label'],'status'=>'failed','detail'=>$e->getMessage()]; break; } } $_SESSION['sf_install_sql_results']=$results; return $results; }
+function sf_install_write_config(array $db, array $site): void { if(!is_dir(sf_install_config_dir()))@mkdir(sf_install_config_dir(),0775,true); $config=['site'=>['name'=>$site['site_name']??'Stonefellow','tagline'=>$site['site_tagline']??'Watch the show. Stream the music. Wear the story.','base_url'=>$site['base_url']??'','support_email'=>$site['support_email']??'support@stonefellow.tv'],'database'=>['host'=>$db['host'],'port'=>$db['port']??'3306','name'=>$db['name'],'user'=>$db['user'],'pass'=>$db['pass'],'charset'=>$db['charset']??'utf8mb4'],'installed_at'=>date('c')]; $php="<?php\nreturn ".var_export($config,true).";\n"; if(file_put_contents(sf_install_config_path(),$php)===false) throw new RuntimeException('Could not write config/local.php. Check folder permissions.'); @chmod(sf_install_config_path(),0640); }
+function sf_install_create_admin(PDO $pdo, array $admin): int { $name=trim((string)($admin['name']??'')); $email=strtolower(trim((string)($admin['email']??''))); $pass=(string)($admin['password']??''); $confirm=(string)($admin['password_confirm']??''); if($name===''||!filter_var($email,FILTER_VALIDATE_EMAIL)||strlen($pass)<8||$pass!==$confirm) throw new RuntimeException('Admin name, valid email, and matching 8+ character passwords are required.'); $cols=['email'=>$email,'password_hash'=>password_hash($pass,PASSWORD_DEFAULT),'display_name'=>$name,'role'=>'admin','status'=>'active']; if(sf_install_column_exists($pdo,'users','email_verified_at'))$cols['email_verified_at']=date('Y-m-d H:i:s'); $existing=$pdo->prepare('SELECT id FROM users WHERE email=? LIMIT 1'); $existing->execute([$email]); $id=(int)($existing->fetchColumn()?:0); if($id>0){ $sets=[]; foreach($cols as $k=>$v){$sets[]='`'.$k.'`=?';} $pdo->prepare('UPDATE users SET '.implode(',',$sets).' WHERE id=?')->execute(array_merge(array_values($cols),[$id])); return $id; } $keys=array_keys($cols); $pdo->prepare('INSERT INTO users (`'.implode('`,`',$keys).'`) VALUES ('.implode(',',array_fill(0,count($keys),'?')).')')->execute(array_values($cols)); return (int)$pdo->lastInsertId(); }
+function sf_install_save_settings(PDO $pdo, array $site, ?int $adminId=null): void { if(!sf_install_table_exists($pdo,'site_settings'))return; $rows=['site_name'=>$site['site_name']??'Stonefellow','site_tagline'=>$site['site_tagline']??'Watch the show. Stream the music. Wear the story.','base_url'=>$site['base_url']??'','support_email'=>$site['support_email']??'support@stonefellow.tv','admin_email'=>$site['admin_email']??($site['support_email']??'support@stonefellow.tv'),'payment_provider'=>$site['payment_provider']??'sandbox','member_signup_enabled'=>'1','checkout_enabled'=>'1']; $hasUser=sf_install_column_exists($pdo,'site_settings','updated_by_user_id'); foreach($rows as $k=>$v){ if($hasUser){$pdo->prepare('INSERT INTO site_settings (setting_key,setting_value,setting_group,is_public,updated_by_user_id) VALUES (?,?,?,?,?) ON DUPLICATE KEY UPDATE setting_value=VALUES(setting_value), is_public=VALUES(is_public), updated_by_user_id=VALUES(updated_by_user_id), updated_at=NOW()')->execute([$k,(string)$v,'site',1,$adminId]);} else {$pdo->prepare('INSERT INTO site_settings (setting_key,setting_value,setting_group,is_public) VALUES (?,?,?,?) ON DUPLICATE KEY UPDATE setting_value=VALUES(setting_value), is_public=VALUES(is_public)')->execute([$k,(string)$v,'site',1]);} } }
+function sf_install_finish(array $site, int $adminId): void { if(!is_dir(sf_install_storage_dir()))@mkdir(sf_install_storage_dir(),0775,true); $lock=['installed_at'=>date('c'),'admin_user_id'=>$adminId,'site_name'=>$site['site_name']??'Stonefellow','base_url'=>$site['base_url']??'']; if(file_put_contents(sf_install_lock_path(),json_encode($lock,JSON_PRETTY_PRINT|JSON_UNESCAPED_SLASHES))===false) throw new RuntimeException('Could not write storage/install.lock. Check folder permissions.'); @chmod(sf_install_lock_path(),0640); }
+function sf_install_handle_post(): void { if(($_SERVER['REQUEST_METHOD']??'GET')!=='POST')return; $action=(string)($_POST['action']??''); try { if($action==='test_db'){ $db=['host'=>trim((string)$_POST['db_host']),'port'=>trim((string)($_POST['db_port']??'3306')),'name'=>trim((string)$_POST['db_name']),'user'=>trim((string)$_POST['db_user']),'pass'=>(string)($_POST['db_pass']??''),'charset'=>'utf8mb4']; $pdo=sf_install_connect($db); $pdo->query('SELECT 1'); $_SESSION['sf_install_db']=$db; sf_install_flash('success','Database connection confirmed.'); sf_install_redirect('sql'); } if($action==='run_sql'){ $db=sf_install_saved_db(); $pdo=sf_install_connect($db); $results=sf_install_run_sql($pdo); $failed=array_filter($results,fn($r)=>$r['status']==='failed'||$r['status']==='missing'); sf_install_flash($failed?'error':'success',$failed?'SQL install stopped. Review the failed item.':'SQL installed successfully.'); sf_install_redirect($failed?'sql':'admin'); } if($action==='finish'){ $db=sf_install_saved_db(); $site=['site_name'=>trim((string)($_POST['site_name']??'Stonefellow')),'site_tagline'=>trim((string)($_POST['site_tagline']??'')),'base_url'=>trim((string)($_POST['base_url']??'')),'support_email'=>trim((string)($_POST['support_email']??'')),'admin_email'=>trim((string)($_POST['admin_email']??'')),'payment_provider'=>'sandbox']; sf_install_write_config($db,$site); $pdo=sf_install_connect($db); $adminId=sf_install_create_admin($pdo,$_POST); sf_install_save_settings($pdo,$site,$adminId); sf_install_finish($site,$adminId); $_SESSION['sf_user_id']=$adminId; sf_install_flash('success','Installation complete. Installer is locked.'); header('Location: admin/index.php'); exit; } } catch(Throwable $e){ sf_install_flash('error',$e->getMessage()); sf_install_redirect($_GET['step']??'server'); } }
 ?>
