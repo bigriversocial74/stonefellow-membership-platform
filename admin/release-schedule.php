@@ -3,15 +3,24 @@ $pageTitle = 'Release Schedule';
 $pageDescription = 'Schedule episode and video release windows.';
 $pageClass = 'membership-page admin-catalog-page';
 require __DIR__ . '/../includes/admin_catalog.php';
+require_once __DIR__ . '/../includes/publishing.php';
 require __DIR__ . '/../includes/header.php';
 $episodes = sf_admin_episodes();
 $videos = sf_admin_videos();
+$items = sf_publish_items();
 sf_admin_shell_start('Release Schedule', 'Episode and video calendar', 'Review publish status, release dates, access levels, and watch-next gaps before launch.', 'release-schedule');
 ?>
 <section class="sf-admin-card-grid">
+  <a class="sf-admin-action-card" href="<?= sf_url('admin/publishing.php') ?>"><span>Workflow</span><strong>Publishing Controls</strong><small>Draft, scheduled, published, archived, and early access.</small></a>
   <a class="sf-admin-action-card" href="<?= sf_url('admin/episodes.php') ?>"><span>Episodes</span><strong><?= count($episodes) ?> records</strong><small>Edit story metadata and release windows.</small></a>
   <a class="sf-admin-action-card" href="<?= sf_url('admin/videos.php') ?>"><span>Videos</span><strong><?= count($videos) ?> records</strong><small>Edit stream files and access gates.</small></a>
-  <a class="sf-admin-action-card" href="<?= sf_url('admin/seasons.php') ?>"><span>Seasons</span><strong>Season manager</strong><small>Group episode arcs and poster art.</small></a>
+  <a class="sf-admin-action-card" href="<?= sf_url('api/publishing-tick.php') ?>"><span>Runner</span><strong>Due Check</strong><small>Promote due scheduled items.</small></a>
+</section>
+<section class="sf-admin-panel">
+  <div class="sf-admin-panel-head"><div><span class="sf-panel-eyebrow">Publishing Registry</span><h2><?= count($items) ?> content items</h2></div></div>
+  <div class="sf-admin-table-wrap"><table class="sf-admin-table"><thead><tr><th>Content</th><th>State</th><th>Release</th><th>Access</th><th>URL</th></tr></thead><tbody>
+    <?php foreach (array_slice($items, 0, 50) as $item): ?><tr><td><strong><?= sf_admin_h($item['display_title'] ?? '') ?></strong><small><?= sf_admin_h(($item['content_type'] ?? '') . ' · ' . ($item['slug'] ?? '')) ?></small></td><td><?= sf_admin_status_badge((string)($item['computed_state'] ?? 'draft')) ?></td><td><?= sf_admin_h($item['release_at'] ?? $item['publish_window_start'] ?? 'Unscheduled') ?></td><td><?= sf_admin_h(sf_access_label((string)($item['access_level'] ?? 'public'))) ?></td><td><a href="<?= sf_admin_h($item['public_url'] ?? '#') ?>">Open</a></td></tr><?php endforeach; ?>
+  </tbody></table></div>
 </section>
 <section class="sf-admin-panel">
   <div class="sf-admin-panel-head"><div><span class="sf-panel-eyebrow">Episode Calendar</span><h2>Release readiness</h2></div></div>
