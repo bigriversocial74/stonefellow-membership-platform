@@ -19,6 +19,8 @@ BEGIN
 END //
 DELIMITER ;
 
+CALL sf_add_tier_revenue_column('subscription_plans', 'allows_video_streaming', '`allows_video_streaming` TINYINT(1) NOT NULL DEFAULT 1 AFTER `allows_full_music`');
+CALL sf_add_tier_revenue_column('subscription_plans', 'allows_playlists', '`allows_playlists` TINYINT(1) NOT NULL DEFAULT 1 AFTER `allows_video_streaming`');
 CALL sf_add_tier_revenue_column('subscription_plans', 'access_label', '`access_label` VARCHAR(120) DEFAULT NULL AFTER `public_badge`');
 CALL sf_add_tier_revenue_column('subscription_plans', 'benefit_matrix_json', '`benefit_matrix_json` JSON DEFAULT NULL AFTER `access_label`');
 CALL sf_add_tier_revenue_column('subscription_plans', 'upgrade_path_json', '`upgrade_path_json` JSON DEFAULT NULL AFTER `benefit_matrix_json`');
