@@ -1,0 +1,82 @@
+<?php
+$pageTitle = 'Account Billing';
+$pageDescription = 'Manage Stonefellow membership billing, invoices, and subscription status.';
+$pageClass = 'membership-page billing-page';
+require __DIR__ . '/includes/billing.php';
+$user = sf_require_login();
+
+if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
+  if (!sf_verify_csrf($_POST['csrf_token'] ?? null)) {
+    sf_auth_flash('error', 'Security check failed. Refresh and try again.');
+  } elseif (($_POST['action'] ?? '') === 'cancel_subscription') {
+    sf_billing_cancel_subscription((int)($_POST['subscription_id'] ?? 0), false);
+    sf_redirect(sf_url('account-billing.php'));
+  } elseif (($_POST['action'] ?? '') === 'cancel_now') {
+    sf_billing_cancel_subscription((int)($_POST['subscription_id'] ?? 0), true);
+    sf_redirect(sf_url('account-billing.php'));
+  }
+}
+
+$subscription = sf_billing_active_subscription((int)$user['id']);
+$invoices = sf_billing_user_invoices((int)$user['id']);
+$transactions = sf_billing_user_transactions((int)$user['id']);
+require __DIR__ . '/includes/header.php';
+?>
+<section class="sf-billing-hero">
+  <span class="sf-kicker">Account Billing</span>
+  <h1>Membership, invoices, and payments.</h1>
+  <p>Review your current Stonefellow membership, payment records, and cancellation settings.</p>
+</section>
+
+<section class="sf-billing-layout">
+  <article class="sf-billing-card">
+    <div class="sf-billing-card-head"><span>Current Subscription</span><strong><?= $subscription ? sf_auth_h($subscription['status']) : 'Free' ?></strong></div>
+    <?php if ($subscription): ?>
+      <h2><?= sf_auth_h($subscription['plan_name'] ?? 'Stonefellow Membership') ?></h2>
+      <div class="sf-billing-price"><?= sf_billing_money((int)($subscription['price_cents'] ?? 0)) ?><span>/ <?= sf_auth_h($subscription['billing_interval'] ?? 'month') ?></span></div>
+      <p>Current period ends: <strong><?= sf_auth_h($subscription['current_period_end'] ?? 'Not set') ?></strong></p>
+      <?php if (!empty($subscription['cancel_at_period_end'])): ?>
+        <div class="sf-payment-sandbox-box"><strong>Cancellation scheduled</strong><p>Access remains active until the current period ends.</p></div>
+      <?php elseif (($subscription['status'] ?? '') === 'active' || ($subscription['status'] ?? '') === 'trialing'): ?>
+        <form method="post" class="sf-billing-actions sf-danger-actions">
+          <?= sf_csrf_field() ?>
+          <input type="hidden" name="subscription_id" value="<?= (int)$subscription['id'] ?>">
+          <button class="sf-secondary-action" type="submit" name="action" value="cancel_subscription">Cancel at Period End</button>
+          <button class="sf-danger-action" type="submit" name="action" value="cancel_now">Cancel Now</button>
+        </form>
+      <?php endif; ?>
+    <?php else: ?>
+      <h2>No active membership</h2>
+      <p>Choose a plan to unlock full music, private playlists, video access, and episode tracking.</p>
+      <a class="sf-primary-action" href="<?= sf_url('subscribe.php') ?>">Choose Plan</a>
+    <?php endif; ?>
+  </article>
+
+  <aside class="sf-billing-card">
+    <span class="sf-panel-eyebrow">Billing Status</span>
+    <h2><?= sf_billing_is_ready() ? 'Billing tables installed' : 'Billing setup needed' ?></h2>
+    <p><?= sf_billing_is_ready() ? 'Sandbox billing is ready. Production payment keys/webhooks can be connected next.' : 'Run migration 004 to enable checkouts, invoices, payment transactions, and webhooks.' ?></p>
+    <a class="sf-secondary-action" href="<?= sf_url('subscribe.php') ?>">View Plans</a>
+  </aside>
+</section>
+
+<section class="sf-admin-panel sf-billing-table-panel">
+  <div class="sf-admin-panel-head"><div><span class="sf-panel-eyebrow">Invoices</span><h2>Recent invoices</h2></div></div>
+  <div class="sf-admin-table-wrap"><table class="sf-admin-table"><thead><tr><th>Invoice</th><th>Status</th><th>Total</th><th>Paid</th><th>Created</th></tr></thead><tbody>
+    <?php if (!$invoices): ?><tr><td colspan="5">No invoices yet.</td></tr><?php endif; ?>
+    <?php foreach ($invoices as $invoice): ?>
+      <tr><td><?= sf_auth_h($invoice['invoice_number'] ?? ('#' . $invoice['id'])) ?></td><td><?= sf_auth_h($invoice['status'] ?? '') ?></td><td><?= sf_billing_money((int)($invoice['total_cents'] ?? 0), (string)($invoice['currency'] ?? 'USD')) ?></td><td><?= sf_auth_h($invoice['paid_at'] ?? '—') ?></td><td><?= sf_auth_h($invoice['created_at'] ?? '') ?></td></tr>
+    <?php endforeach; ?>
+  </tbody></table></div>
+</section>
+
+<section class="sf-admin-panel sf-billing-table-panel">
+  <div class="sf-admin-panel-head"><div><span class="sf-panel-eyebrow">Transactions</span><h2>Payment history</h2></div></div>
+  <div class="sf-admin-table-wrap"><table class="sf-admin-table"><thead><tr><th>Provider</th><th>Type</th><th>Status</th><th>Amount</th><th>Created</th></tr></thead><tbody>
+    <?php if (!$transactions): ?><tr><td colspan="5">No payment transactions yet.</td></tr><?php endif; ?>
+    <?php foreach ($transactions as $transaction): ?>
+      <tr><td><?= sf_auth_h($transaction['provider'] ?? 'sandbox') ?></td><td><?= sf_auth_h($transaction['transaction_type'] ?? '') ?></td><td><?= sf_auth_h($transaction['status'] ?? '') ?></td><td><?= sf_billing_money((int)($transaction['amount_cents'] ?? 0), (string)($transaction['currency'] ?? 'USD')) ?></td><td><?= sf_auth_h($transaction['created_at'] ?? '') ?></td></tr>
+    <?php endforeach; ?>
+  </tbody></table></div>
+</section>
+<?php require __DIR__ . '/includes/footer.php'; ?>
