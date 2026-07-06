@@ -7,16 +7,10 @@ if (session_status() === PHP_SESSION_NONE) {
   session_start();
 }
 
-// Admin pages stay visible in static/no-database preview mode. Once the
-// database is configured, require a signed-in admin account before any catalog
-// write or management page can be used.
 if (sf_db() instanceof PDO) {
   sf_require_admin();
 }
 
-// Production Readiness + QA Harness v1: central CSRF guard for all admin POST mutations.
-// Individual pages may still perform their own checks, but this protects older
-// admin forms that were created before the global QA/security layer.
 if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST' && strpos(str_replace('\\', '/', $_SERVER['SCRIPT_NAME'] ?? ''), '/admin/') !== false) {
   if (!sf_verify_csrf($_POST['csrf_token'] ?? null)) {
     sf_admin_flash('error', 'Security check failed. Refresh and try again.');
@@ -24,707 +18,115 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST' && strpos(str_replace('\\',
   }
 }
 
-function sf_admin_h($value): string {
-  return htmlspecialchars((string)$value, ENT_QUOTES, 'UTF-8');
-}
+function sf_admin_h($value): string { return htmlspecialchars((string)$value, ENT_QUOTES, 'UTF-8'); }
+function sf_admin_db(): ?PDO { return sf_db(); }
+function sf_admin_db_ready(): bool { return sf_admin_db() instanceof PDO; }
+function sf_admin_flash(?string $type = null, ?string $message = null): array { if ($type !== null && $message !== null) { $_SESSION['sf_admin_flash'][] = ['type'=>$type,'message'=>$message]; return []; } $messages = $_SESSION['sf_admin_flash'] ?? []; unset($_SESSION['sf_admin_flash']); return is_array($messages) ? $messages : []; }
+function sf_admin_redirect(?string $url = null): void { $target = $url ?: strtok($_SERVER['REQUEST_URI'] ?? '', '?') ?: './'; header('Location: ' . $target); exit; }
+function sf_admin_slugify(string $value): string { $value = strtolower(trim($value)); $value = preg_replace('/[^a-z0-9]+/i', '-', $value) ?: ''; $value = trim($value, '-'); return $value !== '' ? $value : 'item-' . substr(bin2hex(random_bytes(4)), 0, 8); }
+function sf_admin_int($value, ?int $default = null): ?int { if ($value === '' || $value === null) return $default; return is_numeric($value) ? (int)$value : $default; }
+function sf_admin_nullable_string($value): ?string { $value = trim((string)$value); return $value === '' ? null : $value; }
+function sf_admin_checkbox(string $key): int { return isset($_POST[$key]) ? 1 : 0; }
+function sf_admin_date_or_null(string $key): ?string { $value = trim((string)($_POST[$key] ?? '')); return $value === '' ? null : $value; }
+function sf_admin_datetime_or_null(string $key): ?string { $value = trim((string)($_POST[$key] ?? '')); if ($value === '') return null; return str_replace('T', ' ', $value) . (strlen($value) === 16 ? ':00' : ''); }
 
-function sf_admin_db(): ?PDO {
-  return sf_db();
-}
+function sf_admin_table_exists(string $table): bool { $pdo = sf_admin_db(); if (!$pdo) return false; try { $stmt = $pdo->prepare('SHOW TABLES LIKE ?'); $stmt->execute([$table]); return (bool)$stmt->fetchColumn(); } catch (Throwable $e) { error_log('Stonefellow table check failed for ' . $table . ': ' . $e->getMessage()); return false; } }
+function sf_admin_fetch_all(string $sql, array $params = []): array { $pdo = sf_admin_db(); if (!$pdo) return []; try { $stmt = $pdo->prepare($sql); $stmt->execute($params); return $stmt->fetchAll() ?: []; } catch (Throwable $e) { error_log('Stonefellow admin fetch failed: ' . $e->getMessage()); return []; } }
+function sf_admin_fetch_one(string $sql, array $params = []): ?array { $rows = sf_admin_fetch_all($sql, $params); return $rows[0] ?? null; }
+function sf_admin_execute(string $sql, array $params = []): bool { $pdo = sf_admin_db(); if (!$pdo) return false; try { $stmt = $pdo->prepare($sql); return $stmt->execute($params); } catch (Throwable $e) { error_log('Stonefellow admin execute failed: ' . $e->getMessage()); sf_admin_flash('error', 'Database action failed: ' . $e->getMessage()); return false; } }
+function sf_admin_audit(string $action, string $entityType, ?int $entityId = null, ?array $before = null, ?array $after = null): void { if (!sf_admin_table_exists('admin_audit_log')) return; sf_admin_execute('INSERT INTO admin_audit_log (admin_user_id, action, entity_type, entity_id, before_json, after_json, ip_address) VALUES (?, ?, ?, ?, ?, ?, ?)', [sf_current_user_id(), $action, $entityType, $entityId, $before ? json_encode($before, JSON_UNESCAPED_SLASHES) : null, $after ? json_encode($after, JSON_UNESCAPED_SLASHES) : null, $_SERVER['REMOTE_ADDR'] ?? null]); }
+function sf_admin_count_table(string $table): int { if (!sf_admin_table_exists($table)) return 0; $row = sf_admin_fetch_one('SELECT COUNT(*) AS total FROM `' . str_replace('`', '', $table) . '`'); return (int)($row['total'] ?? 0); }
+function sf_admin_table_columns(string $table): array { $pdo = sf_admin_db(); if (!$pdo || !sf_admin_table_exists($table)) return []; try { $stmt = $pdo->query('SHOW COLUMNS FROM `' . str_replace('`', '', $table) . '`'); return array_map(static fn($row) => $row['Field'] ?? '', $stmt->fetchAll() ?: []); } catch (Throwable $e) { error_log('Stonefellow column lookup failed for ' . $table . ': ' . $e->getMessage()); return []; } }
+function sf_admin_column_exists(string $table, string $column): bool { return in_array($column, sf_admin_table_columns($table), true); }
+function sf_admin_assets(string $type = ''): array { if (!sf_admin_table_exists('media_assets')) return []; $params = []; $where = ''; if ($type !== '') { $where = ' WHERE file_type = ?'; $params[] = $type; } return sf_admin_fetch_all('SELECT * FROM media_assets' . $where . ' ORDER BY created_at DESC, id DESC LIMIT 300', $params); }
 
-function sf_admin_db_ready(): bool {
-  return sf_admin_db() instanceof PDO;
-}
+function sf_admin_albums(): array { if (!sf_admin_table_exists('albums')) { global $musicAlbum; return [['id'=>1,'title'=>$musicAlbum['title'] ?? 'The Road Is Calling','slug'=>$musicAlbum['slug'] ?? 'the-road-is-calling','artist'=>$musicAlbum['artist'] ?? 'Stonefellow','description'=>$musicAlbum['description'] ?? '','release_date'=>null,'status'=>'published','cover_path'=>$musicAlbum['cover'] ?? '']]; } return sf_admin_fetch_all('SELECT a.*, ma.file_path AS cover_path FROM albums a LEFT JOIN media_assets ma ON ma.id = a.cover_asset_id ORDER BY a.created_at DESC, a.id DESC'); }
+function sf_admin_songs(): array { if (!sf_admin_table_exists('songs')) { global $catalogSongs; $rows = []; foreach ($catalogSongs as $song) { $rows[] = ['id'=>$song['id'] ?? 0,'album_title'=>'The Road Is Calling','album_id'=>1,'track_number'=>(int)($song['track'] ?? 0),'title'=>$song['title'] ?? '','slug'=>$song['slug'] ?? '','artist'=>$song['artist'] ?? 'Stonefellow','duration_seconds'=>$song['duration_seconds'] ?? null,'access_level'=>$song['access'] ?? 'subscriber','is_featured'=>!empty($song['is_featured']) ? 1 : 0,'status'=>'published','cover_path'=>$song['cover'] ?? '']; } return $rows; } return sf_admin_fetch_all('SELECT s.*, a.title AS album_title, ma.file_path AS cover_path FROM songs s LEFT JOIN albums a ON a.id = s.album_id LEFT JOIN media_assets ma ON ma.id = s.cover_asset_id ORDER BY COALESCE(s.album_id, 999999), COALESCE(s.track_number, 999999), s.created_at DESC, s.id DESC'); }
+function sf_admin_episodes(): array { if (!sf_admin_table_exists('episodes')) { global $episodes; $rows = []; foreach ($episodes as $index => $episode) { $rows[] = ['id'=>$index + 1,'season_number'=>1,'episode_number'=>$index + 1,'title'=>$episode['title'] ?? '','slug'=>$episode['slug'] ?? '','short_description'=>$episode['description'] ?? '','runtime_minutes'=>(int)($episode['runtime'] ?? 0),'status'=>(($episode['badge'] ?? '') === 'Coming Soon') ? 'draft' : 'published']; } return $rows; } return sf_admin_fetch_all('SELECT * FROM episodes ORDER BY season_number ASC, episode_number ASC, id ASC'); }
+function sf_admin_videos(): array { if (!sf_admin_table_exists('videos')) { global $videoCatalog; return $videoCatalog; } return sf_admin_fetch_all('SELECT v.*, e.title AS episode_title, e.slug AS episode_slug, ma.file_path AS poster_path FROM videos v LEFT JOIN episodes e ON e.id = v.episode_id LEFT JOIN media_assets ma ON ma.id = v.poster_asset_id ORDER BY COALESCE(e.season_number, 999), COALESCE(e.episode_number, 999), v.video_type ASC, v.created_at DESC, v.id DESC'); }
+function sf_admin_file_rows(string $table, string $foreignKey, int $id): array { if (!sf_admin_table_exists($table) || $id <= 0) return []; return sf_admin_fetch_all('SELECT * FROM `' . $table . '` WHERE `' . $foreignKey . '` = ? ORDER BY is_primary DESC, id ASC', [$id]); }
+function sf_admin_selected_row(array $rows, string $table, int $editId): ?array { if ($editId <= 0) return null; if (sf_admin_table_exists($table)) return sf_admin_fetch_one('SELECT * FROM `' . $table . '` WHERE id = ? LIMIT 1', [$editId]); foreach ($rows as $row) if ((int)($row['id'] ?? 0) === $editId) return $row; return null; }
 
-function sf_admin_flash(?string $type = null, ?string $message = null): array {
-  if ($type !== null && $message !== null) {
-    $_SESSION['sf_admin_flash'][] = ['type' => $type, 'message' => $message];
-    return [];
-  }
-  $messages = $_SESSION['sf_admin_flash'] ?? [];
-  unset($_SESSION['sf_admin_flash']);
-  return is_array($messages) ? $messages : [];
-}
+function sf_admin_select(string $name, array $options, $selected, string $class = ''): string { $html = '<select name="' . sf_admin_h($name) . '"' . ($class !== '' ? ' class="' . sf_admin_h($class) . '"' : '') . sf_admin_form_disabled_attr() . '>'; foreach ($options as $value => $label) { $html .= '<option value="' . sf_admin_h($value) . '"' . (((string)$value === (string)$selected) ? ' selected' : '') . '>' . sf_admin_h($label) . '</option>'; } return $html . '</select>'; }
+function sf_admin_asset_select(string $name, array $assets, $selected, string $type = ''): string { $html = '<select name="' . sf_admin_h($name) . '"' . sf_admin_form_disabled_attr() . '><option value="">No asset selected</option>'; foreach ($assets as $asset) { if ($type !== '' && ($asset['file_type'] ?? '') !== $type) continue; $label = trim((string)($asset['title'] ?? 'Asset #' . ($asset['id'] ?? '')) . ' — ' . (string)($asset['file_path'] ?? '')); $html .= '<option value="' . sf_admin_h($asset['id'] ?? '') . '"' . (((string)($asset['id'] ?? '') === (string)$selected) ? ' selected' : '') . '>' . sf_admin_h($label) . '</option>'; } return $html . '</select>'; }
+function sf_admin_relation_select(string $name, array $rows, $selected, string $emptyLabel = 'None'): string { $html = '<select name="' . sf_admin_h($name) . '"' . sf_admin_form_disabled_attr() . '><option value="">' . sf_admin_h($emptyLabel) . '</option>'; foreach ($rows as $row) { $label = (string)($row['title'] ?? $row['name'] ?? ('#' . ($row['id'] ?? ''))); if (isset($row['season_number'], $row['episode_number'])) $label = 'S' . $row['season_number'] . ':E' . $row['episode_number'] . ' — ' . $label; $html .= '<option value="' . sf_admin_h($row['id'] ?? '') . '"' . (((string)($row['id'] ?? '') === (string)$selected) ? ' selected' : '') . '>' . sf_admin_h($label) . '</option>'; } return $html . '</select>'; }
+function sf_admin_status_badge(string $status): string { $status = $status ?: 'draft'; return '<span class="sf-admin-status sf-admin-status-' . sf_admin_h(str_replace('_', '-', $status)) . '">' . sf_admin_h(ucfirst(str_replace('_', ' ', $status))) . '</span>'; }
 
-function sf_admin_redirect(?string $url = null): void {
-  $target = $url ?: strtok($_SERVER['REQUEST_URI'] ?? '', '?') ?: './';
-  header('Location: ' . $target);
-  exit;
-}
-
-function sf_admin_slugify(string $value): string {
-  $value = strtolower(trim($value));
-  $value = preg_replace('/[^a-z0-9]+/i', '-', $value) ?: '';
-  $value = trim($value, '-');
-  return $value !== '' ? $value : 'item-' . substr(bin2hex(random_bytes(4)), 0, 8);
-}
-
-function sf_admin_int($value, ?int $default = null): ?int {
-  if ($value === '' || $value === null) {
-    return $default;
-  }
-  return is_numeric($value) ? (int)$value : $default;
-}
-
-function sf_admin_nullable_string($value): ?string {
-  $value = trim((string)$value);
-  return $value === '' ? null : $value;
-}
-
-function sf_admin_checkbox(string $key): int {
-  return isset($_POST[$key]) ? 1 : 0;
-}
-
-function sf_admin_date_or_null(string $key): ?string {
-  $value = trim((string)($_POST[$key] ?? ''));
-  return $value === '' ? null : $value;
-}
-
-function sf_admin_datetime_or_null(string $key): ?string {
-  $value = trim((string)($_POST[$key] ?? ''));
-  if ($value === '') {
-    return null;
-  }
-  return str_replace('T', ' ', $value) . (strlen($value) === 16 ? ':00' : '');
-}
-
-function sf_admin_table_exists(string $table): bool {
-  $pdo = sf_admin_db();
-  if (!$pdo) {
-    return false;
-  }
-  try {
-    $stmt = $pdo->prepare('SHOW TABLES LIKE ?');
-    $stmt->execute([$table]);
-    return (bool)$stmt->fetchColumn();
-  } catch (Throwable $e) {
-    error_log('Stonefellow table check failed for ' . $table . ': ' . $e->getMessage());
-    return false;
-  }
-}
-
-function sf_admin_fetch_all(string $sql, array $params = []): array {
-  $pdo = sf_admin_db();
-  if (!$pdo) {
-    return [];
-  }
-  try {
-    $stmt = $pdo->prepare($sql);
-    $stmt->execute($params);
-    return $stmt->fetchAll() ?: [];
-  } catch (Throwable $e) {
-    error_log('Stonefellow admin fetch failed: ' . $e->getMessage());
-    return [];
-  }
-}
-
-function sf_admin_fetch_one(string $sql, array $params = []): ?array {
-  $rows = sf_admin_fetch_all($sql, $params);
-  return $rows[0] ?? null;
-}
-
-function sf_admin_execute(string $sql, array $params = []): bool {
-  $pdo = sf_admin_db();
-  if (!$pdo) {
-    return false;
-  }
-  try {
-    $stmt = $pdo->prepare($sql);
-    return $stmt->execute($params);
-  } catch (Throwable $e) {
-    error_log('Stonefellow admin execute failed: ' . $e->getMessage());
-    sf_admin_flash('error', 'Database action failed: ' . $e->getMessage());
-    return false;
-  }
-}
-
-function sf_admin_audit(string $action, string $entityType, ?int $entityId = null, ?array $before = null, ?array $after = null): void {
-  if (!sf_admin_table_exists('admin_audit_log')) {
-    return;
-  }
-  sf_admin_execute(
-    'INSERT INTO admin_audit_log (admin_user_id, action, entity_type, entity_id, before_json, after_json, ip_address) VALUES (?, ?, ?, ?, ?, ?, ?)',
-    [
-      sf_current_user_id(),
-      $action,
-      $entityType,
-      $entityId,
-      $before ? json_encode($before, JSON_UNESCAPED_SLASHES) : null,
-      $after ? json_encode($after, JSON_UNESCAPED_SLASHES) : null,
-      $_SERVER['REMOTE_ADDR'] ?? null,
-    ]
-  );
-}
-
-function sf_admin_count_table(string $table): int {
-  if (!sf_admin_table_exists($table)) {
-    return 0;
-  }
-  $row = sf_admin_fetch_one('SELECT COUNT(*) AS total FROM `' . str_replace('`', '', $table) . '`');
-  return (int)($row['total'] ?? 0);
-}
-
-
-function sf_admin_table_columns(string $table): array {
-  $pdo = sf_admin_db();
-  if (!$pdo || !sf_admin_table_exists($table)) {
-    return [];
-  }
-  try {
-    $stmt = $pdo->query('SHOW COLUMNS FROM `' . str_replace('`', '', $table) . '`');
-    return array_map(static fn($row) => $row['Field'] ?? '', $stmt->fetchAll() ?: []);
-  } catch (Throwable $e) {
-    error_log('Stonefellow column lookup failed for ' . $table . ': ' . $e->getMessage());
-    return [];
-  }
-}
-
-function sf_admin_column_exists(string $table, string $column): bool {
-  return in_array($column, sf_admin_table_columns($table), true);
-}
-
-function sf_admin_assets(string $type = ''): array {
-  if (!sf_admin_table_exists('media_assets')) {
-    return [];
-  }
-  $params = [];
-  $where = '';
-  if ($type !== '') {
-    $where = ' WHERE file_type = ?';
-    $params[] = $type;
-  }
-  return sf_admin_fetch_all('SELECT * FROM media_assets' . $where . ' ORDER BY created_at DESC, id DESC LIMIT 300', $params);
-}
-
-function sf_admin_albums(): array {
-  if (!sf_admin_table_exists('albums')) {
-    global $musicAlbum;
-    return [[
-      'id' => 1,
-      'title' => $musicAlbum['title'] ?? 'The Road Is Calling',
-      'slug' => $musicAlbum['slug'] ?? 'the-road-is-calling',
-      'artist' => $musicAlbum['artist'] ?? 'Stonefellow',
-      'description' => $musicAlbum['description'] ?? '',
-      'release_date' => null,
-      'status' => 'published',
-      'cover_path' => $musicAlbum['cover'] ?? '',
-    ]];
-  }
-  return sf_admin_fetch_all(
-    'SELECT a.*, ma.file_path AS cover_path FROM albums a LEFT JOIN media_assets ma ON ma.id = a.cover_asset_id ORDER BY a.created_at DESC, a.id DESC'
-  );
-}
-
-function sf_admin_songs(): array {
-  if (!sf_admin_table_exists('songs')) {
-    global $catalogSongs;
-    $rows = [];
-    foreach ($catalogSongs as $song) {
-      $rows[] = [
-        'id' => $song['id'] ?? 0,
-        'album_title' => 'The Road Is Calling',
-        'album_id' => 1,
-        'track_number' => (int)($song['track'] ?? 0),
-        'title' => $song['title'] ?? '',
-        'slug' => $song['slug'] ?? '',
-        'artist' => $song['artist'] ?? 'Stonefellow',
-        'duration_seconds' => $song['duration_seconds'] ?? null,
-        'access_level' => $song['access'] ?? 'subscriber',
-        'is_featured' => !empty($song['is_featured']) ? 1 : 0,
-        'status' => 'published',
-        'cover_path' => $song['cover'] ?? '',
-      ];
-    }
-    return $rows;
-  }
-  return sf_admin_fetch_all(
-    'SELECT s.*, a.title AS album_title, ma.file_path AS cover_path
-     FROM songs s
-     LEFT JOIN albums a ON a.id = s.album_id
-     LEFT JOIN media_assets ma ON ma.id = s.cover_asset_id
-     ORDER BY COALESCE(s.album_id, 999999), COALESCE(s.track_number, 999999), s.created_at DESC, s.id DESC'
-  );
-}
-
-function sf_admin_episodes(): array {
-  if (!sf_admin_table_exists('episodes')) {
-    global $episodes;
-    $rows = [];
-    foreach ($episodes as $index => $episode) {
-      $rows[] = [
-        'id' => $index + 1,
-        'season_number' => 1,
-        'episode_number' => $index + 1,
-        'title' => $episode['title'] ?? '',
-        'slug' => $episode['slug'] ?? '',
-        'short_description' => $episode['description'] ?? '',
-        'runtime_minutes' => (int)($episode['runtime'] ?? 0),
-        'status' => (($episode['badge'] ?? '') === 'Coming Soon') ? 'draft' : 'published',
-      ];
-    }
-    return $rows;
-  }
-  return sf_admin_fetch_all('SELECT * FROM episodes ORDER BY season_number ASC, episode_number ASC, id ASC');
-}
-
-function sf_admin_videos(): array {
-  if (!sf_admin_table_exists('videos')) {
-    global $videoCatalog;
-    return $videoCatalog;
-  }
-  return sf_admin_fetch_all(
-    'SELECT v.*, e.title AS episode_title, e.slug AS episode_slug, ma.file_path AS poster_path
-     FROM videos v
-     LEFT JOIN episodes e ON e.id = v.episode_id
-     LEFT JOIN media_assets ma ON ma.id = v.poster_asset_id
-     ORDER BY COALESCE(e.season_number, 999), COALESCE(e.episode_number, 999), v.video_type ASC, v.created_at DESC, v.id DESC'
-  );
-}
-
-function sf_admin_file_rows(string $table, string $foreignKey, int $id): array {
-  if (!sf_admin_table_exists($table) || $id <= 0) {
-    return [];
-  }
-  return sf_admin_fetch_all('SELECT * FROM `' . $table . '` WHERE `' . $foreignKey . '` = ? ORDER BY is_primary DESC, id ASC', [$id]);
-}
-
-function sf_admin_selected_row(array $rows, string $table, int $editId): ?array {
-  if ($editId <= 0) {
-    return null;
-  }
-  if (sf_admin_table_exists($table)) {
-    return sf_admin_fetch_one('SELECT * FROM `' . $table . '` WHERE id = ? LIMIT 1', [$editId]);
-  }
-  foreach ($rows as $row) {
-    if ((int)($row['id'] ?? 0) === $editId) {
-      return $row;
-    }
-  }
-  return null;
-}
-
-function sf_admin_select(string $name, array $options, $selected, string $class = ''): string {
-  $html = '<select name="' . sf_admin_h($name) . '"' . ($class !== '' ? ' class="' . sf_admin_h($class) . '"' : '') . sf_admin_form_disabled_attr() . '>';
-  foreach ($options as $value => $label) {
-    $isSelected = ((string)$value === (string)$selected) ? ' selected' : '';
-    $html .= '<option value="' . sf_admin_h($value) . '"' . $isSelected . '>' . sf_admin_h($label) . '</option>';
-  }
-  $html .= '</select>';
-  return $html;
-}
-
-function sf_admin_asset_select(string $name, array $assets, $selected, string $type = ''): string {
-  $html = '<select name="' . sf_admin_h($name) . '"' . sf_admin_form_disabled_attr() . '>';
-  $html .= '<option value="">No asset selected</option>';
-  foreach ($assets as $asset) {
-    if ($type !== '' && ($asset['file_type'] ?? '') !== $type) {
-      continue;
-    }
-    $label = trim((string)($asset['title'] ?? 'Asset #' . ($asset['id'] ?? '')) . ' — ' . (string)($asset['file_path'] ?? ''));
-    $html .= '<option value="' . sf_admin_h($asset['id'] ?? '') . '"' . (((string)($asset['id'] ?? '') === (string)$selected) ? ' selected' : '') . '>' . sf_admin_h($label) . '</option>';
-  }
-  $html .= '</select>';
-  return $html;
-}
-
-function sf_admin_relation_select(string $name, array $rows, $selected, string $emptyLabel = 'None'): string {
-  $html = '<select name="' . sf_admin_h($name) . '"' . sf_admin_form_disabled_attr() . '>';
-  $html .= '<option value="">' . sf_admin_h($emptyLabel) . '</option>';
-  foreach ($rows as $row) {
-    $label = (string)($row['title'] ?? $row['name'] ?? ('#' . ($row['id'] ?? '')));
-    if (isset($row['season_number'], $row['episode_number'])) {
-      $label = 'S' . $row['season_number'] . ':E' . $row['episode_number'] . ' — ' . $label;
-    }
-    $html .= '<option value="' . sf_admin_h($row['id'] ?? '') . '"' . (((string)($row['id'] ?? '') === (string)$selected) ? ' selected' : '') . '>' . sf_admin_h($label) . '</option>';
-  }
-  $html .= '</select>';
-  return $html;
-}
-
-function sf_admin_status_badge(string $status): string {
-  $status = $status ?: 'draft';
-  return '<span class="sf-admin-status sf-admin-status-' . sf_admin_h(str_replace('_', '-', $status)) . '">' . sf_admin_h(ucfirst(str_replace('_', ' ', $status))) . '</span>';
-}
-
-function sf_admin_shell_start(string $eyebrow, string $title, string $description, string $active = ''): void {
-  $links = [
+function sf_admin_nav_links(): array {
+  return [
     'index' => ['Admin Home', 'admin/index.php'],
-    'music' => ['Dashboard', 'admin/music.php'],
+    'launch-checklist' => ['Launch Checklist', 'admin/launch-checklist.php'],
+    'qa' => ['Production QA', 'admin/qa.php'],
+    'migration-checker' => ['Migration Checker', 'admin/migration-checker.php'],
+    'routes-checker' => ['Routes Checker', 'admin/routes-checker.php'],
+    'security-check' => ['Security Check', 'admin/security-check.php'],
+    'content-audit' => ['Content Audit', 'admin/content-audit.php'],
+    'health' => ['System Health', 'admin/system-health.php'],
+    'streaming-analytics' => ['Streaming Analytics', 'admin/streaming-analytics.php'],
+    'analytics' => ['Analytics', 'admin/analytics.php'],
+    'audio-analytics' => ['Audio Report', 'admin/audio-analytics.php'],
+    'video-analytics' => ['Video Report', 'admin/video-analytics.php'],
+    'member-activity' => ['Activity', 'admin/member-activity.php'],
+    'music' => ['Media Dashboard', 'admin/music.php'],
     'albums' => ['Albums', 'admin/music-albums.php'],
     'songs' => ['Songs', 'admin/music-songs.php'],
     'episodes' => ['Episodes', 'admin/episodes.php'],
     'videos' => ['Videos', 'admin/videos.php'],
     'seasons' => ['Seasons', 'admin/seasons.php'],
     'release-schedule' => ['Release Schedule', 'admin/release-schedule.php'],
+    'publishing' => ['Publishing', 'admin/publishing.php'],
+    'media-delivery' => ['Secure Media', 'admin/media-delivery.php'],
+    'search-discovery' => ['Search Discovery', 'admin/search-discovery.php'],
     'members' => ['Members', 'admin/members.php'],
-    'products' => ['Merch Products', 'admin/products.php'],
-    'orders' => ['Merch Orders', 'admin/orders.php'],
-    'analytics' => ['Analytics', 'admin/analytics.php'],
+    'entitlements' => ['Entitlements', 'admin/entitlements.php'],
+    'access' => ['Access', 'admin/media-access.php'],
     'billing' => ['Billing', 'admin/billing.php'],
     'payments' => ['Payment Gateways', 'admin/payment-gateways.php'],
-    'settings' => ['Settings', 'admin/settings.php'],
-    'health' => ['System Health', 'admin/system-health.php'],
-    'qa' => ['Production QA', 'admin/qa.php'],
-    'migration-checker' => ['Migration Checker', 'admin/migration-checker.php'],
-    'routes-checker' => ['Routes Checker', 'admin/routes-checker.php'],
-    'security-check' => ['Security Check', 'admin/security-check.php'],
-    'content-audit' => ['Content Audit', 'admin/content-audit.php'],
     'notifications' => ['Notifications', 'admin/notifications.php'],
     'email-templates' => ['Email Templates', 'admin/email-templates.php'],
-    'audio-analytics' => ['Audio Report', 'admin/audio-analytics.php'],
-    'video-analytics' => ['Video Report', 'admin/video-analytics.php'],
-    'member-activity' => ['Activity', 'admin/member-activity.php'],
-    'access' => ['Access', 'admin/media-access.php'],
+    'products' => ['Merch Products', 'admin/products.php'],
+    'orders' => ['Merch Orders', 'admin/orders.php'],
+    'import' => ['Content Import', 'admin/import.php'],
+    'seed-manager' => ['Seed Manager', 'admin/seed-manager.php'],
+    'demo-content' => ['Demo Content', 'admin/demo-content.php'],
     'uploads' => ['Assets', 'admin/uploads.php'],
+    'settings' => ['Settings', 'admin/settings.php'],
   ];
-  echo '<section class="sf-admin-shell">';
-  echo '<aside class="sf-admin-sidebar">';
-  echo '<div class="sf-admin-side-brand"><span>Stonefellow</span><strong>Media Admin</strong></div>';
-  echo '<nav class="sf-admin-nav">';
+}
+
+function sf_admin_shell_start(string $eyebrow, string $title, string $description, string $active = ''): void {
+  $links = sf_admin_nav_links();
+  echo '<section class="sf-admin-shell"><aside class="sf-admin-sidebar"><div class="sf-admin-side-brand"><span>Stonefellow</span><strong>Media Admin</strong></div><nav class="sf-admin-nav">';
   foreach ($links as $key => $item) {
     $class = $active === $key ? 'is-active' : '';
     echo '<a class="' . $class . '" href="' . sf_admin_h(sf_url($item[1])) . '">' . sf_admin_h($item[0]) . '</a>';
   }
-  echo '</nav>';
-  echo '<div class="sf-admin-side-note"><strong>Admin v1</strong><span>Database-backed CRUD with static demo fallback.</span></div>';
-  echo '</aside>';
-  echo '<section class="sf-admin-main">';
+  echo '</nav><div class="sf-admin-side-note"><strong>Launch v1</strong><span>Installer, route registry, QA, and streaming ops are registered.</span></div></aside><section class="sf-admin-main">';
   echo '<section class="sf-admin-hero"><div><span class="sf-panel-eyebrow">' . sf_admin_h($eyebrow) . '</span><h1>' . sf_admin_h($title) . '</h1><p>' . sf_admin_h($description) . '</p></div>';
-  echo '<div class="sf-admin-db-card"><span>Database</span><strong>' . (sf_admin_db_ready() ? 'Connected' : 'Static Preview') . '</strong><small>' . (sf_admin_db_ready() ? 'Forms save to MySQL tables.' : 'Set SF_DB_* env values to enable saves.') . '</small></div>';
-  echo '</section>';
-  foreach (sf_admin_flash() as $message) {
-    echo '<div class="sf-admin-alert sf-admin-alert-' . sf_admin_h($message['type'] ?? 'info') . '">' . sf_admin_h($message['message'] ?? '') . '</div>';
-  }
-  if (!sf_admin_db_ready()) {
-    echo '<div class="sf-admin-alert sf-admin-alert-warning">No database connection is configured. This page is showing static/demo catalog data and save/delete forms are disabled.</div>';
-  }
+  echo '<div class="sf-admin-db-card"><span>Database</span><strong>' . (sf_admin_db_ready() ? 'Connected' : 'Static Preview') . '</strong><small>' . (sf_admin_db_ready() ? 'Forms save to MySQL tables.' : 'Run install.php to enable saves.') . '</small></div></section>';
+  foreach (sf_admin_flash() as $message) echo '<div class="sf-admin-alert sf-admin-alert-' . sf_admin_h($message['type'] ?? 'info') . '">' . sf_admin_h($message['message'] ?? '') . '</div>';
+  if (!sf_admin_db_ready()) echo '<div class="sf-admin-alert sf-admin-alert-warning">No database connection is configured. This page is showing static/demo catalog data and save/delete forms are disabled.</div>';
 }
+function sf_admin_shell_end(): void { echo '</section></section>'; }
+function sf_admin_form_disabled_attr(): string { return sf_admin_db_ready() ? '' : ' disabled'; }
+function sf_admin_confirm_delete_button(string $label = 'Delete'): string { return '<button class="sf-admin-danger" type="submit" onclick="return confirm(\'Delete this record? This cannot be undone.\')"' . sf_admin_form_disabled_attr() . '>' . sf_admin_h($label) . '</button>'; }
+function sf_admin_seasons(): array { if (!sf_admin_table_exists('seasons')) return [['id'=>1,'season_number'=>1,'title'=>'Season 1','slug'=>'season-1','status'=>'published','release_year'=>date('Y')]]; return sf_admin_fetch_all('SELECT * FROM seasons ORDER BY season_number ASC, id ASC'); }
+function sf_admin_episode_columns(): array { return sf_admin_table_columns('episodes'); }
+function sf_admin_build_insert_update(string $table, array $payload, int $id = 0): bool { if (!sf_admin_table_exists($table)) return false; $columns = sf_admin_table_columns($table); $payload = array_filter($payload, static fn($value, $key) => in_array($key, $columns, true), ARRAY_FILTER_USE_BOTH); if (!$payload) return false; if ($id > 0) { $sets = implode(', ', array_map(static fn($key) => '`' . str_replace('`', '', $key) . '`=?', array_keys($payload))); return sf_admin_execute('UPDATE `' . str_replace('`', '', $table) . '` SET ' . $sets . ' WHERE id=?', array_merge(array_values($payload), [$id])); } $cols = implode(', ', array_map(static fn($key) => '`' . str_replace('`', '', $key) . '`', array_keys($payload))); $qs = implode(', ', array_fill(0, count($payload), '?')); return sf_admin_execute('INSERT INTO `' . str_replace('`', '', $table) . '` (' . $cols . ') VALUES (' . $qs . ')', array_values($payload)); }
 
-function sf_admin_shell_end(): void {
-  echo '</section></section>';
-}
-
-function sf_admin_form_disabled_attr(): string {
-  return sf_admin_db_ready() ? '' : ' disabled';
-}
-
-function sf_admin_confirm_delete_button(string $label = 'Delete'): string {
-  return '<button class="sf-admin-danger" type="submit" onclick="return confirm(\'Delete this record? This cannot be undone.\')"' . sf_admin_form_disabled_attr() . '>' . sf_admin_h($label) . '</button>';
-}
-
-function sf_admin_seasons(): array {
-  if (!sf_admin_table_exists('seasons')) {
-    return [
-      ['id' => 1, 'season_number' => 1, 'title' => 'Season 1', 'slug' => 'season-1', 'status' => 'published', 'release_year' => date('Y')],
-    ];
-  }
-  return sf_admin_fetch_all('SELECT * FROM seasons ORDER BY season_number ASC, id ASC');
-}
-
-function sf_admin_episode_columns(): array {
-  return sf_admin_table_columns('episodes');
-}
-
-function sf_admin_build_insert_update(string $table, array $payload, int $id = 0): bool {
-  if (!sf_admin_table_exists($table)) {
-    return false;
-  }
-  $columns = sf_admin_table_columns($table);
-  $payload = array_filter($payload, static fn($value, $key) => in_array($key, $columns, true), ARRAY_FILTER_USE_BOTH);
-  if (!$payload) {
-    return false;
-  }
-  if ($id > 0) {
-    $sets = implode(', ', array_map(static fn($key) => '`' . str_replace('`', '', $key) . '`=?', array_keys($payload)));
-    return sf_admin_execute('UPDATE `' . str_replace('`', '', $table) . '` SET ' . $sets . ' WHERE id=?', array_merge(array_values($payload), [$id]));
-  }
-  $cols = implode(', ', array_map(static fn($key) => '`' . str_replace('`', '', $key) . '`', array_keys($payload)));
-  $qs = implode(', ', array_fill(0, count($payload), '?'));
-  return sf_admin_execute('INSERT INTO `' . str_replace('`', '', $table) . '` (' . $cols . ') VALUES (' . $qs . ')', array_values($payload));
-}
-
-/* Media Upload + Storage v1 helpers */
-function sf_admin_starts_with(string $haystack, string $needle): bool {
-  return $needle === '' || strpos($haystack, $needle) === 0;
-}
-
-function sf_admin_asset_url(?string $path): string {
-  $path = trim((string)$path);
-  if ($path === '') {
-    return '';
-  }
-  if (preg_match('~^(https?:)?//|^data:~i', $path) || sf_admin_starts_with($path, '/')) {
-    return $path;
-  }
-  return sf_asset($path);
-}
-
-function sf_admin_asset_by_id($id): ?array {
-  $id = sf_admin_int($id, 0) ?? 0;
-  if ($id <= 0 || !sf_admin_table_exists('media_assets')) {
-    return null;
-  }
-  return sf_admin_fetch_one('SELECT * FROM media_assets WHERE id = ? LIMIT 1', [$id]);
-}
-
-function sf_admin_asset_path_by_id($id): string {
-  $asset = sf_admin_asset_by_id($id);
-  return trim((string)($asset['file_path'] ?? ''));
-}
-
-function sf_admin_asset_path_select(string $name, array $assets, $selected = '', string $emptyLabel = 'Choose uploaded asset'): string {
-  $html = '<select name="' . sf_admin_h($name) . '"' . sf_admin_form_disabled_attr() . '>';
-  $html .= '<option value="">' . sf_admin_h($emptyLabel) . '</option>';
-  foreach ($assets as $asset) {
-    $path = trim((string)($asset['file_path'] ?? ''));
-    if ($path === '') {
-      continue;
-    }
-    $label = trim((string)($asset['title'] ?? 'Asset #' . ($asset['id'] ?? '')) . ' — ' . $path);
-    $html .= '<option value="' . sf_admin_h($asset['id'] ?? '') . '"' . (((string)($asset['id'] ?? '') === (string)$selected) ? ' selected' : '') . '>' . sf_admin_h($label) . '</option>';
-  }
-  $html .= '</select>';
-  return $html;
-}
-
-function sf_admin_asset_preview(?array $asset = null, ?string $fallbackPath = null, ?string $fallbackType = null): string {
-  $path = trim((string)($asset['file_path'] ?? $fallbackPath ?? ''));
-  if ($path === '') {
-    return '';
-  }
-  $type = trim((string)($asset['file_type'] ?? $fallbackType ?? ''));
-  $url = sf_admin_asset_url($path);
-  $title = sf_admin_h($asset['title'] ?? basename($path));
-  $safeUrl = sf_admin_h($url);
-  $safePath = sf_admin_h($path);
-  if ($type === 'image') {
-    return '<div class="sf-media-preview sf-media-preview-image"><img src="' . $safeUrl . '" alt="' . $title . '"><div><strong>' . $title . '</strong><small>' . $safePath . '</small></div></div>';
-  }
-  if ($type === 'audio') {
-    return '<div class="sf-media-preview"><div><strong>' . $title . '</strong><small>' . $safePath . '</small></div><audio controls preload="metadata" src="' . $safeUrl . '"></audio></div>';
-  }
-  if ($type === 'video') {
-    return '<div class="sf-media-preview"><div><strong>' . $title . '</strong><small>' . $safePath . '</small></div><video controls preload="metadata" src="' . $safeUrl . '"></video></div>';
-  }
-  return '<div class="sf-media-preview"><div><strong>' . $title . '</strong><small>' . $safePath . '</small></div><a href="' . $safeUrl . '" target="_blank" rel="noopener">Open asset</a></div>';
-}
-
-function sf_admin_asset_preview_by_id($id, string $type = ''): string {
-  $asset = sf_admin_asset_by_id($id);
-  if (!$asset) {
-    return '';
-  }
-  if ($type !== '' && ($asset['file_type'] ?? '') !== $type) {
-    return '';
-  }
-  return sf_admin_asset_preview($asset);
-}
-
-function sf_admin_upload_rules(): array {
-  return [
-    'image' => [
-      'folder' => 'images/uploads',
-      'max_bytes' => 12 * 1024 * 1024,
-      'extensions' => ['jpg','jpeg','png','webp','gif'],
-      'mime_prefixes' => ['image/'],
-    ],
-    'audio' => [
-      'folder' => 'audio/uploads',
-      'max_bytes' => 120 * 1024 * 1024,
-      'extensions' => ['mp3','wav','m4a','aac','ogg','flac'],
-      'mime_prefixes' => ['audio/','application/ogg','video/mp4','application/octet-stream'],
-    ],
-    'video' => [
-      'folder' => 'video/uploads',
-      'max_bytes' => 800 * 1024 * 1024,
-      'extensions' => ['mp4','webm','mov','m4v'],
-      'mime_prefixes' => ['video/','application/octet-stream'],
-    ],
-    'document' => [
-      'folder' => 'documents/uploads',
-      'max_bytes' => 30 * 1024 * 1024,
-      'extensions' => ['pdf','txt','doc','docx'],
-      'mime_prefixes' => ['application/pdf','text/plain','application/msword','application/vnd.openxmlformats-officedocument'],
-    ],
-  ];
-}
-
-function sf_admin_detect_media_type(string $mime, string $extension): string {
-  $mime = strtolower($mime);
-  $extension = strtolower($extension);
-  if (sf_admin_starts_with($mime, 'image/') || in_array($extension, ['jpg','jpeg','png','webp','gif'], true)) {
-    return 'image';
-  }
-  if (sf_admin_starts_with($mime, 'audio/') || in_array($extension, ['mp3','wav','m4a','aac','ogg','flac'], true)) {
-    return 'audio';
-  }
-  if (sf_admin_starts_with($mime, 'video/') || in_array($extension, ['mp4','webm','mov','m4v'], true)) {
-    return 'video';
-  }
-  return 'document';
-}
-
-function sf_admin_clean_filename(string $filename): string {
-  $info = pathinfo($filename);
-  $base = strtolower((string)($info['filename'] ?? 'asset'));
-  $ext = strtolower((string)($info['extension'] ?? ''));
-  $base = preg_replace('/[^a-z0-9]+/i', '-', $base) ?: 'asset';
-  $base = trim($base, '-');
-  $base = substr($base, 0, 70) ?: 'asset';
-  return $base . '-' . substr(bin2hex(random_bytes(8)), 0, 12) . ($ext !== '' ? '.' . $ext : '');
-}
-
-function sf_admin_column_filtered_payload(string $table, array $payload): array {
-  if (!sf_admin_table_exists($table)) {
-    return [];
-  }
-  $columns = sf_admin_table_columns($table);
-  return array_filter($payload, static fn($key) => in_array($key, $columns, true), ARRAY_FILTER_USE_KEY);
-}
-
-function sf_admin_insert_media_asset(array $payload): int {
-  $payload = array_merge([
-    'title' => 'Uploaded asset',
-    'file_path' => '',
-    'file_type' => 'image',
-    'alt_text' => null,
-    'usage_key' => null,
-    'original_filename' => null,
-    'mime_type' => null,
-    'file_size_bytes' => null,
-    'checksum_sha256' => null,
-    'storage_disk' => 'local_assets',
-    'uploaded_by_user_id' => sf_current_user_id(),
-  ], $payload);
-  $payload = sf_admin_column_filtered_payload('media_assets', $payload);
-  if (!$payload) {
-    return 0;
-  }
-  $columns = array_keys($payload);
-  $sql = 'INSERT INTO media_assets (`' . implode('`,`', array_map(static fn($col) => str_replace('`', '', $col), $columns)) . '`) VALUES (' . implode(',', array_fill(0, count($columns), '?')) . ')';
-  if (!sf_admin_execute($sql, array_values($payload))) {
-    return 0;
-  }
-  return (int)(sf_admin_db()?->lastInsertId() ?: 0);
-}
-
-function sf_admin_update_media_asset(int $id, array $payload): bool {
-  if ($id <= 0) {
-    return false;
-  }
-  $payload = sf_admin_column_filtered_payload('media_assets', $payload);
-  unset($payload['id'], $payload['created_at']);
-  if (!$payload) {
-    return false;
-  }
-  if (sf_admin_column_exists('media_assets', 'updated_at')) {
-    $payload['updated_at'] = date('Y-m-d H:i:s');
-  }
-  $sets = array_map(static fn($col) => '`' . str_replace('`', '', $col) . '` = ?', array_keys($payload));
-  return sf_admin_execute('UPDATE media_assets SET ' . implode(', ', $sets) . ' WHERE id = ?', array_merge(array_values($payload), [$id]));
-}
-
-function sf_admin_handle_upload(string $field, string $requestedType, string $usageKey = '', string $title = '', string $altText = ''): array {
-  if (!isset($_FILES[$field]) || !is_array($_FILES[$field])) {
-    return ['ok' => false, 'message' => 'No file was selected.'];
-  }
-  $file = $_FILES[$field];
-  $error = (int)($file['error'] ?? UPLOAD_ERR_NO_FILE);
-  if ($error !== UPLOAD_ERR_OK) {
-    $messages = [
-      UPLOAD_ERR_INI_SIZE => 'The selected file is larger than the server allows.',
-      UPLOAD_ERR_FORM_SIZE => 'The selected file is larger than the form allows.',
-      UPLOAD_ERR_PARTIAL => 'The file only partially uploaded. Try again.',
-      UPLOAD_ERR_NO_FILE => 'No file was selected.',
-    ];
-    return ['ok' => false, 'message' => $messages[$error] ?? 'Upload failed. Error code: ' . $error];
-  }
-  $originalName = (string)($file['name'] ?? 'upload');
-  $tmp = (string)($file['tmp_name'] ?? '');
-  $extension = strtolower(pathinfo($originalName, PATHINFO_EXTENSION));
-  $mime = 'application/octet-stream';
-  if (is_file($tmp) && function_exists('finfo_open')) {
-    $finfo = finfo_open(FILEINFO_MIME_TYPE);
-    if ($finfo) {
-      $mime = finfo_file($finfo, $tmp) ?: $mime;
-      finfo_close($finfo);
-    }
-  }
-  $type = $requestedType === 'auto' ? sf_admin_detect_media_type($mime, $extension) : $requestedType;
-  $rules = sf_admin_upload_rules();
-  if (!isset($rules[$type])) {
-    return ['ok' => false, 'message' => 'Unsupported media type.'];
-  }
-  $rule = $rules[$type];
-  $size = (int)($file['size'] ?? 0);
-  if ($size <= 0 || $size > (int)$rule['max_bytes']) {
-    return ['ok' => false, 'message' => 'File size is not allowed for this media type.'];
-  }
-  if (!in_array($extension, $rule['extensions'], true)) {
-    return ['ok' => false, 'message' => 'File extension .' . $extension . ' is not allowed for ' . $type . ' uploads.'];
-  }
-  $mimeOk = false;
-  foreach ($rule['mime_prefixes'] as $prefix) {
-    if (sf_admin_starts_with(strtolower($mime), strtolower($prefix))) {
-      $mimeOk = true;
-      break;
-    }
-  }
-  if (!$mimeOk) {
-    return ['ok' => false, 'message' => 'File MIME type ' . $mime . ' is not allowed for ' . $type . ' uploads.'];
-  }
-
-  $relativeFolder = trim((string)$rule['folder'], '/') . '/' . date('Y/m');
-  $assetRoot = realpath(__DIR__ . '/../assets');
-  if ($assetRoot === false) {
-    return ['ok' => false, 'message' => 'Asset folder is missing.'];
-  }
-  $targetDir = $assetRoot . '/' . $relativeFolder;
-  if (!is_dir($targetDir) && !mkdir($targetDir, 0775, true)) {
-    return ['ok' => false, 'message' => 'Could not create upload folder.'];
-  }
-  $safeName = sf_admin_clean_filename($originalName);
-  $targetPath = $targetDir . '/' . $safeName;
-  if (!move_uploaded_file($tmp, $targetPath)) {
-    return ['ok' => false, 'message' => 'Could not move uploaded file into the assets folder.'];
-  }
-  @chmod($targetPath, 0644);
-  $relativePath = $relativeFolder . '/' . $safeName;
-  $assetTitle = trim($title) ?: pathinfo($originalName, PATHINFO_FILENAME);
-  $payload = [
-    'title' => $assetTitle ?: 'Uploaded asset',
-    'file_path' => $relativePath,
-    'file_type' => $type,
-    'alt_text' => trim($altText) ?: null,
-    'usage_key' => trim($usageKey) ?: null,
-    'original_filename' => $originalName,
-    'mime_type' => $mime,
-    'file_size_bytes' => $size,
-    'checksum_sha256' => is_file($targetPath) ? hash_file('sha256', $targetPath) : null,
-    'storage_disk' => 'local_assets',
-    'uploaded_by_user_id' => sf_current_user_id(),
-  ];
-  $assetId = sf_admin_insert_media_asset($payload);
-  if ($assetId <= 0) {
-    @unlink($targetPath);
-    return ['ok' => false, 'message' => 'The file uploaded, but the media asset record could not be saved.'];
-  }
-  sf_admin_audit('upload_media_asset', 'media_asset', $assetId, null, $payload);
-  return ['ok' => true, 'id' => $assetId, 'path' => $relativePath, 'type' => $type, 'message' => 'Media asset uploaded.'];
-}
-
-function sf_admin_format_bytes($bytes): string {
-  $bytes = (float)($bytes ?: 0);
-  if ($bytes <= 0) {
-    return '—';
-  }
-  $units = ['B','KB','MB','GB'];
-  $i = 0;
-  while ($bytes >= 1024 && $i < count($units) - 1) {
-    $bytes /= 1024;
-    $i++;
-  }
-  return round($bytes, $i === 0 ? 0 : 1) . ' ' . $units[$i];
-}
-
+function sf_admin_starts_with(string $haystack, string $needle): bool { return $needle === '' || strpos($haystack, $needle) === 0; }
+function sf_admin_asset_url(?string $path): string { $path = trim((string)$path); if ($path === '') return ''; if (preg_match('~^(https?:)?//|^data:~i', $path) || sf_admin_starts_with($path, '/')) return $path; return sf_asset($path); }
+function sf_admin_asset_by_id($id): ?array { $id = sf_admin_int($id, 0) ?? 0; if ($id <= 0 || !sf_admin_table_exists('media_assets')) return null; return sf_admin_fetch_one('SELECT * FROM media_assets WHERE id = ? LIMIT 1', [$id]); }
+function sf_admin_asset_path_by_id($id): string { $asset = sf_admin_asset_by_id($id); return trim((string)($asset['file_path'] ?? '')); }
+function sf_admin_asset_path_select(string $name, array $assets, $selected = '', string $emptyLabel = 'Choose uploaded asset'): string { $html = '<select name="' . sf_admin_h($name) . '"' . sf_admin_form_disabled_attr() . '><option value="">' . sf_admin_h($emptyLabel) . '</option>'; foreach ($assets as $asset) { $path = trim((string)($asset['file_path'] ?? '')); if ($path === '') continue; $label = trim((string)($asset['title'] ?? 'Asset #' . ($asset['id'] ?? '')) . ' — ' . $path); $html .= '<option value="' . sf_admin_h($asset['id'] ?? '') . '"' . (((string)($asset['id'] ?? '') === (string)$selected) ? ' selected' : '') . '>' . sf_admin_h($label) . '</option>'; } return $html . '</select>'; }
+function sf_admin_asset_preview(?array $asset = null, ?string $fallbackPath = null, ?string $fallbackType = null): string { $path = trim((string)($asset['file_path'] ?? $fallbackPath ?? '')); if ($path === '') return ''; $type = trim((string)($asset['file_type'] ?? $fallbackType ?? '')); $url = sf_admin_asset_url($path); $title = sf_admin_h($asset['title'] ?? basename($path)); $safeUrl = sf_admin_h($url); $safePath = sf_admin_h($path); if ($type === 'image') return '<div class="sf-media-preview sf-media-preview-image"><img src="' . $safeUrl . '" alt="' . $title . '"><div><strong>' . $title . '</strong><small>' . $safePath . '</small></div></div>'; if ($type === 'audio') return '<div class="sf-media-preview"><div><strong>' . $title . '</strong><small>' . $safePath . '</small></div><audio controls preload="metadata" src="' . $safeUrl . '"></audio></div>'; if ($type === 'video') return '<div class="sf-media-preview"><div><strong>' . $title . '</strong><small>' . $safePath . '</small></div><video controls preload="metadata" src="' . $safeUrl . '"></video></div>'; return '<div class="sf-media-preview"><div><strong>' . $title . '</strong><small>' . $safePath . '</small></div><a href="' . $safeUrl . '" target="_blank" rel="noopener">Open asset</a></div>'; }
+function sf_admin_asset_preview_by_id($id, string $type = ''): string { $asset = sf_admin_asset_by_id($id); if (!$asset) return ''; if ($type !== '' && ($asset['file_type'] ?? '') !== $type) return ''; return sf_admin_asset_preview($asset); }
+function sf_admin_upload_rules(): array { return ['image'=>['folder'=>'images/uploads','max_bytes'=>12*1024*1024,'extensions'=>['jpg','jpeg','png','webp','gif'],'mime_prefixes'=>['image/']], 'audio'=>['folder'=>'audio/uploads','max_bytes'=>120*1024*1024,'extensions'=>['mp3','wav','m4a','aac','ogg','flac'],'mime_prefixes'=>['audio/','application/ogg','video/mp4','application/octet-stream']], 'video'=>['folder'=>'video/uploads','max_bytes'=>800*1024*1024,'extensions'=>['mp4','webm','mov','m4v'],'mime_prefixes'=>['video/','application/octet-stream']], 'document'=>['folder'=>'documents/uploads','max_bytes'=>30*1024*1024,'extensions'=>['pdf','txt','doc','docx'],'mime_prefixes'=>['application/pdf','text/plain','application/msword','application/vnd.openxmlformats-officedocument']]]; }
+function sf_admin_detect_media_type(string $mime, string $extension): string { $mime = strtolower($mime); $extension = strtolower($extension); if (sf_admin_starts_with($mime, 'image/') || in_array($extension, ['jpg','jpeg','png','webp','gif'], true)) return 'image'; if (sf_admin_starts_with($mime, 'audio/') || in_array($extension, ['mp3','wav','m4a','aac','ogg','flac'], true)) return 'audio'; if (sf_admin_starts_with($mime, 'video/') || in_array($extension, ['mp4','webm','mov','m4v'], true)) return 'video'; return 'document'; }
+function sf_admin_clean_filename(string $filename): string { $info = pathinfo($filename); $base = strtolower((string)($info['filename'] ?? 'asset')); $ext = strtolower((string)($info['extension'] ?? '')); $base = preg_replace('/[^a-z0-9]+/i', '-', $base) ?: 'asset'; $base = trim($base, '-'); $base = substr($base, 0, 70) ?: 'asset'; return $base . '-' . substr(bin2hex(random_bytes(8)), 0, 12) . ($ext !== '' ? '.' . $ext : ''); }
+function sf_admin_column_filtered_payload(string $table, array $payload): array { if (!sf_admin_table_exists($table)) return []; $columns = sf_admin_table_columns($table); return array_filter($payload, static fn($key) => in_array($key, $columns, true), ARRAY_FILTER_USE_KEY); }
+function sf_admin_insert_media_asset(array $payload): int { $payload = array_merge(['title'=>'Uploaded asset','file_path'=>'','file_type'=>'image','alt_text'=>null,'usage_key'=>null,'original_filename'=>null,'mime_type'=>null,'file_size_bytes'=>null,'checksum_sha256'=>null,'storage_disk'=>'local_assets','uploaded_by_user_id'=>sf_current_user_id()], $payload); $payload = sf_admin_column_filtered_payload('media_assets', $payload); if (!$payload) return 0; $columns = array_keys($payload); $sql = 'INSERT INTO media_assets (`' . implode('`,`', array_map(static fn($col) => str_replace('`', '', $col), $columns)) . '`) VALUES (' . implode(',', array_fill(0, count($columns), '?')) . ')'; if (!sf_admin_execute($sql, array_values($payload))) return 0; return (int)(sf_admin_db()?->lastInsertId() ?: 0); }
+function sf_admin_update_media_asset(int $id, array $payload): bool { if ($id <= 0) return false; $payload = sf_admin_column_filtered_payload('media_assets', $payload); unset($payload['id'], $payload['created_at']); if (!$payload) return false; if (sf_admin_column_exists('media_assets', 'updated_at')) $payload['updated_at'] = date('Y-m-d H:i:s'); $sets = array_map(static fn($col) => '`' . str_replace('`', '', $col) . '` = ?', array_keys($payload)); return sf_admin_execute('UPDATE media_assets SET ' . implode(', ', $sets) . ' WHERE id = ?', array_merge(array_values($payload), [$id])); }
+function sf_admin_handle_upload(string $field, string $requestedType, string $usageKey = '', string $title = '', string $altText = ''): array { if (!isset($_FILES[$field]) || !is_array($_FILES[$field])) return ['ok'=>false,'message'=>'No file was selected.']; $file = $_FILES[$field]; $error = (int)($file['error'] ?? UPLOAD_ERR_NO_FILE); if ($error !== UPLOAD_ERR_OK) return ['ok'=>false,'message'=>'Upload failed. Error code: ' . $error]; $originalName = (string)($file['name'] ?? 'upload'); $tmp = (string)($file['tmp_name'] ?? ''); $extension = strtolower(pathinfo($originalName, PATHINFO_EXTENSION)); $mime = 'application/octet-stream'; if (is_file($tmp) && function_exists('finfo_open')) { $finfo = finfo_open(FILEINFO_MIME_TYPE); if ($finfo) { $mime = finfo_file($finfo, $tmp) ?: $mime; finfo_close($finfo); } } $type = $requestedType === 'auto' ? sf_admin_detect_media_type($mime, $extension) : $requestedType; $rules = sf_admin_upload_rules(); if (!isset($rules[$type])) return ['ok'=>false,'message'=>'Unsupported media type.']; $rule = $rules[$type]; $size = (int)($file['size'] ?? 0); if ($size <= 0 || $size > (int)$rule['max_bytes']) return ['ok'=>false,'message'=>'File size is not allowed for this media type.']; if (!in_array($extension, $rule['extensions'], true)) return ['ok'=>false,'message'=>'File extension .' . $extension . ' is not allowed for ' . $type . ' uploads.']; $mimeOk = false; foreach ($rule['mime_prefixes'] as $prefix) if (sf_admin_starts_with(strtolower($mime), strtolower($prefix))) { $mimeOk = true; break; } if (!$mimeOk) return ['ok'=>false,'message'=>'File MIME type ' . $mime . ' is not allowed for ' . $type . ' uploads.']; $relativeFolder = trim((string)$rule['folder'], '/') . '/' . date('Y/m'); $assetRoot = realpath(__DIR__ . '/../assets'); if ($assetRoot === false) return ['ok'=>false,'message'=>'Asset folder is missing.']; $targetDir = $assetRoot . '/' . $relativeFolder; if (!is_dir($targetDir) && !mkdir($targetDir, 0775, true)) return ['ok'=>false,'message'=>'Could not create upload folder.']; $safeName = sf_admin_clean_filename($originalName); $targetPath = $targetDir . '/' . $safeName; if (!move_uploaded_file($tmp, $targetPath)) return ['ok'=>false,'message'=>'Could not move uploaded file into the assets folder.']; @chmod($targetPath, 0644); $relativePath = $relativeFolder . '/' . $safeName; $payload = ['title'=>trim($title) ?: pathinfo($originalName, PATHINFO_FILENAME),'file_path'=>$relativePath,'file_type'=>$type,'alt_text'=>trim($altText) ?: null,'usage_key'=>trim($usageKey) ?: null,'original_filename'=>$originalName,'mime_type'=>$mime,'file_size_bytes'=>$size,'checksum_sha256'=>is_file($targetPath) ? hash_file('sha256', $targetPath) : null,'storage_disk'=>'local_assets','uploaded_by_user_id'=>sf_current_user_id()]; $assetId = sf_admin_insert_media_asset($payload); if ($assetId <= 0) { @unlink($targetPath); return ['ok'=>false,'message'=>'The file uploaded, but the media asset record could not be saved.']; } sf_admin_audit('upload_media_asset', 'media_asset', $assetId, null, $payload); return ['ok'=>true,'id'=>$assetId,'path'=>$relativePath,'type'=>$type,'message'=>'Media asset uploaded.']; }
+function sf_admin_format_bytes($bytes): string { $bytes = (float)($bytes ?: 0); if ($bytes <= 0) return '—'; $units = ['B','KB','MB','GB']; $i = 0; while ($bytes >= 1024 && $i < count($units) - 1) { $bytes /= 1024; $i++; } return round($bytes, $i === 0 ? 0 : 1) . ' ' . $units[$i]; }
 ?>
