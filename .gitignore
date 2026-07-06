@@ -2,6 +2,8 @@
 .env
 .env.*
 !.env.example
+/config/local.php
+/storage/install.lock
 
 # PHP dependencies / local tooling
 /vendor/

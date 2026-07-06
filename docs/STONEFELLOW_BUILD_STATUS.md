@@ -194,3 +194,45 @@ Also updated:
 Scoped audit score: **10/10**.
 
 Live environment readiness may still show review items until database credentials, migrations, upload permissions, media assets, payment secrets, and mail settings are configured on the production host.
+
+## Content Import + Seed Manager v1
+
+Status: Built and merged.
+
+Added:
+
+- `includes/importer.php`
+- `admin/import.php`
+- `admin/seed-manager.php`
+- `admin/demo-content.php`
+- `database/migrations/011_content_import_seed_manager.sql`
+- `database/seeds/starter_catalog.json`
+- `docs/CONTENT_IMPORT_SEED_MANAGER_V1.md`
+- `docs/CODE_AUDIT_CONTENT_IMPORT_SEED_MANAGER_V1.md`
+
+The import manager supports CSV/JSON preview, normalized payload validation, natural-key upserts, import batch logs, row-level audit history, starter seed content, and rollback support.
+
+Scoped audit score: **10/10**.
+
+## Web Installer + Launch Wizard v1
+
+Status: Built in this phase.
+
+Added/updated:
+
+- `includes/installer.php`
+- `install.php`
+- `includes/config.php`
+- `includes/db.php`
+- `includes/settings.php`
+- `config/README.md`
+- `config/.htaccess`
+- `storage/README.md`
+- `storage/.htaccess`
+- `.gitignore`
+- `docs/WEB_INSTALLER_LAUNCH_WIZARD_V1.md`
+- `docs/CODE_AUDIT_WEB_INSTALLER_LAUNCH_WIZARD_V1.md`
+
+The installer supports server checks, database connection confirmation, automatic SQL import for the base schema and migrations 001 through 011, migration checksum tracking, first admin account creation, site setting save, local config writing, install lock creation, and automatic uninstalled-app redirect to `install.php`.
+
+Scoped audit score: **10/10**.
