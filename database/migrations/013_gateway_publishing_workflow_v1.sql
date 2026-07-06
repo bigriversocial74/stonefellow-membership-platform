@@ -1,4 +1,4 @@
--- Stonefellow migration 013: gateway production pass, publishing workflow, library, search, activity ops, notifications, and comments.
+-- Stonefellow migration 013: gateway production pass, publishing workflow, library, search, activity ops, notifications, comments, and creator posts.
 -- Run after migration 012.
 
 CREATE TABLE IF NOT EXISTS publishing_events (
@@ -182,6 +182,43 @@ CREATE TABLE IF NOT EXISTS comment_moderation_events (
   INDEX idx_comment_moderation_events_comment (comment_id, created_at),
   CONSTRAINT fk_comment_moderation_comment FOREIGN KEY (comment_id) REFERENCES fan_comments(id) ON DELETE CASCADE,
   CONSTRAINT fk_comment_moderation_user FOREIGN KEY (moderator_user_id) REFERENCES users(id) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS creator_posts (
+  id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  author_user_id INT DEFAULT NULL,
+  post_type ENUM('news','episode','music','merch','behind_scenes') NOT NULL DEFAULT 'news',
+  title VARCHAR(190) NOT NULL,
+  slug VARCHAR(190) NOT NULL,
+  excerpt TEXT DEFAULT NULL,
+  body LONGTEXT NOT NULL,
+  image_path VARCHAR(255) DEFAULT NULL,
+  status ENUM('draft','scheduled','published','archived') NOT NULL DEFAULT 'draft',
+  is_featured TINYINT(1) NOT NULL DEFAULT 0,
+  published_at DATETIME DEFAULT NULL,
+  linked_content_type ENUM('episode','video','song','album','product') DEFAULT NULL,
+  linked_content_id INT DEFAULT NULL,
+  linked_content_slug VARCHAR(190) DEFAULT NULL,
+  metadata_json JSON DEFAULT NULL,
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP NULL DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP,
+  UNIQUE KEY uniq_creator_posts_slug (slug),
+  INDEX idx_creator_posts_status (status, post_type, published_at, is_featured),
+  FULLTEXT KEY ft_creator_posts (title, excerpt, body),
+  CONSTRAINT fk_creator_posts_author FOREIGN KEY (author_user_id) REFERENCES users(id) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS creator_post_media (
+  id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  post_id BIGINT UNSIGNED NOT NULL,
+  media_type ENUM('image','audio','video','document','embed') NOT NULL DEFAULT 'image',
+  media_path VARCHAR(255) NOT NULL,
+  caption VARCHAR(255) DEFAULT NULL,
+  sort_order INT NOT NULL DEFAULT 0,
+  metadata_json JSON DEFAULT NULL,
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  INDEX idx_creator_post_media_post (post_id, sort_order),
+  CONSTRAINT fk_creator_post_media_post FOREIGN KEY (post_id) REFERENCES creator_posts(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 INSERT INTO payment_gateway_settings (provider, mode, public_key, webhook_endpoint, status, metadata_json)
