@@ -1,0 +1,55 @@
+{
+  "name": "Stonefellow Starter Catalog",
+  "version": "1.0.0",
+  "import_order": [
+    "product_category",
+    "album",
+    "episode",
+    "song",
+    "song_file",
+    "video",
+    "video_file",
+    "subscription_plan",
+    "product",
+    "product_variant"
+  ],
+  "rows": {
+    "product_category": [
+      {"name":"Apparel","slug":"apparel","description":"Stonefellow shirts and wearables.","sort_order":10,"status":"active"},
+      {"name":"Music","slug":"music","description":"Digital soundtrack and music drops.","sort_order":20,"status":"active"}
+    ],
+    "album": [
+      {"title":"The Road Is Calling","slug":"the-road-is-calling","artist":"Stonefellow","description":"Official soundtrack catalog for the Stonefellow original series.","status":"published"}
+    ],
+    "episode": [
+      {"season_number":1,"episode_number":1,"title":"First to Fall","slug":"first-to-fall","short_description":"The beginning of the band.","runtime_minutes":48,"status":"published"},
+      {"season_number":1,"episode_number":2,"title":"Blackout","slug":"blackout","short_description":"Old wounds resurface.","runtime_minutes":46,"status":"published"}
+    ],
+    "song": [
+      {"album_slug":"the-road-is-calling","title":"Born to Burn","slug":"born-to-burn","artist":"Stonefellow","track_number":1,"duration_seconds":228,"access_level":"subscriber","is_featured":1,"status":"published"},
+      {"album_slug":"the-road-is-calling","title":"Blackout in the Rearview","slug":"blackout-in-the-rearview","artist":"Stonefellow","track_number":2,"duration_seconds":215,"access_level":"subscriber","status":"published"}
+    ],
+    "song_file": [
+      {"song_slug":"born-to-burn","file_type":"preview","file_path":"audio/previews/born-to-burn-preview.wav","duration_seconds":30,"preview_seconds":30,"mime_type":"audio/wav","is_primary":1},
+      {"song_slug":"blackout-in-the-rearview","file_type":"preview","file_path":"audio/previews/blackout-in-the-rearview-preview.wav","duration_seconds":30,"preview_seconds":30,"mime_type":"audio/wav","is_primary":1}
+    ],
+    "video": [
+      {"episode_slug":"first-to-fall","title":"First to Fall","slug":"first-to-fall-full-episode","video_type":"episode","runtime_seconds":2880,"access_level":"subscriber","status":"published"},
+      {"episode_slug":"first-to-fall","title":"First to Fall Trailer","slug":"first-to-fall-trailer","video_type":"trailer","runtime_seconds":90,"access_level":"public","status":"published"}
+    ],
+    "video_file": [
+      {"video_slug":"first-to-fall-full-episode","file_type":"stream","file_path":"video/episodes/first-to-fall.mp4","mime_type":"video/mp4","resolution_label":"1080p","is_primary":1},
+      {"video_slug":"first-to-fall-trailer","file_type":"trailer","file_path":"video/trailers/first-to-fall-trailer.mp4","mime_type":"video/mp4","resolution_label":"1080p","is_primary":1}
+    ],
+    "subscription_plan": [
+      {"name":"Monthly Access","slug":"monthly-access","price":"7.99","billing_interval":"month","description":"Monthly member access to episodes, music, playlists, and behind-the-scenes clips.","allows_full_music":1,"allows_video_streaming":1,"allows_episode_tracking":1,"allows_playlists":1,"plan_tier":"monthly","status":"active"},
+      {"name":"Annual Access","slug":"annual-access","price":"79.99","billing_interval":"year","description":"Annual access with full music streaming and premium video drops.","allows_full_music":1,"allows_video_streaming":1,"allows_episode_tracking":1,"allows_playlists":1,"plan_tier":"annual","is_featured":1,"status":"active"}
+    ],
+    "product": [
+      {"category_slug":"apparel","name":"Stonefellow Tour Tee","slug":"stonefellow-tour-tee","short_description":"Official Stonefellow tee.","price":"32.00","sku":"SF-TEE-001","inventory_quantity":50,"product_type":"physical","access_level":"public","badge_label":"New Drop","is_featured":1,"status":"active"}
+    ],
+    "product_variant": [
+      {"product_slug":"stonefellow-tour-tee","variant_name":"Black / Large","sku":"SF-TEE-BLK-L","size":"L","color":"Black","price":"32.00","inventory_quantity":20,"status":"active"}
+    ]
+  }
+}
