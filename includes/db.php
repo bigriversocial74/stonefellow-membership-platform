@@ -14,6 +14,7 @@ function sf_db(): ?PDO {
   }
 
   $host = $database['host'] ?? '';
+  $port = $database['port'] ?? '3306';
   $name = $database['name'] ?? '';
   $user = $database['user'] ?? '';
   $pass = $database['pass'] ?? '';
@@ -24,7 +25,7 @@ function sf_db(): ?PDO {
     return null;
   }
 
-  $dsn = "mysql:host={$host};dbname={$name};charset={$charset}";
+  $dsn = "mysql:host={$host};port={$port};dbname={$name};charset={$charset}";
   try {
     $pdo = new PDO($dsn, $user, $pass, [
       PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
