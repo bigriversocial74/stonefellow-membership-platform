@@ -6,6 +6,7 @@ require __DIR__ . '/../includes/importer.php';
 
 $types = sf_importer_types();
 $groups = sf_importer_seed_groups();
+$starterSeed = sf_importer_starter_seed();
 require __DIR__ . '/../includes/header.php';
 sf_admin_shell_start('Demo Content', 'Import samples and seed payloads', 'Use these examples to format CSV/JSON imports and understand the starter seed data.', 'demo-content');
 ?>
@@ -34,13 +35,13 @@ sf_admin_shell_start('Demo Content', 'Import samples and seed payloads', 'Use th
 </section>
 
 <section class="sf-admin-panel">
-  <div class="sf-admin-panel-head"><div><span class="sf-panel-eyebrow">Seed Payloads</span><h2>Starter catalog groups</h2></div></div>
+  <div class="sf-admin-panel-head"><div><span class="sf-panel-eyebrow">Seed Payloads</span><h2>Starter catalog payload</h2></div></div>
   <?php foreach ($groups as $key => $group): ?>
     <article class="sf-admin-subpanel">
       <h3><?= sf_admin_h($group['label'] ?? $key) ?></h3>
       <p><?= sf_admin_h($group['description'] ?? '') ?></p>
-      <pre class="sf-admin-code"><code><?= sf_admin_h(json_encode($group['types'] ?? [], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES)) ?></code></pre>
     </article>
   <?php endforeach; ?>
+  <pre class="sf-admin-code"><code><?= sf_admin_h(json_encode($starterSeed['rows'] ?? [], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES)) ?></code></pre>
 </section>
 <?php sf_admin_shell_end(); require __DIR__ . '/../includes/footer.php'; ?>
