@@ -42,7 +42,7 @@ $sfHeaderUser = sf_auth_user();
         <a class="<?= $merchNavActive ?>" href="<?= sf_url('merch.php') ?>">Merch</a>
         <a class="<?= sf_is_active('search.php') ?>" href="<?= sf_url('search.php') ?>">Search</a>
         <a class="<?= sf_is_active('cart.php') ?>" href="<?= sf_url('cart.php') ?>">Cart</a>
-        <?php $memberNavActive = in_array(sf_current_page(), ['member.php', 'library.php', 'watchlist.php', 'playlists.php', 'account.php', 'account-billing.php', 'billing-checkout.php', 'billing-success.php', 'billing-cancel.php', 'notifications.php', 'comments.php'], true) ? 'is-active' : ''; ?>
+        <?php $memberNavActive = in_array(sf_current_page(), ['member.php', 'library.php', 'watchlist.php', 'playlists.php', 'account.php', 'account-billing.php', 'billing-checkout.php', 'billing-success.php', 'billing-cancel.php', 'notifications.php', 'comments.php', 'messages.php', 'support.php'], true) ? 'is-active' : ''; ?>
         <a class="<?= $memberNavActive ?>" href="<?= sf_url('member.php') ?>">Member</a>
         <?php $adminNavActive = strpos(str_replace('\\', '/', dirname($_SERVER['SCRIPT_NAME'] ?? '')), '/admin') !== false ? 'is-active' : ''; ?>
         <a class="<?= $adminNavActive ?>" href="<?= sf_url('admin/index.php') ?>">Admin</a>
