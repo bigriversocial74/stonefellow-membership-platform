@@ -48,6 +48,7 @@
       <div class="home-copyright">© 2024 Stonefellow. All Rights Reserved.</div>
     </div>
   </footer>
+  <script>window.STONEFELLOW_PWA = {serviceWorker: "<?= sf_url('service-worker.js') ?>", offline: "<?= sf_url('offline.php') ?>"};</script>
   <script src="<?= sf_asset('js/stonefellow.js') ?>"></script>
   <script src="<?= sf_asset('js/pwa-upload.js') ?>"></script>
 </body>
