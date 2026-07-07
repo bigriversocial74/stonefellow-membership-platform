@@ -10,7 +10,10 @@ function sf_ai_secret_key(): string {
   if ($seed === '') $seed = __DIR__ . '::stonefellow-ai-settings';
   return hash('sha256', $seed, true);
 }
-function sf_ai_crypto_ready(): bool { return function_exists('openssl_encrypt') && function_exists('openssl_decrypt') && in_array('aes-256-gcm', openssl_get_cipher_methods(), true); }
+function sf_ai_crypto_ready(): bool {
+  if (!function_exists('openssl_encrypt') || !function_exists('openssl_decrypt') || !function_exists('openssl_get_cipher_methods')) return false;
+  return in_array('aes-256-gcm', openssl_get_cipher_methods(), true);
+}
 function sf_ai_encrypt_secret(string $plain): ?string {
   $plain = trim($plain);
   if ($plain === '') return null;
@@ -71,7 +74,7 @@ function sf_ai_save_provider(array $payload): bool {
   if ($plainKey !== '') {
     $encrypted = sf_ai_encrypt_secret($plainKey);
     if ($encrypted === null) {
-      sf_admin_flash('error', 'OpenSSL AES-256-GCM encryption is required before saving API keys. Non-secret settings were not saved for ' . $providerKey . '.');
+      sf_admin_flash('error', 'OpenSSL AES-256-GCM encryption is required before saving provider secrets. Non-secret settings were not saved for ' . $providerKey . '.');
       return false;
     }
     $last4 = substr($plainKey, -4);
