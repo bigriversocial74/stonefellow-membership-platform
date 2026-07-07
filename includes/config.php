@@ -56,7 +56,11 @@ function sf_url(string $path = ''): string {
 }
 
 function sf_asset(string $path): string {
-  $cleanPath = ltrim($path, '/');
+  $cleanPath = ltrim(trim($path), '/');
+
+  if ($cleanPath === '') {
+    return '/assets/';
+  }
 
   if (preg_match('~^(https?:)?//~i', $path)) {
     return $path;
@@ -74,7 +78,7 @@ function sf_current_page(): string {
 }
 
 function sf_is_active(string $file): string {
-  return sf_current_page() === $file ? 'is-active';
+  return sf_current_page() === $file ? 'is-active' : '';
 }
 
 function sf_install_redirect_if_needed(): void {
