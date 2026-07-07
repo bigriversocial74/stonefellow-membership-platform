@@ -1,0 +1,170 @@
+<?php
+require_once __DIR__ . '/storyboards.php';
+require_once __DIR__ . '/ai_settings.php';
+
+function sf_sbgen_ready(): bool { return sf_storyboard_ready() && sf_ai_ready() && sf_admin_table_exists('storyboard_jobs') && sf_admin_table_exists('storyboard_scenes'); }
+function sf_sbgen_h($value): string { return sf_storyboard_h($value); }
+function sf_sbgen_normalize_prompt(string $prompt): string { $prompt = trim(preg_replace('/\s+/', ' ', $prompt)); return mb_substr($prompt, 0, 4000); }
+function sf_sbgen_estimate_tokens(string $text): int { return max(1, (int)ceil(strlen($text) / 4)); }
+function sf_sbgen_default_provider(?array $storyboard = null): ?array {
+  $key = trim((string)($storyboard['default_text_provider'] ?? ''));
+  if ($key !== '') { $provider = sf_ai_provider($key); if ($provider) return $provider; }
+  foreach (sf_ai_providers() as $provider) if (!empty($provider['is_default_text'])) return $provider;
+  $providers = sf_ai_providers(); return $providers[0] ?? null;
+}
+function sf_sbgen_system_prompt(): string {
+  return 'You are a professional screenplay storyboarding assistant. Return JSON only. Create exactly 9 scenes for a visual storyboard. Keep it safe for a mainstream streaming membership platform. Do not include markdown fences. Use this top-level JSON object shape: {"title":"","logline":"","genre":"","tone":"","visual_style":"","characters":[{"name":"","role":"","appearance_notes":"","personality_notes":"","wardrobe_notes":"","consistency_prompt":""}],"scenes":[{"scene_number":1,"scene_title":"","scene_summary":"","scene_prompt":"","image_prompt":"","dialog_text":"","action_notes":"","location_label":"","time_of_day":"","characters":["Character Name"]}]}. Each scene must include cinematic visual direction, concise dialog, and character names matching the characters array.';
+}
+function sf_sbgen_user_prompt(array $storyboard, string $prompt): string {
+  $settings = [
+    'Title: ' . (string)($storyboard['title'] ?? 'Untitled Storyboard'),
+    'Genre: ' . (string)($storyboard['genre'] ?? ''),
+    'Tone: ' . (string)($storyboard['tone'] ?? ''),
+    'Visual Style: ' . (string)($storyboard['visual_style'] ?? ''),
+    'Aspect Ratio: ' . (string)($storyboard['aspect_ratio'] ?? '16:9'),
+    'Scene Count: exactly 9',
+    'Basic Script Prompt: ' . $prompt,
+  ];
+  return implode("\n", $settings);
+}
+function sf_sbgen_http_json(string $url, array $headers, array $payload, int $timeout = 90, int $maxRetries = 1): array {
+  if (!function_exists('curl_init')) return ['ok'=>false,'status'=>0,'error'=>'curl_missing','json'=>null,'raw'=>''];
+  $attempts = max(1, $maxRetries + 1);
+  $last = ['ok'=>false,'status'=>0,'error'=>'not_started','json'=>null,'raw'=>''];
+  for ($i = 0; $i < $attempts; $i++) {
+    $ch = curl_init($url);
+    curl_setopt_array($ch, [CURLOPT_POST=>true, CURLOPT_RETURNTRANSFER=>true, CURLOPT_HTTPHEADER=>$headers, CURLOPT_POSTFIELDS=>json_encode($payload, JSON_UNESCAPED_SLASHES), CURLOPT_TIMEOUT=>max(10,$timeout), CURLOPT_CONNECTTIMEOUT=>20]);
+    $raw = (string)curl_exec($ch);
+    $err = curl_error($ch);
+    $status = (int)curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    curl_close($ch);
+    $json = json_decode($raw, true);
+    $last = ['ok'=>$status >= 200 && $status < 300 && is_array($json), 'status'=>$status, 'error'=>$err ?: ($status >= 400 ? 'http_' . $status : ''), 'json'=>is_array($json) ? $json : null, 'raw'=>$raw];
+    if ($last['ok']) return $last;
+    if ($i + 1 < $attempts) usleep(250000 * ($i + 1));
+  }
+  return $last;
+}
+function sf_sbgen_extract_openai_text(array $json): string {
+  if (isset($json['output_text']) && is_string($json['output_text'])) return $json['output_text'];
+  $text = '';
+  foreach (($json['output'] ?? []) as $item) foreach (($item['content'] ?? []) as $content) if (($content['type'] ?? '') === 'output_text' && isset($content['text'])) $text .= (string)$content['text'];
+  return trim($text);
+}
+function sf_sbgen_extract_claude_text(array $json): string {
+  $text = '';
+  foreach (($json['content'] ?? []) as $item) if (($item['type'] ?? '') === 'text' && isset($item['text'])) $text .= (string)$item['text'];
+  return trim($text);
+}
+function sf_sbgen_call_provider(array $provider, string $systemPrompt, string $userPrompt): array {
+  $secret = sf_ai_decrypt_secret($provider['encrypted_api_key'] ?? '');
+  if ($secret === '') return ['ok'=>false,'error'=>'provider_key_missing','text'=>'','usage'=>[],'raw'=>null];
+  $providerKey = (string)($provider['provider_key'] ?? 'chatgpt');
+  $model = trim((string)($provider['default_model'] ?? '')) ?: ($providerKey === 'claude' ? 'claude-3-5-sonnet-latest' : 'gpt-4.1');
+  $timeout = max(10, (int)($provider['timeout_seconds'] ?? 90));
+  $retries = max(0, min(5, (int)($provider['max_retries'] ?? 1)));
+  $temperature = max(0, min(2, (float)($provider['temperature'] ?? 0.7)));
+  if ($providerKey === 'claude') {
+    $payload = ['model'=>$model,'max_tokens'=>5000,'temperature'=>$temperature,'system'=>$systemPrompt,'messages'=>[['role'=>'user','content'=>$userPrompt]]];
+    $result = sf_sbgen_http_json('https://api.anthropic.com/v1/messages', ['Content-Type: application/json','x-api-key: ' . $secret,'anthropic-version: 2023-06-01'], $payload, $timeout, $retries);
+    if (!$result['ok']) return ['ok'=>false,'error'=>$result['error'] ?: 'provider_error','text'=>'','usage'=>[],'raw'=>$result['json'] ?: $result['raw']];
+    return ['ok'=>true,'error'=>'','text'=>sf_sbgen_extract_claude_text($result['json'] ?? []),'usage'=>$result['json']['usage'] ?? [],'raw'=>$result['json']];
+  }
+  $payload = ['model'=>$model,'store'=>false,'temperature'=>$temperature,'input'=>[['role'=>'system','content'=>$systemPrompt],['role'=>'user','content'=>$userPrompt]]];
+  $result = sf_sbgen_http_json('https://api.openai.com/v1/responses', ['Content-Type: application/json','Authorization: Bearer ' . $secret], $payload, $timeout, $retries);
+  if (!$result['ok']) return ['ok'=>false,'error'=>$result['error'] ?: 'provider_error','text'=>'','usage'=>[],'raw'=>$result['json'] ?: $result['raw']];
+  return ['ok'=>true,'error'=>'','text'=>sf_sbgen_extract_openai_text($result['json'] ?? []),'usage'=>$result['json']['usage'] ?? [],'raw'=>$result['json']];
+}
+function sf_sbgen_parse_json_text(string $text): array {
+  $text = trim($text);
+  $text = preg_replace('/^```(?:json)?\s*/i', '', $text);
+  $text = preg_replace('/\s*```$/', '', $text);
+  $json = json_decode($text, true);
+  if (!is_array($json)) {
+    $start = strpos($text, '{'); $end = strrpos($text, '}');
+    if ($start !== false && $end !== false && $end > $start) $json = json_decode(substr($text, $start, $end - $start + 1), true);
+  }
+  if (!is_array($json)) return ['ok'=>false,'error'=>'invalid_json','data'=>null];
+  $scenes = $json['scenes'] ?? [];
+  if (!is_array($scenes) || count($scenes) !== 9) return ['ok'=>false,'error'=>'scene_count_not_9','data'=>$json];
+  return ['ok'=>true,'error'=>'','data'=>$json];
+}
+function sf_sbgen_start_job(int $storyboardId, ?int $sceneId, string $providerKey, string $jobType, array $input): int {
+  if (!sf_admin_table_exists('storyboard_jobs')) return 0;
+  sf_admin_execute('INSERT INTO storyboard_jobs (storyboard_id, scene_id, provider_key, job_type, job_status, input_json, attempts, max_attempts, started_at, created_by_user_id) VALUES (?, ?, ?, ?, ?, ?, 1, 2, NOW(), ?)', [$storyboardId, $sceneId ?: null, $providerKey, $jobType, 'running', json_encode($input, JSON_UNESCAPED_SLASHES), sf_current_user_id()]);
+  return (int)(sf_storyboard_db()?->lastInsertId() ?: 0);
+}
+function sf_sbgen_finish_job(int $jobId, string $status, array $output = [], string $error = ''): void {
+  if ($jobId <= 0 || !sf_admin_table_exists('storyboard_jobs')) return;
+  sf_admin_execute('UPDATE storyboard_jobs SET job_status = ?, output_json = ?, error_message = ?, completed_at = NOW(), updated_at = NOW() WHERE id = ?', [$status, $output ? json_encode($output, JSON_UNESCAPED_SLASHES) : null, $error ?: null, $jobId]);
+}
+function sf_sbgen_log_usage(string $providerKey, int $storyboardId, array $usage, string $status = 'success'): void {
+  if (!sf_admin_table_exists('ai_usage_events')) return;
+  $promptTokens = (int)($usage['input_tokens'] ?? $usage['prompt_tokens'] ?? 0);
+  $completionTokens = (int)($usage['output_tokens'] ?? $usage['completion_tokens'] ?? 0);
+  sf_admin_execute('INSERT INTO ai_usage_events (provider_key, feature_key, related_type, related_id, model_key, request_type, prompt_tokens, completion_tokens, image_count, estimated_cost_cents, request_status, created_by_user_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0, 0, ?, ?)', [$providerKey, 'storyboarding', 'storyboard', $storyboardId, '', 'text', $promptTokens, $completionTokens, $status, sf_current_user_id()]);
+}
+function sf_sbgen_find_or_create_character(int $storyboardId, array $character, int $order = 0): int {
+  $name = trim((string)($character['name'] ?? 'Character')) ?: 'Character';
+  $existing = sf_admin_fetch_one('SELECT id FROM storyboard_characters WHERE storyboard_id = ? AND character_name = ? LIMIT 1', [$storyboardId, $name]);
+  if ($existing) return (int)$existing['id'];
+  sf_admin_execute('INSERT INTO storyboard_characters (storyboard_id, character_name, role_label, character_order, appearance_notes, personality_notes, wardrobe_notes, consistency_prompt, likeness_strength, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', [$storyboardId, $name, trim((string)($character['role'] ?? 'Character')), $order, trim((string)($character['appearance_notes'] ?? '')), trim((string)($character['personality_notes'] ?? '')), trim((string)($character['wardrobe_notes'] ?? '')), trim((string)($character['consistency_prompt'] ?? '')), 'medium', 'active']);
+  return (int)(sf_storyboard_db()?->lastInsertId() ?: 0);
+}
+function sf_sbgen_save_result(int $storyboardId, array $data): array {
+  $pdo = sf_storyboard_db(); if (!$pdo) return ['ok'=>false,'error'=>'db_missing'];
+  try {
+    $pdo->beginTransaction();
+    $title = trim((string)($data['title'] ?? ''));
+    $updates = ['logline'=>trim((string)($data['logline'] ?? '')), 'genre'=>trim((string)($data['genre'] ?? '')), 'tone'=>trim((string)($data['tone'] ?? '')), 'visual_style'=>trim((string)($data['visual_style'] ?? '')), 'generation_status'=>'complete', 'storyboard_status'=>'draft'];
+    if ($title !== '') $updates['title'] = $title;
+    $sets = []; $values = [];
+    foreach ($updates as $key=>$value) { $sets[] = '`' . $key . '` = ?'; $values[] = $value; }
+    $values[] = $storyboardId;
+    $pdo->prepare('UPDATE storyboards SET ' . implode(', ', $sets) . ', last_generated_at = NOW(), updated_at = NOW() WHERE id = ?')->execute($values);
+    $pdo->prepare('DELETE FROM storyboard_scene_characters WHERE storyboard_id = ?')->execute([$storyboardId]);
+    $pdo->prepare('DELETE FROM storyboard_scenes WHERE storyboard_id = ?')->execute([$storyboardId]);
+    $characterIds = [];
+    foreach (($data['characters'] ?? []) as $i=>$character) if (is_array($character)) $characterIds[(string)($character['name'] ?? '')] = sf_sbgen_find_or_create_character($storyboardId, $character, $i + 1);
+    foreach (($data['scenes'] ?? []) as $scene) {
+      if (!is_array($scene)) continue;
+      $number = max(1, min(99, (int)($scene['scene_number'] ?? 0)));
+      if ($number <= 0) continue;
+      $pdo->prepare('INSERT INTO storyboard_scenes (storyboard_id, scene_number, scene_title, scene_summary, scene_prompt, image_prompt, dialog_text, action_notes, location_label, time_of_day, image_status, rewrite_status, scene_status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)')->execute([$storyboardId, $number, trim((string)($scene['scene_title'] ?? ('Scene ' . $number))), trim((string)($scene['scene_summary'] ?? '')), trim((string)($scene['scene_prompt'] ?? '')), trim((string)($scene['image_prompt'] ?? '')), trim((string)($scene['dialog_text'] ?? '')), trim((string)($scene['action_notes'] ?? '')), trim((string)($scene['location_label'] ?? '')), trim((string)($scene['time_of_day'] ?? '')), 'none', 'none', 'draft']);
+      $sceneId = (int)$pdo->lastInsertId();
+      foreach (($scene['characters'] ?? []) as $charName) {
+        $charName = trim((string)$charName); if ($charName === '') continue;
+        if (!isset($characterIds[$charName])) $characterIds[$charName] = sf_sbgen_find_or_create_character($storyboardId, ['name'=>$charName,'role'=>'Character'], count($characterIds) + 1);
+        $pdo->prepare('INSERT IGNORE INTO storyboard_scene_characters (storyboard_id, scene_id, character_id, presence_label) VALUES (?, ?, ?, ?)')->execute([$storyboardId, $sceneId, $characterIds[$charName], 'in_scene']);
+      }
+    }
+    $pdo->commit();
+    sf_admin_audit('generate_storyboard_scenes', 'storyboard', $storyboardId, null, ['scenes'=>count($data['scenes'] ?? [])]);
+    return ['ok'=>true,'scenes'=>count($data['scenes'] ?? [])];
+  } catch (Throwable $e) { if ($pdo->inTransaction()) $pdo->rollBack(); return ['ok'=>false,'error'=>$e->getMessage()]; }
+}
+function sf_sbgen_generate_storyboard(int $storyboardId, string $promptOverride = ''): array {
+  if (!sf_sbgen_ready()) return ['ok'=>false,'error'=>'storyboard_generation_not_ready'];
+  $storyboard = sf_storyboard_project($storyboardId);
+  if (!$storyboard || (int)($storyboard['id'] ?? 0) <= 0) return ['ok'=>false,'error'=>'storyboard_not_found'];
+  $prompt = sf_sbgen_normalize_prompt($promptOverride !== '' ? $promptOverride : (string)($storyboard['prompt'] ?? ''));
+  if ($prompt === '') return ['ok'=>false,'error'=>'prompt_required'];
+  $provider = sf_sbgen_default_provider($storyboard);
+  if (!$provider) return ['ok'=>false,'error'=>'provider_missing'];
+  if (($provider['status'] ?? '') !== 'active' || !in_array(($provider['key_status'] ?? ''), ['configured','connected'], true)) return ['ok'=>false,'error'=>'provider_not_active_or_configured'];
+  $providerKey = (string)($provider['provider_key'] ?? 'chatgpt');
+  $system = sf_sbgen_system_prompt();
+  $user = sf_sbgen_user_prompt($storyboard, $prompt);
+  $jobId = sf_sbgen_start_job($storyboardId, null, $providerKey, 'generate_storyboard', ['prompt'=>$prompt]);
+  sf_admin_execute("UPDATE storyboards SET generation_status = 'generating', updated_at = NOW() WHERE id = ?", [$storyboardId]);
+  $call = sf_sbgen_call_provider($provider, $system, $user);
+  if (!$call['ok']) { sf_admin_execute("UPDATE storyboards SET generation_status = 'failed', updated_at = NOW() WHERE id = ?", [$storyboardId]); sf_sbgen_finish_job($jobId, 'failed', [], $call['error']); sf_sbgen_log_usage($providerKey, $storyboardId, [], 'failed'); return ['ok'=>false,'error'=>$call['error'] ?: 'provider_error']; }
+  $parsed = sf_sbgen_parse_json_text($call['text']);
+  if (!$parsed['ok']) { sf_admin_execute("UPDATE storyboards SET generation_status = 'failed', updated_at = NOW() WHERE id = ?", [$storyboardId]); sf_sbgen_finish_job($jobId, 'failed', ['raw_text'=>$call['text']], $parsed['error']); sf_sbgen_log_usage($providerKey, $storyboardId, $call['usage'], 'failed'); return ['ok'=>false,'error'=>$parsed['error'],'raw_text'=>$call['text']]; }
+  $saved = sf_sbgen_save_result($storyboardId, $parsed['data']);
+  if (!$saved['ok']) { sf_admin_execute("UPDATE storyboards SET generation_status = 'failed', updated_at = NOW() WHERE id = ?", [$storyboardId]); sf_sbgen_finish_job($jobId, 'failed', $parsed['data'], $saved['error']); sf_sbgen_log_usage($providerKey, $storyboardId, $call['usage'], 'failed'); return ['ok'=>false,'error'=>$saved['error']]; }
+  sf_sbgen_finish_job($jobId, 'complete', $parsed['data']);
+  sf_sbgen_log_usage($providerKey, $storyboardId, $call['usage'], 'success');
+  return ['ok'=>true,'storyboard_id'=>$storyboardId,'scenes'=>(int)$saved['scenes'],'provider'=>$providerKey];
+}
+?>
