@@ -60,26 +60,7 @@ body.admin-catalog-page {
 }
 
 .admin-catalog-page .sf-admin-hero {
-  position: relative;
-  overflow: hidden;
-  border-color: rgba(232, 198, 127, .18);
-}
-
-.admin-catalog-page .sf-admin-hero::after {
-  content: "";
-  position: absolute;
-  right: -130px;
-  top: -160px;
-  width: 360px;
-  height: 360px;
-  border: 1px solid rgba(232, 198, 127, .14);
-  border-radius: 50%;
-  pointer-events: none;
-}
-
-.admin-catalog-page .sf-admin-hero > * {
-  position: relative;
-  z-index: 1;
+  display: none !important;
 }
 
 .admin-catalog-page .sf-admin-db-card {
