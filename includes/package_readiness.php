@@ -57,7 +57,7 @@ function sf_pkg_checks(): array {
     $checks[] = sf_pkg_check('Directories', sf_qa_dir_exists($dir) ? 'pass' : 'fail', 'Directory: ' . $dir, sf_qa_dir_exists($dir) ? 'Present' : 'Missing', 2);
   }
   $checks[] = sf_pkg_check('Installer', sf_qa_contains('includes/installer.php', ["'020'=>", '020_monitoring_incident_alerts.sql']) ? 'pass' : 'fail', 'Installer migration target', 'Installer should include migration 020.', 3);
-  $checks[] = sf_pkg_check('QA', sf_qa_contains('includes/qa.php', ['020_monitoring_incident_alerts.sql', 'admin/package-readiness.php']) ? 'pass' : 'warn', 'QA registry current', 'QA should reference migration 020 and package readiness route.', 3);
+  $checks[] = sf_pkg_check('Admin', sf_qa_contains('admin/index.php', ['admin/package-readiness.php']) ? 'pass' : 'warn', 'Admin package readiness link', 'Admin dashboard should link to package readiness.', 2);
   $checks[] = sf_pkg_check('Preflight', sf_qa_contains('deploy/preflight.php', ['sf_pkg_checks', 'Package Readiness']) ? 'pass' : 'warn', 'Preflight package checks', 'Preflight should include package readiness output.', 3);
   $checks[] = sf_pkg_check('Docs', sf_qa_contains('docs/DEPLOYMENT_RUNBOOK.md', ['020_monitoring_incident_alerts.sql', 'admin/package-readiness.php']) ? 'pass' : 'warn', 'Runbook package ready', 'Runbook should reference migration 020 and package readiness.', 2);
   $checks[] = sf_pkg_check('Docs', sf_qa_contains('docs/SQL_FILE_MAP.md', ['020_monitoring_incident_alerts.sql']) ? 'pass' : 'fail', 'SQL map target 020', 'SQL map should document migration 020.', 2);
