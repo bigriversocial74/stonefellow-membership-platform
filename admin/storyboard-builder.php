@@ -45,17 +45,20 @@ sf_admin_shell_start('Storyboarding', 'Storyboard builder shell v1', 'Turn a bas
     <div class="sf-admin-inline-form"><button type="button"<?= sf_admin_form_disabled_attr() ?>>Add Character</button><button type="button"<?= sf_admin_form_disabled_attr() ?>>Upload Reference</button><button type="button"<?= sf_admin_form_disabled_attr() ?>>Consistency Settings</button></div>
   </div>
   <p class="sf-admin-copy">Character reference images and likeness notes will guide image generation in later phases. Phase 40 displays the workflow shell without making external API calls.</p>
-  <div class="sf-admin-card-grid">
+  <div class="sf-storyboard-character-grid">
     <?php foreach ($characters as $character): ?>
-      <article class="sf-admin-action-card">
-        <span><?= sf_storyboard_h($character['role']) ?></span>
-        <strong><?= sf_storyboard_h($character['name']) ?></strong>
-        <small><?= sf_storyboard_h($character['summary']) ?></small>
-        <small><strong>Consistency:</strong> <?= sf_storyboard_h($character['notes']) ?></small>
-        <div class="sf-admin-form-actions"><button type="button"<?= sf_admin_form_disabled_attr() ?>>View Details</button><button type="button"<?= sf_admin_form_disabled_attr() ?>>Replace Image</button></div>
+      <article class="sf-storyboard-character-card">
+        <div class="sf-storyboard-thumb sf-storyboard-character-thumb" style="background-image:url('<?= sf_storyboard_h(sf_url($character['image'])) ?>')"></div>
+        <div class="sf-storyboard-character-body">
+          <span><?= sf_storyboard_h($character['role']) ?></span>
+          <strong><?= sf_storyboard_h($character['name']) ?></strong>
+          <small><?= sf_storyboard_h($character['summary']) ?></small>
+          <small><strong>Consistency:</strong> <?= sf_storyboard_h($character['notes']) ?></small>
+          <div class="sf-admin-form-actions"><button type="button"<?= sf_admin_form_disabled_attr() ?>>View Details</button><button type="button"<?= sf_admin_form_disabled_attr() ?>>Replace Image</button></div>
+        </div>
       </article>
     <?php endforeach; ?>
-    <article class="sf-admin-action-card"><span>+</span><strong>Add more characters</strong><small>Upload actor, musician, or reference images to improve future visual consistency.</small></article>
+    <article class="sf-storyboard-character-card sf-storyboard-empty-card"><div><strong>Add more characters</strong><small>Upload actor, musician, or reference images to improve future visual consistency.</small></div></article>
   </div>
 </section>
 
@@ -65,19 +68,22 @@ sf_admin_shell_start('Storyboarding', 'Storyboard builder shell v1', 'Turn a bas
     <div class="sf-admin-inline-form"><button type="button">View 3x3</button><button type="button">Expand All</button></div>
   </div>
   <p class="sf-admin-copy">Each card supports manual editing now and is prepared for later AI rewrite, image regeneration, and user image upload actions.</p>
-  <div class="sf-admin-card-grid">
+  <div class="sf-storyboard-scene-grid">
     <?php foreach ($scenes as $scene): ?>
-      <article id="scene-<?= (int)$scene['number'] ?>" class="sf-admin-action-card">
-        <span>Scene <?= (int)$scene['number'] ?> · <?= sf_storyboard_h($scene['status']) ?></span>
-        <strong><?= sf_storyboard_h($scene['title']) ?></strong>
-        <small><strong>Prompt:</strong> <?= sf_storyboard_h($scene['prompt']) ?></small>
-        <small><strong>Dialog:</strong> “<?= sf_storyboard_h($scene['dialog']) ?>”</small>
-        <small><strong>Characters:</strong> <?php foreach ($scene['characters'] as $characterName) echo sf_storyboard_render_character_chip($characterName) . ' '; ?></small>
-        <div class="sf-admin-form-actions">
-          <button type="button"<?= sf_admin_form_disabled_attr() ?>>Edit</button>
-          <button type="button"<?= sf_admin_form_disabled_attr() ?>>Rewrite Scene</button>
-          <button type="button"<?= sf_admin_form_disabled_attr() ?>>Regenerate Image</button>
-          <button type="button"<?= sf_admin_form_disabled_attr() ?>>Upload Image</button>
+      <article id="scene-<?= (int)$scene['number'] ?>" class="sf-storyboard-scene-card">
+        <div class="sf-storyboard-thumb sf-storyboard-scene-thumb" style="background-image:url('<?= sf_storyboard_h(sf_url($scene['image'])) ?>')"><span><?= (int)$scene['number'] ?></span></div>
+        <div class="sf-storyboard-scene-body">
+          <span>Scene <?= (int)$scene['number'] ?> · <?= sf_storyboard_h($scene['status']) ?></span>
+          <strong><?= sf_storyboard_h($scene['title']) ?></strong>
+          <small><strong>Prompt:</strong> <?= sf_storyboard_h($scene['prompt']) ?></small>
+          <small><strong>Dialog:</strong> “<?= sf_storyboard_h($scene['dialog']) ?>”</small>
+          <small><strong>Characters:</strong> <?php foreach ($scene['characters'] as $characterName) echo sf_storyboard_render_character_chip($characterName) . ' '; ?></small>
+          <div class="sf-storyboard-scene-actions">
+            <button type="button"<?= sf_admin_form_disabled_attr() ?>>Edit</button>
+            <button type="button"<?= sf_admin_form_disabled_attr() ?>>Rewrite Scene</button>
+            <button type="button"<?= sf_admin_form_disabled_attr() ?>>Regenerate Image</button>
+            <button type="button"<?= sf_admin_form_disabled_attr() ?>>Upload Image</button>
+          </div>
         </div>
       </article>
     <?php endforeach; ?>
