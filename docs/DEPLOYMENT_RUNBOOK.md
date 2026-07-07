@@ -23,16 +23,15 @@ Writable folders:
 
 ## 2. Fresh install
 
-1. Download the latest `main` ZIP.
-2. Upload and extract into the hosting web root.
-3. Visit the public URL.
-4. Open `install.php`.
-5. Confirm server checks.
-6. Enter database credentials.
-7. Run the SQL installer step.
-8. Create the admin account.
-9. Confirm the installer writes `config/local.php` and `storage/install.lock`.
-10. Sign in and open `admin/index.php`.
+1. Use the latest `main` package.
+2. Place the package in the hosting web root.
+3. Open `install.php`.
+4. Confirm server checks.
+5. Enter database credentials.
+6. Run the SQL installer step.
+7. Create the admin account.
+8. Confirm the installer writes `config/local.php` and `storage/install.lock`.
+9. Sign in and open `admin/index.php`.
 
 ## 3. SQL installer order
 
@@ -80,6 +79,7 @@ Minimum required categories:
 Open these launch-control pages:
 
 - `admin/index.php`
+- `admin/release-candidate.php`
 - `admin/package-readiness.php`
 - `admin/smoke-tests.php`
 - `admin/launch-checklist.php`
@@ -109,7 +109,7 @@ Open these reporting and revenue pages:
 - `admin/security-dashboard.php`
 - `admin/roles.php`
 
-Also run `deploy/preflight.php` before public launch. It now reports QA score, package-readiness score, smoke-test score, missing required files, route status, SQL file presence, scenario failures, manual review items, and launch gate status.
+Run `deploy/preflight.php` before public launch. It reports QA score, package-readiness score, smoke-test score, release-candidate score, missing required files, route status, SQL file presence, scenario failures, manual review items, and launch gate status.
 
 ## 6. Configure production
 
@@ -157,20 +157,33 @@ Open `admin/smoke-tests.php` and use the scenario matrix to test:
 - incidents API
 - analytics summary API
 
-The smoke-test matrix has automatic static checks for required files and JSON endpoint contracts. Manual scenarios still require live browser/provider verification before launch.
+Manual scenarios still require live browser/provider verification before launch.
 
 ## 8. Package readiness gate
 
-Before creating or uploading a deploy ZIP:
+Before creating or uploading a deploy package:
 
 1. Open `admin/package-readiness.php`.
 2. Confirm the required file manifest has no missing files.
 3. Confirm the target migration is `020`.
 4. Open `admin/smoke-tests.php` and resolve missing route/API failures.
 5. Confirm `deploy/preflight.php` returns no blocking failures.
-6. Confirm the package includes docs, SQL files, deploy tooling, public pages, member pages, admin pages, APIs, styles, manifest, service worker, and smoke-test docs.
+6. Confirm the package includes docs, SQL files, deploy tooling, public pages, member pages, admin pages, APIs, styles, manifest, service worker, smoke-test docs, and release-candidate docs.
 
-## 9. Backup and release gate
+## 9. Release candidate gate
+
+Before launch:
+
+1. Open `admin/release-candidate.php`.
+2. Confirm the release-candidate score has no blocking failures.
+3. Confirm the package target is the `main` branch archive.
+4. Confirm migration target `020`.
+5. Confirm backup status is completed or verified.
+6. Confirm release record status is ready, deploying, or deployed.
+7. Confirm release checklist tasks are passed or intentionally waived.
+8. Run `deploy/preflight.php`.
+
+## 10. Backup and release gate
 
 Before deployment:
 
@@ -182,13 +195,13 @@ Before deployment:
 6. Pass or waive release checklist tasks intentionally.
 7. Run `deploy/preflight.php`.
 
-## 10. Rollback plan
+## 11. Rollback plan
 
 Before deployment:
 
 - keep a copy of the previous webroot
 - export the current database
-- keep the prior ZIP package
+- keep the prior package
 - record the active migration number
 - document the rollback trigger and owner
 
@@ -199,12 +212,13 @@ Rollback:
 3. re-test signin, admin, checkout, watch/player pages, monitoring, and incidents
 4. add a release event explaining the rollback
 
-## 11. Final launch gate
+## 12. Final launch gate
 
 Launch when:
 
 - installer completes
 - migrations are applied through `020`
+- release-candidate page has no blocking failures
 - package readiness has no missing required files
 - smoke-test matrix has no missing route/API failures
 - manual smoke checks are completed or intentionally waived
