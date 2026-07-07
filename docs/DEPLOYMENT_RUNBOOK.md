@@ -80,6 +80,7 @@ Minimum required categories:
 Open these launch-control pages:
 
 - `admin/index.php`
+- `admin/package-readiness.php`
 - `admin/launch-checklist.php`
 - `admin/qa.php`
 - `admin/migration-checker.php`
@@ -107,7 +108,7 @@ Open these reporting and revenue pages:
 - `admin/security-dashboard.php`
 - `admin/roles.php`
 
-Also run `deploy/preflight.php` before public launch.
+Also run `deploy/preflight.php` before public launch. It now reports QA score, package-readiness score, missing required files, route status, SQL file presence, and launch gate status.
 
 ## 6. Configure production
 
@@ -154,7 +155,17 @@ Test:
 - incidents API
 - analytics summary API
 
-## 8. Backup and release gate
+## 8. Package readiness gate
+
+Before creating or uploading a deploy ZIP:
+
+1. Open `admin/package-readiness.php`.
+2. Confirm the required file manifest has no missing files.
+3. Confirm the target migration is `020`.
+4. Confirm `deploy/preflight.php` returns no blocking failures.
+5. Confirm the package includes docs, SQL files, deploy tooling, public pages, member pages, admin pages, APIs, styles, manifest, and service worker.
+
+## 9. Backup and release gate
 
 Before deployment:
 
@@ -166,7 +177,7 @@ Before deployment:
 6. Pass or waive release checklist tasks intentionally.
 7. Run `deploy/preflight.php`.
 
-## 9. Rollback plan
+## 10. Rollback plan
 
 Before deployment:
 
@@ -183,12 +194,13 @@ Rollback:
 3. re-test signin, admin, checkout, watch/player pages, monitoring, and incidents
 4. add a release event explaining the rollback
 
-## 10. Final launch gate
+## 11. Final launch gate
 
 Launch when:
 
 - installer completes
 - migrations are applied through `020`
+- package readiness has no missing required files
 - QA has no failed checks
 - route registry has no missing required routes
 - system health has no critical failures
