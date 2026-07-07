@@ -1,54 +1,18 @@
 -- Stonefellow migration 005: merch cart, order runtime, inventory movement, and fulfillment audit.
 -- Apply after database/stonefellow_streaming_platform.sql and migrations 001, 002, 003, and 004.
--- Public cart and checkout work in session-preview mode without this migration, but database mode
--- should use these optional order columns and runtime audit tables.
+-- Installer-safe version: avoids DELIMITER/stored procedures so it can run through PDO.
 
-DROP PROCEDURE IF EXISTS sf_add_store_column;
-DROP PROCEDURE IF EXISTS sf_add_store_index;
-DELIMITER //
-CREATE PROCEDURE sf_add_store_column(IN table_name VARCHAR(64), IN column_name VARCHAR(64), IN column_definition TEXT)
-BEGIN
-  IF NOT EXISTS (
-    SELECT 1
-    FROM INFORMATION_SCHEMA.COLUMNS
-    WHERE TABLE_SCHEMA = DATABASE()
-      AND TABLE_NAME = table_name
-      AND COLUMN_NAME = column_name
-  ) THEN
-    SET @ddl = CONCAT('ALTER TABLE `', table_name, '` ADD COLUMN ', column_definition);
-    PREPARE stmt FROM @ddl;
-    EXECUTE stmt;
-    DEALLOCATE PREPARE stmt;
-  END IF;
-END //
+ALTER TABLE orders
+  ADD COLUMN IF NOT EXISTS `receipt_token` CHAR(64) DEFAULT NULL AFTER `order_number`,
+  ADD COLUMN IF NOT EXISTS `payment_status` ENUM('unpaid','authorized','paid','failed','refunded') NOT NULL DEFAULT 'unpaid' AFTER `status`,
+  ADD COLUMN IF NOT EXISTS `fulfillment_status` ENUM('unfulfilled','partial','fulfilled','returned','canceled') NOT NULL DEFAULT 'unfulfilled' AFTER `payment_status`,
+  ADD COLUMN IF NOT EXISTS `customer_phone` VARCHAR(40) DEFAULT NULL AFTER `customer_email`,
+  ADD COLUMN IF NOT EXISTS `shipping_method` VARCHAR(120) NOT NULL DEFAULT 'standard' AFTER `shipping_country`,
+  ADD COLUMN IF NOT EXISTS `notes` TEXT DEFAULT NULL AFTER `shipping_method`;
 
-CREATE PROCEDURE sf_add_store_index(IN table_name VARCHAR(64), IN index_name VARCHAR(64), IN index_definition TEXT)
-BEGIN
-  IF NOT EXISTS (
-    SELECT 1
-    FROM INFORMATION_SCHEMA.STATISTICS
-    WHERE TABLE_SCHEMA = DATABASE()
-      AND TABLE_NAME = table_name
-      AND INDEX_NAME = index_name
-  ) THEN
-    SET @ddl = CONCAT('CREATE INDEX ', index_definition);
-    PREPARE stmt FROM @ddl;
-    EXECUTE stmt;
-    DEALLOCATE PREPARE stmt;
-  END IF;
-END //
-DELIMITER ;
-
-CALL sf_add_store_column('orders', 'receipt_token', '`receipt_token` CHAR(64) DEFAULT NULL AFTER `order_number`');
-CALL sf_add_store_column('orders', 'payment_status', '`payment_status` ENUM(''unpaid'',''authorized'',''paid'',''failed'',''refunded'') NOT NULL DEFAULT ''unpaid'' AFTER `status`');
-CALL sf_add_store_column('orders', 'fulfillment_status', '`fulfillment_status` ENUM(''unfulfilled'',''partial'',''fulfilled'',''returned'',''canceled'') NOT NULL DEFAULT ''unfulfilled'' AFTER `payment_status`');
-CALL sf_add_store_column('orders', 'customer_phone', '`customer_phone` VARCHAR(40) DEFAULT NULL AFTER `customer_email`');
-CALL sf_add_store_column('orders', 'shipping_method', '`shipping_method` VARCHAR(120) NOT NULL DEFAULT ''standard'' AFTER `shipping_country`');
-CALL sf_add_store_column('orders', 'notes', '`notes` TEXT DEFAULT NULL AFTER `shipping_method`');
-
-CALL sf_add_store_index('orders', 'idx_orders_payment_fulfillment', 'idx_orders_payment_fulfillment ON orders (payment_status, fulfillment_status, created_at)');
-CALL sf_add_store_index('orders', 'idx_orders_receipt_token', 'idx_orders_receipt_token ON orders (receipt_token)');
-CALL sf_add_store_index('cart_items', 'idx_cart_items_cart_product_variant', 'idx_cart_items_cart_product_variant ON cart_items (cart_id, product_id, variant_id)');
+CREATE INDEX idx_orders_payment_fulfillment ON orders (payment_status, fulfillment_status, created_at);
+CREATE INDEX idx_orders_receipt_token ON orders (receipt_token);
+CREATE INDEX idx_cart_items_cart_product_variant ON cart_items (cart_id, product_id, variant_id);
 
 CREATE TABLE IF NOT EXISTS order_status_history (
   id INT AUTO_INCREMENT PRIMARY KEY,
@@ -80,6 +44,3 @@ CREATE TABLE IF NOT EXISTS product_inventory_movements (
   FOREIGN KEY (order_id) REFERENCES orders(id) ON DELETE SET NULL,
   FOREIGN KEY (created_by_user_id) REFERENCES users(id) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
-DROP PROCEDURE IF EXISTS sf_add_store_column;
-DROP PROCEDURE IF EXISTS sf_add_store_index;

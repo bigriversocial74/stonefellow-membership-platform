@@ -1,31 +1,15 @@
 -- Stonefellow migration 015: membership tiers/access packaging v2 and launch revenue dashboard v1.
 -- Run after migration 014.
+-- Installer-safe version: avoids DELIMITER/stored procedures so it can run through PDO.
 
-DROP PROCEDURE IF EXISTS sf_add_tier_revenue_column;
-DELIMITER //
-CREATE PROCEDURE sf_add_tier_revenue_column(IN table_name VARCHAR(64), IN column_name VARCHAR(64), IN column_definition TEXT)
-BEGIN
-  IF NOT EXISTS (
-    SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS
-    WHERE TABLE_SCHEMA = DATABASE()
-      AND TABLE_NAME = table_name
-      AND COLUMN_NAME = column_name
-  ) THEN
-    SET @ddl = CONCAT('ALTER TABLE `', table_name, '` ADD COLUMN ', column_definition);
-    PREPARE stmt FROM @ddl;
-    EXECUTE stmt;
-    DEALLOCATE PREPARE stmt;
-  END IF;
-END //
-DELIMITER ;
-
-CALL sf_add_tier_revenue_column('subscription_plans', 'allows_video_streaming', '`allows_video_streaming` TINYINT(1) NOT NULL DEFAULT 1 AFTER `allows_full_music`');
-CALL sf_add_tier_revenue_column('subscription_plans', 'allows_playlists', '`allows_playlists` TINYINT(1) NOT NULL DEFAULT 1 AFTER `allows_video_streaming`');
-CALL sf_add_tier_revenue_column('subscription_plans', 'access_label', '`access_label` VARCHAR(120) DEFAULT NULL AFTER `public_badge`');
-CALL sf_add_tier_revenue_column('subscription_plans', 'benefit_matrix_json', '`benefit_matrix_json` JSON DEFAULT NULL AFTER `access_label`');
-CALL sf_add_tier_revenue_column('subscription_plans', 'upgrade_path_json', '`upgrade_path_json` JSON DEFAULT NULL AFTER `benefit_matrix_json`');
-CALL sf_add_tier_revenue_column('subscription_plans', 'launch_position', '`launch_position` ENUM(''entry'',''core'',''premium'',''founder'') NOT NULL DEFAULT ''core'' AFTER `sort_order`');
-CALL sf_add_tier_revenue_column('subscription_plans', 'is_public', '`is_public` TINYINT(1) NOT NULL DEFAULT 1 AFTER `launch_position`');
+ALTER TABLE subscription_plans
+  ADD COLUMN IF NOT EXISTS `allows_video_streaming` TINYINT(1) NOT NULL DEFAULT 1 AFTER `allows_full_music`,
+  ADD COLUMN IF NOT EXISTS `allows_playlists` TINYINT(1) NOT NULL DEFAULT 1 AFTER `allows_video_streaming`,
+  ADD COLUMN IF NOT EXISTS `access_label` VARCHAR(120) DEFAULT NULL AFTER `public_badge`,
+  ADD COLUMN IF NOT EXISTS `benefit_matrix_json` JSON DEFAULT NULL AFTER `access_label`,
+  ADD COLUMN IF NOT EXISTS `upgrade_path_json` JSON DEFAULT NULL AFTER `benefit_matrix_json`,
+  ADD COLUMN IF NOT EXISTS `launch_position` ENUM('entry','core','premium','founder') NOT NULL DEFAULT 'core' AFTER `sort_order`,
+  ADD COLUMN IF NOT EXISTS `is_public` TINYINT(1) NOT NULL DEFAULT 1 AFTER `launch_position`;
 
 CREATE TABLE IF NOT EXISTS membership_tier_benefits (
   id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
@@ -143,5 +127,3 @@ ON DUPLICATE KEY UPDATE value_label=VALUES(value_label), is_enabled=VALUES(is_en
 INSERT INTO membership_tier_benefit_map (plan_id, benefit_key, value_label, is_enabled, sort_order)
 SELECT id, 'founder', 'Founder recognition', IF(slug='founding-fan',1,0), 70 FROM subscription_plans
 ON DUPLICATE KEY UPDATE value_label=VALUES(value_label), is_enabled=VALUES(is_enabled), sort_order=VALUES(sort_order);
-
-DROP PROCEDURE IF EXISTS sf_add_tier_revenue_column;
