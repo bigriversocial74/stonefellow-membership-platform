@@ -47,7 +47,8 @@ function sf_pkg_manifest_json(): string {
   $summary = sf_pkg_manifest_summary();
   $payload = ['generated_at'=>date('c'),'platform'=>'Stonefellow Membership Platform','migration_target'=>'020','summary'=>$summary,'files'=>sf_pkg_file_manifest()];
   return json_encode($payload, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
-}\nfunction sf_pkg_checks(): array {
+}
+function sf_pkg_checks(): array {
   $checks = [];
   foreach (sf_pkg_required_files() as $group => $files) {
     foreach ($files as $file) {
