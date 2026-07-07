@@ -7,7 +7,7 @@ CREATE TABLE IF NOT EXISTS qa_runs (
   score TINYINT UNSIGNED NOT NULL DEFAULT 0,
   status ENUM('passed','review','failed') NOT NULL DEFAULT 'review',
   summary_json JSON NULL,
-  created_by_user_id BIGINT UNSIGNED NULL,
+  created_by_user_id INT NULL,
   created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   INDEX idx_qa_runs_created (created_at),
   INDEX idx_qa_runs_status (status),
