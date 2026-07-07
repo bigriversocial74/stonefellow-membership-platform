@@ -55,4 +55,9 @@ $sfIsAdminSurface = strpos($sfPageClass, 'admin-catalog-page') !== false || strp
   </header>
   <main>
     <?php $sfAuthFlashes = sf_auth_flashes(); ?>
+    <?php if (strpos($sfPageClass, 'auth-template') !== false): ?>
+      <?php $sfAuthFlashes = array_values(array_filter($sfAuthFlashes, static function ($flash): bool {
+        return !((string)($flash['type'] ?? '') === 'warning' && trim((string)($flash['message'] ?? '')) === 'Sign in to continue.');
+      })); ?>
+    <?php endif; ?>
     <?php if ($sfAuthFlashes): ?><div class="sf-flash-stack" role="status" aria-live="polite"><?php foreach ($sfAuthFlashes as $flash): ?><div class="sf-flash sf-flash-<?= htmlspecialchars($flash['type'] ?? 'info') ?>"><?= htmlspecialchars($flash['message'] ?? '') ?></div><?php endforeach; ?></div><?php endif; ?>
