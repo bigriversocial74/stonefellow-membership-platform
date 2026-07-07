@@ -9,9 +9,9 @@ function sf_pkg_grade(int $score): string { return sf_qa_grade($score); }
 function sf_pkg_badge(string $status): string { return sf_qa_badge($status); }
 function sf_pkg_required_files(): array {
   return [
-    'Core runtime' => ['index.php','includes/config.php','includes/db.php','includes/auth.php','includes/header.php','includes/footer.php','includes/qa.php','includes/installer.php','includes/package_readiness.php','includes/smoke_tests.php','includes/release_candidate.php','includes/storyboards.php'],
-    'Install and deploy' => ['install.php','deploy/preflight.php','.env.example','docs/DEPLOYMENT_RUNBOOK.md','docs/SQL_FILE_MAP.md','docs/FINAL_PRODUCTION_QA_ROUTE_REGISTRY_V2.md','docs/PHASE_37_PACKAGE_READINESS.md','docs/PHASE_38_SMOKE_TESTS.md','docs/PHASE_39_RELEASE_CANDIDATE.md','docs/PHASE_40_STORYBOARDING_MODULE.md'],
-    'SQL' => array_map(static fn($m) => $m['file'], sf_qa_migration_plan()),
+    'Core runtime' => ['index.php','includes/config.php','includes/db.php','includes/auth.php','includes/header.php','includes/footer.php','includes/qa.php','includes/installer.php','includes/package_readiness.php','includes/smoke_tests.php','includes/release_candidate.php','includes/storyboards.php','includes/ai_settings.php'],
+    'Install and deploy' => ['install.php','deploy/preflight.php','.env.example','docs/DEPLOYMENT_RUNBOOK.md','docs/SQL_FILE_MAP.md','docs/FINAL_PRODUCTION_QA_ROUTE_REGISTRY_V2.md','docs/PHASE_37_PACKAGE_READINESS.md','docs/PHASE_38_SMOKE_TESTS.md','docs/PHASE_39_RELEASE_CANDIDATE.md','docs/PHASE_40_STORYBOARDING_MODULE.md','docs/PHASE_41_STORYBOARDING_SQL_AI_SETTINGS.md'],
+    'SQL' => array_merge(array_map(static fn($m) => $m['file'], sf_qa_migration_plan()), ['database/migrations/021_storyboarding_ai_settings.sql']),
     'Admin launch' => ['admin/index.php','admin/release-candidate.php','admin/package-readiness.php','admin/smoke-tests.php','admin/launch-checklist.php','admin/qa.php','admin/migration-checker.php','admin/routes-checker.php','admin/security-check.php','admin/content-audit.php','admin/system-health.php'],
     'Production ops' => ['admin/monitoring.php','admin/incidents.php','admin/backups.php','admin/releases.php','admin/ops-scheduler.php','admin/member-messaging.php','admin/member-lifecycle.php','admin/support.php'],
     'Member runtime' => ['member.php','library.php','watchlist.php','playlists.php','feed.php','notifications.php','messages.php','comments.php','support.php','account.php','account-billing.php'],
@@ -21,6 +21,7 @@ function sf_pkg_required_files(): array {
     'Smoke test matrix' => ['includes/smoke_tests.php','admin/smoke-tests.php','docs/PHASE_38_SMOKE_TESTS.md'],
     'Release candidate' => ['includes/release_candidate.php','admin/release-candidate.php','docs/PHASE_39_RELEASE_CANDIDATE.md'],
     'Storyboarding module' => ['includes/storyboards.php','admin/storyboards.php','admin/storyboard-builder.php','docs/PHASE_40_STORYBOARDING_MODULE.md'],
+    'AI settings' => ['includes/ai_settings.php','admin/ai-settings.php','database/migrations/021_storyboarding_ai_settings.sql','docs/PHASE_41_STORYBOARDING_SQL_AI_SETTINGS.md'],
     'Styles and assets' => ['assets/css/stonefellow.css','assets/css/admin-polish.css','assets/css/pwa-upload.css','manifest.webmanifest','service-worker.js'],
   ];
 }
@@ -46,7 +47,7 @@ function sf_pkg_manifest_summary(): array {
 }
 function sf_pkg_manifest_json(): string {
   $summary = sf_pkg_manifest_summary();
-  $payload = ['generated_at'=>date('c'),'platform'=>'Stonefellow Membership Platform','migration_target'=>'020','summary'=>$summary,'files'=>sf_pkg_file_manifest()];
+  $payload = ['generated_at'=>date('c'),'platform'=>'Stonefellow Membership Platform','migration_target'=>'021','summary'=>$summary,'files'=>sf_pkg_file_manifest()];
   return json_encode($payload, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
 }
 function sf_pkg_checks(): array {
@@ -59,18 +60,22 @@ function sf_pkg_checks(): array {
   foreach (sf_pkg_required_dirs() as $dir) {
     $checks[] = sf_pkg_check('Directories', sf_qa_dir_exists($dir) ? 'pass' : 'fail', 'Directory: ' . $dir, sf_qa_dir_exists($dir) ? 'Present' : 'Missing', 2);
   }
-  $checks[] = sf_pkg_check('Installer', sf_qa_contains('includes/installer.php', ["'020'=>", '020_monitoring_incident_alerts.sql']) ? 'pass' : 'fail', 'Installer migration target', 'Installer should include migration 020.', 3);
+  $checks[] = sf_pkg_check('Installer', sf_qa_contains('includes/installer.php', ["'020'=>", '020_monitoring_incident_alerts.sql']) ? 'pass' : 'fail', 'Installer migration target through 020', 'Installer should include migration 020.', 3);
+  $checks[] = sf_pkg_check('SQL', sf_qa_file_exists('database/migrations/021_storyboarding_ai_settings.sql') ? 'pass' : 'fail', 'Migration 021 file', 'Storyboarding SQL + AI settings migration should be present.', 4);
   $checks[] = sf_pkg_check('Admin', sf_qa_contains('admin/index.php', ['admin/package-readiness.php']) ? 'pass' : 'warn', 'Admin package readiness link', 'Admin dashboard should link to package readiness.', 2);
   $checks[] = sf_pkg_check('Admin', sf_qa_contains('admin/index.php', ['admin/smoke-tests.php']) ? 'pass' : 'warn', 'Admin smoke-test link', 'Admin dashboard should link to smoke tests.', 2);
   $checks[] = sf_pkg_check('Admin', sf_qa_contains('admin/index.php', ['admin/release-candidate.php']) ? 'pass' : 'warn', 'Admin release candidate link', 'Admin dashboard should link to release candidate.', 2);
   $checks[] = sf_pkg_check('Admin', sf_qa_contains('admin/index.php', ['admin/storyboards.php']) ? 'pass' : 'warn', 'Admin storyboarding link', 'Admin dashboard should link to storyboarding.', 2);
+  $checks[] = sf_pkg_check('Admin', sf_qa_contains('admin/index.php', ['admin/ai-settings.php']) ? 'pass' : 'warn', 'Admin AI settings link', 'Admin dashboard should link to AI settings.', 2);
   $checks[] = sf_pkg_check('Preflight', sf_qa_contains('deploy/preflight.php', ['sf_pkg_checks', 'Package Readiness']) ? 'pass' : 'warn', 'Preflight package checks', 'Preflight should include package readiness output.', 3);
   $checks[] = sf_pkg_check('Preflight', sf_qa_contains('deploy/preflight.php', ['sf_smoke_checks', 'Smoke Tests']) ? 'pass' : 'warn', 'Preflight smoke tests', 'Preflight should include smoke-test output.', 3);
   $checks[] = sf_pkg_check('Preflight', sf_qa_contains('deploy/preflight.php', ['sf_rc_checks', 'Release Candidate']) ? 'pass' : 'warn', 'Preflight release candidate', 'Preflight should include release candidate output.', 3);
   $checks[] = sf_pkg_check('Smoke test matrix', sf_qa_contains('includes/smoke_tests.php', ['sf_smoke_scenarios', 'sf_smoke_checks']) ? 'pass' : 'fail', 'Smoke helper registered', 'Smoke scenario helper should expose matrix and checks.', 3);
   $checks[] = sf_pkg_check('Release candidate', sf_qa_contains('includes/release_candidate.php', ['sf_rc_checks', 'sf_rc_summary']) ? 'pass' : 'fail', 'Release candidate helper registered', 'Release candidate helper should expose final handoff checks.', 3);
-  $checks[] = sf_pkg_check('Storyboarding module', sf_qa_contains('includes/storyboards.php', ['sf_storyboard_scenes', 'sf_storyboard_characters']) ? 'pass' : 'fail', 'Storyboarding helper registered', 'Storyboarding helper should expose shell projects, characters, settings, and scenes.', 3);
+  $checks[] = sf_pkg_check('Storyboarding module', sf_qa_contains('includes/storyboards.php', ['sf_storyboard_scenes', 'sf_storyboard_characters', 'sf_storyboard_ready']) ? 'pass' : 'fail', 'Storyboarding helper registered', 'Storyboarding helper should expose DB-aware projects, characters, settings, and scenes.', 3);
   $checks[] = sf_pkg_check('Storyboarding module', sf_qa_contains('admin/storyboard-builder.php', ['Generate 9-Scene Storyboard', 'Regenerate Image', 'Upload Image']) ? 'pass' : 'fail', 'Storyboarding builder shell', 'Builder should include prompt, scene grid, and scene actions.', 3);
+  $checks[] = sf_pkg_check('AI settings', sf_qa_contains('includes/ai_settings.php', ['sf_ai_save_provider', 'sf_ai_encrypt_secret']) ? 'pass' : 'fail', 'AI settings helper registered', 'AI helper should save provider settings and encrypt secrets.', 4);
+  $checks[] = sf_pkg_check('AI settings', sf_qa_contains('admin/ai-settings.php', ['Claude + ChatGPT keys', 'New API Key']) ? 'pass' : 'fail', 'Admin AI settings page', 'Admin AI settings page should manage provider keys and limits.', 4);
   $checks[] = sf_pkg_check('Docs', sf_qa_contains('docs/DEPLOYMENT_RUNBOOK.md', ['020_monitoring_incident_alerts.sql', 'admin/package-readiness.php', 'admin/smoke-tests.php', 'admin/release-candidate.php']) ? 'pass' : 'warn', 'Runbook package ready', 'Runbook should reference migration 020, package readiness, smoke tests, and release candidate.', 2);
   $checks[] = sf_pkg_check('Docs', sf_qa_contains('docs/SQL_FILE_MAP.md', ['020_monitoring_incident_alerts.sql']) ? 'pass' : 'fail', 'SQL map target 020', 'SQL map should document migration 020.', 2);
   $routeChecks = sf_qa_route_checks();
@@ -78,7 +83,7 @@ function sf_pkg_checks(): array {
   $checks[] = sf_pkg_check('Routes', $routeFails === 0 ? 'pass' : 'fail', 'Route registry has no missing required routes', $routeFails === 0 ? 'All required route files are present.' : $routeFails . ' route checks are failing.', 4);
   $migrationFiles = array_filter(sf_qa_migration_checks(), static fn($c) => strpos((string)($c['label'] ?? ''), ' — ') !== false);
   $migrationFails = count(array_filter($migrationFiles, static fn($c) => ($c['status'] ?? '') === 'fail'));
-  $checks[] = sf_pkg_check('SQL', $migrationFails === 0 ? 'pass' : 'fail', 'Migration files present through 020', $migrationFails === 0 ? 'All expected migration files are present.' : $migrationFails . ' migration file checks failed.', 4);
+  $checks[] = sf_pkg_check('SQL', $migrationFails === 0 ? 'pass' : 'fail', 'Migration files present through QA target', $migrationFails === 0 ? 'All expected QA migration files are present.' : $migrationFails . ' migration file checks failed.', 4);
   return $checks;
 }
 function sf_pkg_group_summary(array $checks): array {

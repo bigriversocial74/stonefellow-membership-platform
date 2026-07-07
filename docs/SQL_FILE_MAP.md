@@ -27,10 +27,11 @@ For a brand-new install, run the installer or import the files in this exact ord
 19. `database/migrations/018_admin_roles_security_audit.sql` — admin roles, permissions, role mapping, admin role assignment, security audit events, and admin security sessions
 20. `database/migrations/019_backup_release_manager.sql` — backup profiles, backup runs, restore checks, deployment releases, release tasks, and deployment events
 21. `database/migrations/020_monitoring_incident_alerts.sql` — monitoring snapshots, error events, service checks, incidents, incident events, alert rules, and admin alert notifications
+22. `database/migrations/021_storyboarding_ai_settings.sql` — storyboards, scenes, characters, references, storyboarding jobs, AI provider settings, and AI usage events
 
 ## Production operating rule
 
-For a fresh install, use `install.php` whenever possible. The installer runs the base schema plus migrations `001` through `020` and records applied migration checksums.
+For a fresh install, use `install.php` whenever possible. The installer currently runs the base schema plus migrations `001` through `020`; apply migration `021` after the installer until the installer plan is advanced to include it.
 
 For an existing install:
 
@@ -67,6 +68,10 @@ Migrations `015` through `017` add `membership_tier_benefits`, `membership_tier_
 
 Migrations `018` through `020` add `admin_roles`, `admin_permissions`, `admin_role_permissions`, `admin_user_roles`, `security_audit_events`, `admin_security_sessions`, `backup_profiles`, `backup_runs`, `restore_readiness_checks`, `deployment_releases`, `deployment_release_tasks`, `deployment_events`, `monitoring_health_snapshots`, `monitoring_error_events`, `monitoring_service_checks`, `incident_records`, `incident_events`, `alert_rules`, and `admin_alert_notifications`.
 
+### Storyboarding and AI settings
+
+Migration `021` adds `storyboards`, `storyboard_scenes`, `storyboard_characters`, `storyboard_character_references`, `storyboard_scene_characters`, `storyboard_jobs`, `ai_provider_settings`, and `ai_usage_events`.
+
 ## Runtime files that verify the SQL layer
 
 Use these admin tools after SQL import:
@@ -75,6 +80,8 @@ Use these admin tools after SQL import:
 - `admin/routes-checker.php` — verifies public, member, admin, API, media, and deploy utility routes
 - `admin/qa.php` — verifies environment, migrations, routes, security, and content checks
 - `admin/system-health.php` — verifies runtime system health
+- `admin/ai-settings.php` — verifies admin-only AI provider settings and usage limits
+- `admin/storyboards.php` — verifies storyboard project persistence after migration 021
 - `admin/monitoring.php` — verifies monitoring/error center runtime records
 - `admin/incidents.php` — verifies incident and alert workflow records
 - `admin/backups.php` — verifies backup/restore readiness records
