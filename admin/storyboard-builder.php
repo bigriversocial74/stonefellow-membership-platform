@@ -8,6 +8,7 @@ $projectId = (int)($project['id'] ?? 0);
 $settings = sf_storyboard_settings($project);
 $characters = sf_storyboard_characters($projectId);
 $scenes = sf_storyboard_scenes($projectId);
+$returnUrl = sf_url('admin/storyboard-builder.php?project_id=' . $projectId);
 require __DIR__ . '/../includes/header.php';
 sf_admin_shell_start('Storyboarding', 'Storyboard builder shell v1', 'Turn a basic script prompt into a 9-scene visual screenplay plan. API keys and provider controls remain in admin AI settings.', 'storyboards');
 ?>
@@ -21,12 +22,14 @@ sf_admin_shell_start('Storyboarding', 'Storyboard builder shell v1', 'Turn a bas
 <section class="sf-admin-two-col sf-admin-two-col-wide">
   <article class="sf-admin-panel">
     <div class="sf-admin-panel-head"><div><span class="sf-panel-eyebrow">Script Prompt</span><h2><?= sf_storyboard_h($project['title']) ?></h2></div><span class="sf-admin-mini-pill"><?= strlen((string)($project['prompt'] ?? '')) ?> / 1000</span></div>
-    <form class="sf-admin-form" method="post">
+    <form class="sf-admin-form" method="post" action="<?= sf_url('api/storyboard-generate.php') ?>">
       <?= sf_csrf_field() ?>
+      <input type="hidden" name="storyboard_id" value="<?= (int)$projectId ?>">
+      <input type="hidden" name="return_url" value="<?= sf_storyboard_h($returnUrl) ?>">
       <label>Prompt<textarea rows="7" name="story_prompt"<?= sf_admin_form_disabled_attr() ?>><?= sf_storyboard_h($project['prompt']) ?></textarea></label>
       <div class="sf-admin-form-actions">
         <button type="button"<?= sf_admin_form_disabled_attr() ?>>Enhance Prompt</button>
-        <button type="button"<?= sf_admin_form_disabled_attr() ?>>Generate 9-Scene Storyboard</button>
+        <button type="submit"<?= sf_admin_form_disabled_attr() ?>>Generate 9-Scene Storyboard</button>
       </div>
     </form>
   </article>
@@ -68,7 +71,7 @@ sf_admin_shell_start('Storyboarding', 'Storyboard builder shell v1', 'Turn a bas
     <div><span class="sf-panel-eyebrow">Storyboard</span><h2>9-scene screenplay grid</h2></div>
     <div class="sf-admin-inline-form"><button type="button">View 3x3</button><button type="button">Expand All</button></div>
   </div>
-  <p class="sf-admin-copy">Scene records are database-ready in Phase 41. AI generation and action endpoints come next.</p>
+  <p class="sf-admin-copy">Scene records are database-ready in Phase 41. Phase 42 now saves the generated 9-scene screenplay into these scene cards.</p>
   <div class="sf-storyboard-scene-grid">
     <?php foreach ($scenes as $scene): ?>
       <article id="scene-<?= (int)$scene['number'] ?>" class="sf-storyboard-scene-card">
@@ -92,12 +95,12 @@ sf_admin_shell_start('Storyboarding', 'Storyboard builder shell v1', 'Turn a bas
 </section>
 
 <section class="sf-admin-panel">
-  <div class="sf-admin-panel-head"><div><span class="sf-panel-eyebrow">Implementation Notes</span><h2>What Phase 41 adds</h2></div><a href="<?= sf_url('docs/PHASE_41_STORYBOARDING_SQL_AI_SETTINGS.md') ?>">Phase Docs</a></div>
+  <div class="sf-admin-panel-head"><div><span class="sf-panel-eyebrow">Implementation Notes</span><h2>What Phase 42 adds</h2></div><a href="<?= sf_url('docs/PHASE_42_STORYBOARD_GENERATION_API.md') ?>">Phase Docs</a></div>
   <div class="sf-admin-roadmap">
-    <div><span>SQL</span><strong>Persistence</strong><p>Storyboards, scenes, characters, references, jobs, AI provider settings, and usage events.</p></div>
-    <div><span>Admin</span><strong>AI settings</strong><p>Claude and ChatGPT keys, defaults, limits, and secure key storage.</p></div>
-    <div><span>Next</span><strong>Generation API</strong><p>Phase 42 should connect prompt expansion to provider settings and save 9 scenes.</p></div>
-    <div><span>Later</span><strong>Scene actions</strong><p>Rewrite, regenerate image, upload image, and character consistency endpoints.</p></div>
+    <div><span>API</span><strong>Script to 9 scenes</strong><p>Submit the script prompt to the admin-selected provider and save structured scenes.</p></div>
+    <div><span>Jobs</span><strong>Status tracking</strong><p>Storyboard generation creates job records and updates success or failure status.</p></div>
+    <div><span>Usage</span><strong>Event logging</strong><p>Generation records AI usage events when provider usage data is returned.</p></div>
+    <div><span>Next</span><strong>Scene actions</strong><p>Phase 43 should wire edit, rewrite scene, regenerate image, and upload image actions.</p></div>
   </div>
 </section>
 <?php sf_admin_shell_end(); require __DIR__ . '/../includes/footer.php'; ?>
