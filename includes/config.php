@@ -56,20 +56,14 @@ function sf_url(string $path = ''): string {
 }
 
 function sf_asset(string $path): string {
-  global $site;
   $cleanPath = ltrim($path, '/');
 
   if (preg_match('~^(https?:)?//~i', $path)) {
     return $path;
   }
 
-  $base = trim((string)($site['base_url'] ?? ''), '/');
-  if ($base !== '') {
-    if (preg_match('~^https?://~i', $base)) {
-      return rtrim($base, '/') . '/assets/' . $cleanPath;
-    }
-
-    return '/' . $base . '/assets/' . $cleanPath;
+  if (stripos($cleanPath, 'assets/') === 0) {
+    return '/' . $cleanPath;
   }
 
   return '/assets/' . $cleanPath;
@@ -80,7 +74,7 @@ function sf_current_page(): string {
 }
 
 function sf_is_active(string $file): string {
-  return sf_current_page() === $file ? 'is-active' : '';
+  return sf_current_page() === $file ? 'is-active';
 }
 
 function sf_install_redirect_if_needed(): void {
