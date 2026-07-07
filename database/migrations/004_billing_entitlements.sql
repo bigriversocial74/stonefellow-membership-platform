@@ -1,57 +1,23 @@
 -- Stonefellow migration 004: billing, subscription checkout, invoices, and entitlement activation.
 -- Apply after database/stonefellow_streaming_platform.sql and migrations 001, 002, and 003.
--- The PHP billing layer runs in sandbox mode by default and can be replaced by Stripe/processor webhooks later.
+-- Installer-safe version: avoids DELIMITER/stored procedures so it can run through PDO.
 
-DROP PROCEDURE IF EXISTS sf_add_billing_column;
-DROP PROCEDURE IF EXISTS sf_add_billing_index;
-DELIMITER //
-CREATE PROCEDURE sf_add_billing_column(IN table_name VARCHAR(64), IN column_name VARCHAR(64), IN column_definition TEXT)
-BEGIN
-  IF NOT EXISTS (
-    SELECT 1
-    FROM INFORMATION_SCHEMA.COLUMNS
-    WHERE TABLE_SCHEMA = DATABASE()
-      AND TABLE_NAME = table_name
-      AND COLUMN_NAME = column_name
-  ) THEN
-    SET @ddl = CONCAT('ALTER TABLE `', table_name, '` ADD COLUMN ', column_definition);
-    PREPARE stmt FROM @ddl;
-    EXECUTE stmt;
-    DEALLOCATE PREPARE stmt;
-  END IF;
-END //
+ALTER TABLE subscription_plans
+  ADD COLUMN IF NOT EXISTS `trial_days` INT NOT NULL DEFAULT 0 AFTER `billing_interval`,
+  ADD COLUMN IF NOT EXISTS `sort_order` INT NOT NULL DEFAULT 100 AFTER `is_featured`,
+  ADD COLUMN IF NOT EXISTS `public_badge` VARCHAR(80) DEFAULT NULL AFTER `description`,
+  ADD COLUMN IF NOT EXISTS `processor_price_id` VARCHAR(190) DEFAULT NULL AFTER `public_badge`;
 
-CREATE PROCEDURE sf_add_billing_index(IN table_name VARCHAR(64), IN index_name VARCHAR(64), IN index_definition TEXT)
-BEGIN
-  IF NOT EXISTS (
-    SELECT 1
-    FROM INFORMATION_SCHEMA.STATISTICS
-    WHERE TABLE_SCHEMA = DATABASE()
-      AND TABLE_NAME = table_name
-      AND INDEX_NAME = index_name
-  ) THEN
-    SET @ddl = CONCAT('CREATE INDEX ', index_definition);
-    PREPARE stmt FROM @ddl;
-    EXECUTE stmt;
-    DEALLOCATE PREPARE stmt;
-  END IF;
-END //
-DELIMITER ;
+ALTER TABLE user_subscriptions
+  ADD COLUMN IF NOT EXISTS `payment_provider` VARCHAR(80) NOT NULL DEFAULT 'sandbox' AFTER `external_subscription_id`,
+  ADD COLUMN IF NOT EXISTS `provider_customer_id` VARCHAR(190) DEFAULT NULL AFTER `payment_provider`,
+  ADD COLUMN IF NOT EXISTS `provider_subscription_id` VARCHAR(190) DEFAULT NULL AFTER `provider_customer_id`,
+  ADD COLUMN IF NOT EXISTS `cancel_at_period_end` TINYINT(1) NOT NULL DEFAULT 0 AFTER `provider_subscription_id`,
+  ADD COLUMN IF NOT EXISTS `trial_ends_at` DATETIME DEFAULT NULL AFTER `cancel_at_period_end`,
+  ADD COLUMN IF NOT EXISTS `canceled_at` DATETIME DEFAULT NULL AFTER `trial_ends_at`;
 
-CALL sf_add_billing_column('subscription_plans', 'trial_days', '`trial_days` INT NOT NULL DEFAULT 0 AFTER `billing_interval`');
-CALL sf_add_billing_column('subscription_plans', 'sort_order', '`sort_order` INT NOT NULL DEFAULT 100 AFTER `is_featured`');
-CALL sf_add_billing_column('subscription_plans', 'public_badge', '`public_badge` VARCHAR(80) DEFAULT NULL AFTER `description`');
-CALL sf_add_billing_column('subscription_plans', 'processor_price_id', '`processor_price_id` VARCHAR(190) DEFAULT NULL AFTER `public_badge`');
-
-CALL sf_add_billing_column('user_subscriptions', 'payment_provider', '`payment_provider` VARCHAR(80) NOT NULL DEFAULT ''sandbox'' AFTER `external_subscription_id`');
-CALL sf_add_billing_column('user_subscriptions', 'provider_customer_id', '`provider_customer_id` VARCHAR(190) DEFAULT NULL AFTER `payment_provider`');
-CALL sf_add_billing_column('user_subscriptions', 'provider_subscription_id', '`provider_subscription_id` VARCHAR(190) DEFAULT NULL AFTER `provider_customer_id`');
-CALL sf_add_billing_column('user_subscriptions', 'cancel_at_period_end', '`cancel_at_period_end` TINYINT(1) NOT NULL DEFAULT 0 AFTER `provider_subscription_id`');
-CALL sf_add_billing_column('user_subscriptions', 'trial_ends_at', '`trial_ends_at` DATETIME DEFAULT NULL AFTER `cancel_at_period_end`');
-CALL sf_add_billing_column('user_subscriptions', 'canceled_at', '`canceled_at` DATETIME DEFAULT NULL AFTER `trial_ends_at`');
-
-CALL sf_add_billing_index('subscription_plans', 'idx_subscription_plans_sort', 'idx_subscription_plans_sort ON subscription_plans (status, sort_order, price_cents)');
-CALL sf_add_billing_index('user_subscriptions', 'idx_user_subscriptions_provider', 'idx_user_subscriptions_provider ON user_subscriptions (payment_provider, provider_subscription_id)');
+CREATE INDEX idx_subscription_plans_sort ON subscription_plans (status, sort_order, price_cents);
+CREATE INDEX idx_user_subscriptions_provider ON user_subscriptions (payment_provider, provider_subscription_id);
 
 CREATE TABLE IF NOT EXISTS billing_customers (
   id INT AUTO_INCREMENT PRIMARY KEY,
@@ -167,6 +133,3 @@ UPDATE subscription_plans SET public_badge = CASE
   WHEN slug = 'founding-fan' THEN 'Founder'
   ELSE public_badge
 END;
-
-DROP PROCEDURE IF EXISTS sf_add_billing_column;
-DROP PROCEDURE IF EXISTS sf_add_billing_index;
