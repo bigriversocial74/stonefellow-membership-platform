@@ -1,345 +1,82 @@
 # Stonefellow SQL File Map
 
-This file maps the current SQL foundation and the next migration files for the Stonefellow script.
+This file maps the current Stonefellow database foundation, installer order, migration purpose, and operational SQL rules for production handoff.
 
-## Current SQL files
+## Current install order
 
-### `database/stonefellow_streaming_platform.sql`
+For a brand-new install, run the installer or import the files in this exact order:
 
-Current role: base install file for the static-to-database platform foundation.
+1. `database/stonefellow_streaming_platform.sql` — base streaming platform schema
+2. `database/migrations/001_membership_video_tracking.sql` — membership video tracking, grants, playback progress, and admin audit foundation
+3. `database/migrations/002_video_playlist_runtime_seed.sql` — video and playlist runtime seed data
+4. `database/migrations/003_media_upload_storage_metadata.sql` — upload metadata for media assets
+5. `database/migrations/004_billing_entitlements.sql` — billing, checkout, invoices, transactions, and webhooks
+6. `database/migrations/005_merch_order_runtime.sql` — order status history and inventory movements
+7. `database/migrations/006_email_notifications.sql` — templates, notification queue/log, preferences, and notification webhooks
+8. `database/migrations/007_site_settings_installer.sql` — site settings and installation checks
+9. `database/migrations/008_payment_gateway_adapter.sql` — payment gateway settings and gateway webhook events
+10. `database/migrations/009_episode_video_admin_v2.sql` — seasons and video chapters
+11. `database/migrations/010_production_readiness_qa_harness.sql` — persisted QA runs and QA check results
+12. `database/migrations/011_content_import_seed_manager.sql` — content import batches and import rows
+13. `database/migrations/012_audio_player_entitlements_v2.sql` — user player state
+14. `database/migrations/013_gateway_publishing_workflow_v1.sql` — publishing workflow, member library, search, activity, notifications, comments, and creator posts
+15. `database/migrations/014_feed_personalization_engagement_analytics.sql` — follows, feed preferences, personalized feed items, engagement analytics, and member engagement scores
+16. `database/migrations/015_membership_tiers_revenue_dashboard.sql` — membership tier packaging, tier benefit matrix, revenue snapshots, and checkout conversion events
+17. `database/migrations/016_member_lifecycle_support_helpdesk.sql` — lifecycle notes, retention tasks, support tickets, ticket messages, and support events
+18. `database/migrations/017_ops_scheduler_member_messaging.sql` — ops scheduler, job runs, member message threads, member messages, campaigns, and campaign recipients
+19. `database/migrations/018_admin_roles_security_audit.sql` — admin roles, permissions, role mapping, admin role assignment, security audit events, and admin security sessions
+20. `database/migrations/019_backup_release_manager.sql` — backup profiles, backup runs, restore checks, deployment releases, release tasks, and deployment events
+21. `database/migrations/020_monitoring_incident_alerts.sql` — monitoring snapshots, error events, service checks, incidents, incident events, alert rules, and admin alert notifications
 
-Approximate size: 435 lines.
+## Production operating rule
 
-This file currently includes table groups for:
-
-1. Media assets
-2. Users and auth foundation
-3. Subscription plans and user subscriptions
-4. Music catalog
-5. Episode catalog
-6. Playlist foundation
-7. Audio play history foundation
-8. Streaming entitlements
-9. Ecommerce/merch catalog
-10. Cart and order foundation
-
-## Existing table map
-
-### Media
-
-| Table | Purpose | Notes |
-|---|---|---|
-| `media_assets` | Shared image/audio/video/document asset registry. | Used by album covers, product images, and future posters/files. |
-
-### Users/auth
-
-| Table | Purpose | Notes |
-|---|---|---|
-| `users` | Member/admin accounts. | Has email, password hash, display name, role, status. Later altered with email verification and last login fields. |
-| `user_auth_tokens` | Remember-me, email verification, and password reset tokens. | Supports auth flows. |
-| `login_attempts` | Login success/failure audit trail. | Useful for lockout/rate limiting. |
-
-### Membership/subscriptions
-
-| Table | Purpose | Notes |
-|---|---|---|
-| `subscription_plans` | Membership plan definitions. | Existing columns cover music/offline flags. Needs video/playlist flags added by migration. |
-| `user_subscriptions` | User plan subscriptions and billing status. | Supports active/trial/past_due/canceled/expired states. |
-| `streaming_entitlements` | User-level streaming grants. | Existing types cover full music, downloads, premium music, and live sessions. Needs video/founding fan types added by migration. |
-
-### Music catalog
-
-| Table | Purpose | Notes |
-|---|---|---|
-| `albums` | Album metadata. | Current seed has `The Road Is Calling`. |
-| `songs` | Song metadata. | Current seed has 10 Stonefellow songs. |
-| `song_files` | Preview/full/live/demo/acoustic audio file records. | Current seed points to preview and full file paths. |
-| `song_episode_links` | Connects songs to episodes/scenes. | Good for soundtrack-by-episode pages. |
-| `user_saved_songs` | User song saves/favorites. | Good for member library. |
-| `user_play_history` | Summary play history row. | Good start, but detailed tracking needs `audio_play_events` and `user_song_progress`. |
-
-### Episodes
-
-| Table | Purpose | Notes |
-|---|---|---|
-| `episodes` | Episode metadata. | Current table has season, episode number, title, slug, description, runtime, status. It does not yet store playable video files or progress. |
-
-### Playlists
-
-| Table | Purpose | Notes |
-|---|---|---|
-| `playlists` | User/system playlists. | Supports user-owned, private/public/system playlists. Paying-member enforcement should happen in entitlement logic. |
-| `playlist_songs` | Song rows inside playlists. | Supports ordering through `sort_order`. |
-
-### Ecommerce/merch
-
-| Table | Purpose | Notes |
-|---|---|---|
-| `product_categories` | Merch category list. | Seeded with Apparel, Music, Posters, Accessories, Bundles. |
-| `products` | Merch/product catalog. | Supports physical, digital, bundle, access level, featured/limited status. |
-| `product_images` | Additional product images. | Maps products to media assets. |
-| `product_variants` | Size/color/variant inventory. | Needed for apparel and collectibles. |
-| `carts` | Active/converted/abandoned shopping carts. | User or session based. |
-| `cart_items` | Cart line items. | Product/variant/quantity/unit price. |
-| `orders` | Order headers. | Stores totals, shipping fields, payment id, status. |
-| `order_items` | Order line items. | Snapshot of product/variant names and pricing. |
-
-## Gaps in the current base SQL
-
-The current SQL foundation is good, but a fully operational membership site still needs:
-
-- Dedicated video catalog tables.
-- Dedicated video file variants.
-- Episode watch progress.
-- Fine-grained audio play events.
-- User song resume/progress records.
-- User video resume/progress records.
-- Generalized content grants for one-off/manual access.
-- Seed rows for subscription plans.
-- Admin audit logging.
-
-## New migration added in this package
-
-### `database/migrations/001_membership_video_tracking.sql`
-
-Purpose: add the missing operational tables for membership, audio analytics, video access, and episode tracking without rewriting the base SQL file.
-
-Adds/updates:
-
-- Adds plan feature columns to `subscription_plans`.
-- Expands `streaming_entitlements` for video/founding fan access.
-- Seeds Monthly, Annual, and Founding Fan plans.
-- Adds `content_access_grants`.
-- Adds `videos`.
-- Adds `video_files`.
-- Adds `audio_play_events`.
-- Adds `user_song_progress`.
-- Adds `video_watch_events`.
-- Adds `user_video_progress`.
-- Adds `user_episode_progress`.
-- Adds `admin_audit_log`.
-
-## Recommended SQL operating rule
-
-For a brand-new install:
-
-1. Import `database/stonefellow_streaming_platform.sql`.
-2. Import each file in `database/migrations/` in numeric order.
+For a fresh install, use `install.php` whenever possible. The installer runs the base schema plus migrations `001` through `020` and records applied migration checksums.
 
 For an existing install:
 
-1. Back up the database.
-2. Apply only new migration files that have not already been run.
-3. Do not re-import the base SQL over live data.
+1. Export a database backup first.
+2. Confirm the current migration number in `schema_migrations` or the hosting SQL history.
+3. Apply only missing migrations in numeric order.
+4. Do not re-import the base SQL over live data.
+5. Run `admin/migration-checker.php` after applying migrations.
+6. Run `admin/routes-checker.php`, `admin/security-check.php`, `admin/qa.php`, and `deploy/preflight.php` before launch.
 
-## Future migration sequence
+## Core table groups
 
-Recommended next migration files:
+### Base schema
 
-- `002_auth_sessions_and_security.sql`
-- `003_admin_catalog_management.sql`
-- `004_payment_provider_fields.sql`
-- `005_reporting_rollups.sql`
-- `006_content_delivery_protection.sql`
+The base schema creates the initial platform foundation: `media_assets`, `users`, `user_auth_tokens`, `login_attempts`, `subscription_plans`, `user_subscriptions`, `streaming_entitlements`, `albums`, `songs`, `song_files`, `song_episode_links`, `user_saved_songs`, `user_play_history`, `episodes`, `playlists`, `playlist_songs`, `product_categories`, `products`, `product_images`, `product_variants`, `carts`, `cart_items`, `orders`, and `order_items`.
 
+### Membership, playback, and video tracking
 
-## Runtime code that uses these tables
+Migrations `001` through `003` add `content_access_grants`, `videos`, `video_files`, `audio_play_events`, `user_song_progress`, `video_watch_events`, `user_video_progress`, `user_episode_progress`, `admin_audit_log`, and media upload metadata columns.
 
-- `api/audio-track.php` writes to `audio_play_events` and, when a member session exists, upserts `user_song_progress`.
-- `api/video-track.php` writes to `video_watch_events` and, when a member session exists, upserts `user_video_progress` and `user_episode_progress`.
-- `api/playlist.php` uses the existing `playlists` and `playlist_songs` tables.
-- `includes/membership.php` reads `users`, `user_subscriptions`, and `subscription_plans` to resolve access level.
-- `episode.php` and `watch.php` use the video access levels seeded by `database/migrations/001_membership_video_tracking.sql`.
+### Billing, orders, notifications, and settings
 
-## Environment variables for database persistence
+Migrations `004` through `008` add `billing_customers`, `subscription_checkouts`, `invoices`, `payment_transactions`, `billing_webhook_events`, `order_status_history`, `product_inventory_movements`, `email_templates`, `notification_logs`, `notification_preferences`, `notification_webhook_events`, `site_settings`, `system_installation_checks`, `payment_gateway_settings`, and `payment_gateway_webhook_events`.
 
-- `SF_DB_HOST`
-- `SF_DB_NAME`
-- `SF_DB_USER`
-- `SF_DB_PASS`
-- `SF_DB_CHARSET` optional, defaults to `utf8mb4`
-- `SF_HASH_SALT` optional, used for IP/user-agent event hashing
+### Content operations and discovery
 
+Migrations `009` through `014` add `seasons`, `video_chapters`, `qa_runs`, `qa_check_results`, `content_import_batches`, `content_import_rows`, `user_player_state`, `publishing_events`, `content_release_rules`, `member_library_items`, `content_search_index`, `member_activity_events`, `content_ops_tasks`, `member_notifications`, `fan_comments`, `fan_reactions`, `comment_moderation_events`, `creator_posts`, `creator_post_media`, `member_follows`, `member_feed_preferences`, `member_feed_items`, `engagement_analytics_daily`, and `member_engagement_scores`.
 
-- `database/migrations/002_video_playlist_runtime_seed.sql` — aligns episode/video seed records and expected video file paths with `episode.php` and `watch.php`.
+### Membership packaging, lifecycle, scheduler, and messaging
 
+Migrations `015` through `017` add `membership_tier_benefits`, `membership_tier_benefit_map`, `launch_revenue_snapshots`, `checkout_conversion_events`, `member_lifecycle_notes`, `member_retention_tasks`, `support_tickets`, `support_ticket_messages`, `support_ticket_events`, `ops_scheduled_jobs`, `ops_job_runs`, `member_message_threads`, `member_messages`, `member_message_campaigns`, and `member_message_recipients`.
 
-## Admin Media Catalog Manager v1
+### Admin security, backup/release, monitoring, and incidents
 
-Admin v1 uses the existing schema and does not add a required migration.
+Migrations `018` through `020` add `admin_roles`, `admin_permissions`, `admin_role_permissions`, `admin_user_roles`, `security_audit_events`, `admin_security_sessions`, `backup_profiles`, `backup_runs`, `restore_readiness_checks`, `deployment_releases`, `deployment_release_tasks`, `deployment_events`, `monitoring_health_snapshots`, `monitoring_error_events`, `monitoring_service_checks`, `incident_records`, `incident_events`, `alert_rules`, and `admin_alert_notifications`.
 
-New admin files:
+## Runtime files that verify the SQL layer
 
-- `admin/music.php` — dashboard using counts from `albums`, `songs`, `episodes`, `videos`, `media_assets`, and `content_access_grants`.
-- `admin/music-albums.php` — manages `albums` and references `media_assets` for cover art.
-- `admin/music-songs.php` — manages `songs` and `song_files`.
-- `admin/episodes.php` — manages `episodes`.
-- `admin/videos.php` — manages `videos` and `video_files`.
-- `admin/media-access.php` — manages `subscription_plans` and `content_access_grants`.
-- `admin/uploads.php` — manages `media_assets` path registry.
-- `includes/admin_catalog.php` — shared helper for CRUD, fallback mode, and audit logging.
+Use these admin tools after SQL import:
 
-SQL required before full admin saving:
-
-1. `database/stonefellow_streaming_platform.sql`
-2. `database/migrations/001_membership_video_tracking.sql`
-3. `database/migrations/002_video_playlist_runtime_seed.sql`
-
-Without DB credentials, admin pages run in static preview mode and disable save/delete actions.
-
-## Member Auth + Access Gates v1 SQL usage
-
-No new migration was added. The auth/access build uses the existing base SQL and migrations 001/002. Key runtime tables: `users`, `user_auth_tokens`, `login_attempts`, `subscription_plans`, `user_subscriptions`, `content_access_grants`, `playlists`, `playlist_songs`, `audio_play_events`, `user_song_progress`, `video_watch_events`, `user_video_progress`, and `user_episode_progress`.
-
-## Media Upload + Storage v1 SQL usage
-
-New migration:
-
-- `database/migrations/003_media_upload_storage_metadata.sql`
-
-Purpose:
-
-- Extends `media_assets` with upload metadata while preserving compatibility with the original table.
-- Adds metadata for original filename, MIME type, file size, checksum, storage disk, uploaded admin/user id, and update timestamp.
-- Adds indexes for type/usage and uploaded-by lookups.
-
-Runtime/admin files using this migration:
-
-- `admin/uploads.php` uploads local files and registers media assets.
-- `includes/admin_catalog.php` contains upload validation, file movement, asset preview, dynamic insert/update helpers, and picker helpers.
-- `admin/music-albums.php` uses image assets for album covers.
-- `admin/music-songs.php` uses image assets for covers and audio assets for song file variants.
-- `admin/videos.php` uses image assets for posters and video assets for video file variants.
-
-Current recommended SQL import order:
-
-1. `database/stonefellow_streaming_platform.sql`
-2. `database/migrations/001_membership_video_tracking.sql`
-3. `database/migrations/002_video_playlist_runtime_seed.sql`
-4. `database/migrations/003_media_upload_storage_metadata.sql`
-
-## Analytics Dashboard v1 SQL usage
-
-No new migration was added for Analytics Dashboard v1.
-
-New files:
-
-- `includes/admin_analytics.php`
-- `admin/analytics.php`
-- `admin/audio-analytics.php`
-- `admin/video-analytics.php`
-- `admin/member-activity.php`
-
-Tables read by analytics pages:
-
-- `audio_play_events`
-- `user_song_progress`
-- `video_watch_events`
-- `user_video_progress`
-- `user_episode_progress`
-- `users`
-- `user_subscriptions`
-- `subscription_plans`
-- `playlists`
-- `songs`
-- `albums`
-- `videos`
-- `episodes`
-- `orders`
-- `order_items`
-
-Required SQL import order remains:
-
-1. `database/stonefellow_streaming_platform.sql`
-2. `database/migrations/001_membership_video_tracking.sql`
-3. `database/migrations/002_video_playlist_runtime_seed.sql`
-4. `database/migrations/003_media_upload_storage_metadata.sql`
-
-
-## `database/migrations/004_billing_entitlements.sql`
-
-Adds the billing and subscription checkout foundation used by `subscribe.php`, `billing-checkout.php`, `billing-success.php`, `account-billing.php`, `admin/billing.php`, `api/billing-webhook.php`, and `includes/billing.php`.
-
-Creates: `billing_customers`, `subscription_checkouts`, `invoices`, `payment_transactions`, and `billing_webhook_events`. Updates: `subscription_plans` and `user_subscriptions`.
-
-
-## Migration 005 — Merch Cart + Order Runtime
-
-`database/migrations/005_merch_order_runtime.sql` adds optional order runtime columns plus `order_status_history` and `product_inventory_movements`. It supports `includes/store.php`, `cart.php`, `checkout.php`, `order-confirmation.php`, `admin/products.php`, `admin/orders.php`, and `api/cart.php`.
-
-
-## Migration 006 — Email + Notifications
-
-File: `database/migrations/006_email_notifications.sql`
-
-Adds `email_templates`, `notification_logs`, `notification_preferences`, and `notification_webhook_events`. Used by `includes/notifications.php`, `admin/notifications.php`, `admin/email-templates.php`, `api/notification-webhook.php`, auth, billing, merch order, and fulfillment flows.
-
-## Added in Next Stages Combined Build
-
-### `database/migrations/007_site_settings_installer.sql`
-Adds:
-- `site_settings`
-- `system_installation_checks`
-
-Used by:
-- `includes/settings.php`
-- `install.php`
-- `admin/settings.php`
-- `admin/system-health.php`
-
-### `database/migrations/008_payment_gateway_adapter.sql`
-Adds:
-- `payment_gateway_settings`
-- `payment_gateway_webhook_events`
-
-Used by:
-- `includes/payment_gateway.php`
-- `admin/payment-gateways.php`
-- `api/payment-webhook.php`
-- `billing-checkout.php`
-- `checkout.php`
-
-### `database/migrations/009_episode_video_admin_v2.sql`
-Adds:
-- `seasons`
-- `video_chapters`
-
-Updates:
-- `episodes`
-- `videos`
-
-Used by:
-- `admin/seasons.php`
-- `admin/episodes.php`
-- `admin/release-schedule.php`
-- `admin/videos.php`
-
-### `database/migrations/010_production_readiness_qa_harness.sql`
-
-Adds:
-- `qa_runs`
-- `qa_check_results`
-
-Used by:
-- `includes/qa.php`
-- `admin/qa.php`
-- `admin/migration-checker.php`
-- `admin/routes-checker.php`
-- `admin/security-check.php`
-- `admin/content-audit.php`
-
-This migration is optional for viewing QA pages, but required to persist QA run history and individual check results.
-
-Updated required SQL import order:
-
-1. `database/stonefellow_streaming_platform.sql`
-2. `database/migrations/001_membership_video_tracking.sql`
-3. `database/migrations/002_video_playlist_runtime_seed.sql`
-4. `database/migrations/003_media_upload_storage_metadata.sql`
-5. `database/migrations/004_billing_entitlements.sql`
-6. `database/migrations/005_merch_order_runtime.sql`
-7. `database/migrations/006_email_notifications.sql`
-8. `database/migrations/007_site_settings_installer.sql`
-9. `database/migrations/008_payment_gateway_adapter.sql`
-10. `database/migrations/009_episode_video_admin_v2.sql`
-11. `database/migrations/010_production_readiness_qa_harness.sql`
+- `admin/migration-checker.php` — verifies migration files, expected tables, and core column contracts
+- `admin/routes-checker.php` — verifies public, member, admin, API, media, and deploy utility routes
+- `admin/qa.php` — verifies environment, migrations, routes, security, and content checks
+- `admin/system-health.php` — verifies runtime system health
+- `admin/monitoring.php` — verifies monitoring/error center runtime records
+- `admin/incidents.php` — verifies incident and alert workflow records
+- `admin/backups.php` — verifies backup/restore readiness records
+- `admin/releases.php` — verifies release manager and deployment checklist records
+- `deploy/preflight.php` — performs browser/CLI deployment preflight checks

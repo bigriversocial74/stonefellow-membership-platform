@@ -5,24 +5,74 @@ $pageClass = 'membership-page admin-catalog-page';
 require __DIR__ . '/../includes/admin_catalog.php';
 require __DIR__ . '/../includes/header.php';
 sf_admin_shell_start('Admin Foundation', 'Operational build control', 'Manage monitoring, incidents, alerts, backups, releases, security, automation, member messaging, lifecycle, support, revenue, content, payments, publishing, and delivery.', 'index');
+$adminSections = [
+  'Launch Gate' => [
+    ['QA','Production Readiness','Launch scoring, route checks, security checks, and content audit.','admin/qa.php'],
+    ['Checklist','Final Launch Path','Install, migration, route, security, backup, monitoring, and preflight sequence.','admin/launch-checklist.php'],
+    ['Routes','Registry v2','Public, member, admin, API, media, deployment, monitoring, incident, backup, and release routes.','admin/routes-checker.php'],
+    ['Migrations','Through 020','Base schema plus migrations 001 through 020.','admin/migration-checker.php'],
+  ],
+  'Production Operations' => [
+    ['Monitoring','Error Center','Health snapshots, failed jobs, failed email, payments, service checks, and manual error capture.','admin/monitoring.php'],
+    ['Incidents','Alerts','Incident workflow, severity, alert routing, admin notifications, and event timeline.','admin/incidents.php'],
+    ['Backup','Restore Manager','Backup records, readiness checks, manifests, storage coverage, and verification status.','admin/backups.php'],
+    ['Release','Deploy Manager','Release records, checklist tasks, migration range, preflight link, rollback notes, and release events.','admin/releases.php'],
+  ],
+  'Security + Access' => [
+    ['Security','Dashboard','Roles, sessions, audit events, route protection, and hardening checks.','admin/security-dashboard.php'],
+    ['Roles','Permissions','Admin role matrix and user role assignments.','admin/roles.php'],
+    ['Members','Lifecycle Ops','Subscriber segments, churn risk, notes, retention tasks, and support context.','admin/member-lifecycle.php'],
+    ['Support','Help Desk','Member tickets, replies, priority workflow, and linked account context.','admin/support.php'],
+  ],
+  'Content + Revenue' => [
+    ['Media','Catalog','Albums, songs, episodes, videos, assets, publishing, and secure delivery.','admin/music.php'],
+    ['Revenue','Launch Dashboard','MRR, ARR, checkout conversion, merch, churn risk, and snapshots.','admin/revenue-dashboard.php'],
+    ['Engagement','Analytics','Feed saves, hides, follows, comments, reactions, and top members.','admin/engagement-analytics.php'],
+    ['Messaging','Campaigns','Segmented member notices, in-app inbox, email queue, and delivery tracking.','admin/member-messaging.php'],
+  ],
+];
 ?>
-<section class="sf-admin-card-grid">
-  <a class="sf-admin-action-card" href="<?= sf_url('admin/monitoring.php') ?>"><span>Monitoring</span><strong>Error Center</strong><small>Health snapshots, failed jobs, failed email, payments, service checks.</small></a>
-  <a class="sf-admin-action-card" href="<?= sf_url('admin/incidents.php') ?>"><span>Incidents</span><strong>Alerts</strong><small>Incident workflow, severity, alert routing, admin notifications.</small></a>
-  <a class="sf-admin-action-card" href="<?= sf_url('api/monitoring.php') ?>"><span>API</span><strong>Monitoring</strong><small>JSON health, errors, service checks, and metrics.</small></a>
-  <a class="sf-admin-action-card" href="<?= sf_url('admin/backups.php') ?>"><span>Backup</span><strong>Restore Manager</strong><small>Backup records, readiness checks, manifests, storage coverage.</small></a>
-  <a class="sf-admin-action-card" href="<?= sf_url('admin/releases.php') ?>"><span>Release</span><strong>Deploy Manager</strong><small>Release records, checklist, migration range, rollback notes.</small></a>
-  <a class="sf-admin-action-card" href="<?= sf_url('admin/security-dashboard.php') ?>"><span>Security</span><strong>Dashboard</strong><small>Roles, sessions, audit events, route protection, hardening.</small></a>
-  <a class="sf-admin-action-card" href="<?= sf_url('admin/roles.php') ?>"><span>Roles</span><strong>Permissions</strong><small>Admin role matrix and user role assignments.</small></a>
-  <a class="sf-admin-action-card" href="<?= sf_url('admin/ops-scheduler.php') ?>"><span>Automation</span><strong>Ops Scheduler</strong><small>Due jobs, lifecycle checks, SLA reminders, snapshots, reports.</small></a>
-  <a class="sf-admin-action-card" href="<?= sf_url('admin/member-messaging.php') ?>"><span>Messaging</span><strong>Member Campaigns</strong><small>Segmented member notices, in-app inbox, email queue.</small></a>
-  <a class="sf-admin-action-card" href="<?= sf_url('admin/member-lifecycle.php') ?>"><span>Lifecycle</span><strong>Retention Ops</strong><small>Subscriber segments, churn risk, notes, and follow-up tasks.</small></a>
-  <a class="sf-admin-action-card" href="<?= sf_url('admin/support.php') ?>"><span>Support</span><strong>Help Desk</strong><small>Member tickets, replies, priority workflow, linked context.</small></a>
-  <a class="sf-admin-action-card" href="<?= sf_url('admin/tier-manager.php') ?>"><span>Tiers</span><strong>Access Packaging</strong><small>Plans, benefit matrix, access labels, upgrade paths.</small></a>
-  <a class="sf-admin-action-card" href="<?= sf_url('admin/revenue-dashboard.php') ?>"><span>Revenue</span><strong>Launch Dashboard</strong><small>MRR, ARR, checkout conversion, merch, churn risk.</small></a>
-  <a class="sf-admin-action-card" href="<?= sf_url('admin/engagement-analytics.php') ?>"><span>Analytics v2</span><strong>Engagement</strong><small>Feed saves, hides, follows, comments, reactions, top members.</small></a>
-  <a class="sf-admin-action-card" href="<?= sf_url('admin/qa.php') ?>"><span>QA</span><strong>Production Readiness</strong><small>Launch scoring, route checks, security checks, and content audit.</small></a>
+<?php foreach ($adminSections as $sectionTitle => $cards): ?>
+  <section class="sf-admin-dashboard-section">
+    <div class="sf-admin-section-title">
+      <div>
+        <span class="sf-panel-eyebrow"><?= sf_admin_h($sectionTitle) ?></span>
+        <h2><?= sf_admin_h($sectionTitle) ?></h2>
+      </div>
+      <span class="sf-admin-mini-pill">Launch v2</span>
+    </div>
+    <div class="sf-admin-card-grid">
+      <?php foreach ($cards as $card): ?>
+        <a class="sf-admin-action-card" href="<?= sf_url($card[3]) ?>">
+          <span><?= sf_admin_h($card[0]) ?></span>
+          <strong><?= sf_admin_h($card[1]) ?></strong>
+          <small><?= sf_admin_h($card[2]) ?></small>
+        </a>
+      <?php endforeach; ?>
+    </div>
+  </section>
+<?php endforeach; ?>
+
+<section class="sf-admin-panel">
+  <div class="sf-admin-panel-head">
+    <div><span class="sf-panel-eyebrow">Streaming Platform Foundation</span><h2>What is now built</h2></div>
+    <span class="sf-admin-mini-pill">Phases 1–36</span>
+  </div>
+  <div class="sf-admin-roadmap">
+    <div><span>✓</span><strong>Production Monitoring / Error Log Center v1</strong><p>Health snapshots, service checks, runtime metrics, failed notification/job/payment counters, error records, and monitoring APIs.</p></div>
+    <div><span>✓</span><strong>System Notifications + Incident Alerts v1</strong><p>Incident records, incident timeline, severity workflow, alert rules, admin alert inbox, and email/in-app alert routing.</p></div>
+    <div><span>✓</span><strong>Production Backup / Restore Manager v1</strong><p>Backup profiles, run records, schema manifests, storage coverage, restore readiness checks, and verified-run tracking.</p></div>
+    <div><span>✓</span><strong>Deployment Release Manager v1</strong><p>Release records, deployment checklist, migration range, backup links, preflight link, release events, and rollback notes.</p></div>
+    <div><span>✓</span><strong>Admin Roles / Permissions v1</strong><p>Role matrix, module permissions, role assignments, sensitive-module helpers, and permission-aware admin security pages.</p></div>
+    <div><span>✓</span><strong>Final Production QA / Route Registry v2</strong><p>Migration coverage through 020, current admin/API route registration, launch checklist updates, and final runbook alignment.</p></div>
+  </div>
 </section>
-<section class="sf-admin-panel"><div class="sf-admin-panel-head"><div><span class="sf-panel-eyebrow">Streaming Platform Foundation</span><h2>What is now built</h2></div></div><div class="sf-admin-roadmap"><div><span>✓</span><strong>Production Monitoring / Error Log Center v1</strong><p>Health snapshots, service checks, runtime metrics, failed notification/job/payment counters, error records, and monitoring APIs.</p></div><div><span>✓</span><strong>System Notifications + Incident Alerts v1</strong><p>Incident records, incident timeline, severity workflow, alert rules, admin alert inbox, and email/in-app alert routing.</p></div><div><span>✓</span><strong>Production Backup / Restore Manager v1</strong><p>Backup profiles, run records, schema manifests, storage coverage, restore readiness checks, and verified-run tracking.</p></div><div><span>✓</span><strong>Deployment Release Manager v1</strong><p>Release records, deployment checklist, migration range, backup links, preflight link, release events, and rollback notes.</p></div><div><span>✓</span><strong>Admin Roles / Permissions v1</strong><p>Role matrix, module permissions, role assignments, sensitive-module helpers, and permission-aware admin security pages.</p></div><div><span>✓</span><strong>Installer + QA</strong><p>Web installer, SQL migrations, system health, route checks, security checks, and deployment runbook.</p></div></div></section>
-<section class="sf-admin-panel"><div class="sf-admin-panel-head"><div><span class="sf-panel-eyebrow">Database Mode</span><h2>Runtime notes</h2></div><a href="<?= sf_url('docs/SQL_FILE_MAP.md') ?>">SQL Map</a></div><p class="sf-admin-copy">The installer runs the base schema plus migrations 001 through 020. Migration 020 adds monitoring health snapshots, error events, service checks, incidents, incident events, alert rules, and admin alert notifications.</p></section>
+
+<section class="sf-admin-panel">
+  <div class="sf-admin-panel-head">
+    <div><span class="sf-panel-eyebrow">Database Mode</span><h2>Runtime notes</h2></div>
+    <a href="<?= sf_url('docs/SQL_FILE_MAP.md') ?>">SQL Map</a>
+  </div>
+  <p class="sf-admin-copy">The installer runs the base schema plus migrations 001 through 020. Migration 020 adds monitoring health snapshots, error events, service checks, incidents, incident events, alert rules, and admin alert notifications. Existing installs should apply only missing migrations in numeric order after a database backup.</p>
+</section>
 <?php sf_admin_shell_end(); require __DIR__ . '/../includes/footer.php'; ?>

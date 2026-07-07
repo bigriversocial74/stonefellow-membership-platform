@@ -3,6 +3,8 @@ require_once __DIR__ . '/config.php';
 require_once __DIR__ . '/auth.php';
 require_once __DIR__ . '/settings.php';
 $sfHeaderUser = sf_auth_user();
+$sfPageClass = (string)($pageClass ?? '');
+$sfIsAdminSurface = strpos($sfPageClass, 'admin-catalog-page') !== false || strpos(str_replace('\\', '/', dirname($_SERVER['SCRIPT_NAME'] ?? '')), '/admin') !== false;
 ?>
 <!doctype html>
 <html lang="en">
@@ -22,6 +24,7 @@ $sfHeaderUser = sf_auth_user();
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Bebas+Neue&family=Cinzel:wght@600;700&family=Bodoni+Moda:opsz,wght@6..96,500;6..96,600;6..96,700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="<?= sf_asset('css/stonefellow.css') ?>">
   <link rel="stylesheet" href="<?= sf_asset('css/pwa-upload.css') ?>">
+  <?php if ($sfIsAdminSurface): ?><link rel="stylesheet" href="<?= sf_asset('css/admin-polish.css') ?>"><?php endif; ?>
 </head>
 <body class="<?= htmlspecialchars($pageClass ?? '') ?>">
   <div class="site-noise" aria-hidden="true"></div>
