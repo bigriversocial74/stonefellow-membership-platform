@@ -32,10 +32,11 @@ Writable folders:
 7. Run the SQL installer step.
 8. Create the admin account.
 9. Confirm the installer writes `config/local.php` and `storage/install.lock`.
+10. Sign in and open `admin/index.php`.
 
 ## 3. SQL installer order
 
-The installer runs:
+The installer runs the base schema and migrations in this order:
 
 1. `database/stonefellow_streaming_platform.sql`
 2. `database/migrations/001_membership_video_tracking.sql`
@@ -51,43 +52,62 @@ The installer runs:
 12. `database/migrations/011_content_import_seed_manager.sql`
 13. `database/migrations/012_audio_player_entitlements_v2.sql`
 14. `database/migrations/013_gateway_publishing_workflow_v1.sql`
+15. `database/migrations/014_feed_personalization_engagement_analytics.sql`
+16. `database/migrations/015_membership_tiers_revenue_dashboard.sql`
+17. `database/migrations/016_member_lifecycle_support_helpdesk.sql`
+18. `database/migrations/017_ops_scheduler_member_messaging.sql`
+19. `database/migrations/018_admin_roles_security_audit.sql`
+20. `database/migrations/019_backup_release_manager.sql`
+21. `database/migrations/020_monitoring_incident_alerts.sql`
 
-Migration `013` includes publishing, library, and search discovery tables.
+Existing installs should apply only missing migrations in order. Migration `020` must run after migration `019`.
 
-## 4. Environment variables
+## 4. Environment configuration
 
-Use `.env.example` as the production template. Do not commit real secrets.
+Use `.env.example` as the production template. Do not commit real credentials, salts, signing keys, payment keys, or webhook secrets.
 
-Minimum:
+Minimum required categories:
 
-```bash
-SF_DB_HOST=localhost
-SF_DB_NAME=stonefellow
-SF_DB_USER=stonefellow_user
-SF_DB_PASS=strong-password
-SF_HASH_SALT=long-random-secret
-SF_MEDIA_SIGNING_KEY=long-random-media-key
-```
-
-Payment keys are only required when moving beyond sandbox mode.
+- database host/name/user/password
+- hash salt
+- media signing key
+- payment keys before live payment mode
+- webhook secrets before live payment mode
+- mail delivery credentials before live email sending
 
 ## 5. Admin checks
 
-Open:
+Open these launch-control pages:
 
-- `admin/system-health.php`
+- `admin/index.php`
+- `admin/launch-checklist.php`
 - `admin/qa.php`
 - `admin/migration-checker.php`
 - `admin/routes-checker.php`
 - `admin/security-check.php`
 - `admin/content-audit.php`
+- `admin/system-health.php`
+
+Open these production-ops pages:
+
+- `admin/monitoring.php`
+- `admin/incidents.php`
+- `admin/backups.php`
+- `admin/releases.php`
+- `admin/ops-scheduler.php`
+- `admin/member-messaging.php`
+- `admin/member-lifecycle.php`
+- `admin/support.php`
+
+Open these reporting and revenue pages:
+
 - `admin/streaming-analytics.php`
+- `admin/engagement-analytics.php`
+- `admin/revenue-dashboard.php`
+- `admin/security-dashboard.php`
+- `admin/roles.php`
 
-Also open:
-
-```txt
-deploy/preflight.php
-```
+Also run `deploy/preflight.php` before public launch.
 
 ## 6. Configure production
 
@@ -102,26 +122,51 @@ In admin, configure:
 - music, episodes, videos, and media files
 - publishing schedule
 - member access and entitlements
+- membership tiers and public plan packaging
+- role assignments and admin permissions
+- scheduler jobs
+- backup records and release records
+- monitoring thresholds and incident alert rules
 
 ## 7. Smoke tests
 
 Test:
 
-- signup/signin/reset password
+- signup, signin, logout, forgot password, reset password
 - installer lock behavior
-- subscribe checkout
+- subscribe checkout, billing success, and billing cancel flows
 - member dashboard
+- member notifications, messages, comments, and support center
 - library and watchlist
 - search
 - music player preview and full access
 - episode/watch page playback
-- merch cart/checkout/order confirmation
-- admin fulfillment
+- signed stream/download access
+- merch cart, checkout, and order confirmation
+- admin media/catalog management
+- member messaging campaign send path
+- ops scheduler manual run path
 - email notification log
 - payment webhook test
+- backup readiness API
+- release manager API
+- monitoring API
+- incidents API
 - analytics summary API
 
-## 8. Rollback plan
+## 8. Backup and release gate
+
+Before deployment:
+
+1. Create a backup record in `admin/backups.php`.
+2. Export the database.
+3. Preserve uploads, config, docs, and logs according to the backup profile.
+4. Create a release record in `admin/releases.php`.
+5. Record active branch, commit SHA, migration range, deploy notes, and rollback notes.
+6. Pass or waive release checklist tasks intentionally.
+7. Run `deploy/preflight.php`.
+
+## 9. Rollback plan
 
 Before deployment:
 
@@ -129,22 +174,30 @@ Before deployment:
 - export the current database
 - keep the prior ZIP package
 - record the active migration number
+- document the rollback trigger and owner
 
 Rollback:
 
 1. restore previous webroot
 2. restore prior database backup when schema/data changed
-3. re-test signin, admin, checkout, and watch/player pages
+3. re-test signin, admin, checkout, watch/player pages, monitoring, and incidents
+4. add a release event explaining the rollback
 
-## 9. Final launch gate
+## 10. Final launch gate
 
 Launch when:
 
 - installer completes
+- migrations are applied through `020`
 - QA has no failed checks
+- route registry has no missing required routes
 - system health has no critical failures
+- monitoring has no unresolved critical errors
+- incidents have no unresolved launch-blocking records
 - content audit has no required missing live assets
 - payment webhooks test successfully
 - email notifications work
+- member messages and support workflows load
 - full subscriber media files are protected
-- admin account access is verified
+- backup and release records exist for the deploy
+- admin account access and role permissions are verified
