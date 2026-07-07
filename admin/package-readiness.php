@@ -1,6 +1,6 @@
 <?php
 $pageTitle = 'Package Readiness';
-$pageDescription = 'Verify Stonefellow script package completeness, deploy manifest, route coverage, SQL files, docs, assets, and production handoff readiness.';
+$pageDescription = 'Verify Stonefellow script package completeness, deploy manifest, route coverage, SQL files, docs, assets, smoke-test coverage, and production handoff readiness.';
 $pageClass = 'membership-page admin-catalog-page qa-page package-readiness-page';
 require __DIR__ . '/../includes/package_readiness.php';
 $checks = sf_pkg_checks();
@@ -11,12 +11,13 @@ $reviews = count(array_filter($checks, static fn($check) => in_array(($check['st
 $manifest = sf_pkg_manifest_summary();
 $groups = sf_pkg_group_summary($checks);
 require __DIR__ . '/../includes/header.php';
-sf_admin_shell_start('Package Readiness', 'Script package readiness v1', 'Verify the deployable script package before upload: files, folders, SQL order, route registry, docs, preflight, monitoring, incidents, backup, release, and launch handoff.', 'package-readiness');
+sf_admin_shell_start('Package Readiness', 'Script package readiness v1', 'Verify the deployable script package before upload: files, folders, SQL order, route registry, docs, preflight, smoke tests, monitoring, incidents, backup, release, and launch handoff.', 'package-readiness');
 ?>
 <section class="sf-admin-card-grid">
   <div class="sf-admin-action-card"><span>Package Score</span><strong><?= (int)$score ?>%</strong><small><?= sf_pkg_h(sf_pkg_grade($score)) ?> package readiness.</small></div>
   <div class="sf-admin-action-card"><span>Status</span><strong><?= sf_pkg_h(ucwords(str_replace('_', ' ', $status))) ?></strong><small><?= $fails ? 'Resolve failures before packaging.' : 'No blocking package failures detected.' ?></small></div>
   <div class="sf-admin-action-card"><span>Files</span><strong><?= (int)$manifest['present'] ?> / <?= (int)$manifest['total'] ?></strong><small><?= (int)$manifest['missing'] ?> required files missing.</small></div>
+  <a class="sf-admin-action-card" href="<?= sf_url('admin/smoke-tests.php') ?>"><span>Smoke</span><strong>Tests</strong><small>Scenario matrix before final preflight.</small></a>
   <a class="sf-admin-action-card" href="<?= sf_url('deploy/preflight.php') ?>"><span>Deploy</span><strong>Preflight</strong><small>Plain text CLI/browser output for final check.</small></a>
 </section>
 
@@ -55,13 +56,13 @@ sf_admin_shell_start('Package Readiness', 'Script package readiness v1', 'Verify
 <section class="sf-admin-panel">
   <div class="sf-admin-panel-head">
     <div><span class="sf-panel-eyebrow">Handoff</span><h2>Next release actions</h2></div>
-    <a href="<?= sf_url('docs/PHASE_37_PACKAGE_READINESS.md') ?>">Phase Docs</a>
+    <a href="<?= sf_url('docs/PHASE_38_SMOKE_TESTS.md') ?>">Smoke Docs</a>
   </div>
   <div class="sf-admin-roadmap">
     <div><span>1</span><strong>Confirm SQL</strong><p>Existing installs apply missing migrations sequentially through migration 020.</p></div>
-    <div><span>2</span><strong>Run preflight</strong><p>Use deploy/preflight.php from browser or CLI and resolve blocking failures.</p></div>
-    <div><span>3</span><strong>Create backup</strong><p>Record backup readiness before upload or production replacement.</p></div>
-    <div><span>4</span><strong>Create release</strong><p>Record branch, SHA, migration range, deploy notes, rollback notes, and smoke-test status.</p></div>
+    <div><span>2</span><strong>Run smoke tests</strong><p>Open admin/smoke-tests.php and resolve missing route/API failures before final preflight.</p></div>
+    <div><span>3</span><strong>Run preflight</strong><p>Use deploy/preflight.php from browser or CLI and resolve blocking failures.</p></div>
+    <div><span>4</span><strong>Create backup/release</strong><p>Record backup readiness plus release branch, SHA, migration range, notes, rollback plan, and smoke-test status.</p></div>
   </div>
 </section>
 <?php sf_admin_shell_end(); require __DIR__ . '/../includes/footer.php'; ?>
