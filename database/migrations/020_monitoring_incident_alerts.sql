@@ -50,7 +50,7 @@ CREATE TABLE IF NOT EXISTS monitoring_service_checks (
   check_label VARCHAR(190) NOT NULL,
   check_group ENUM('runtime','database','queue','payments','media','email','security','release','custom') NOT NULL DEFAULT 'runtime',
   status ENUM('healthy','warning','critical','unknown') NOT NULL DEFAULT 'unknown',
-  last_value VARCHAR(190) DEFAULT NULL,
+  `last_value` VARCHAR(190) DEFAULT NULL,
   threshold_warning VARCHAR(120) DEFAULT NULL,
   threshold_critical VARCHAR(120) DEFAULT NULL,
   last_checked_at DATETIME DEFAULT NULL,
