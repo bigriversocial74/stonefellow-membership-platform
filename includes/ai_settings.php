@@ -35,48 +35,28 @@ function sf_ai_decrypt_secret(?string $stored): string {
   $plain = openssl_decrypt($cipher, 'aes-256-gcm', sf_ai_secret_key(), OPENSSL_RAW_DATA, $iv, $tag);
   return is_string($plain) ? $plain : '';
 }
-function sf_ai_mask_key(?string $last4, ?string $hint = null): string {
-  $last4 = trim((string)$last4);
-  $hint = trim((string)$hint);
-  if ($last4 !== '') return '•••• •••• •••• ' . $last4;
-  if ($hint !== '') return $hint;
-  return 'Not configured';
-}
+function sf_ai_mask_key(?string $last4, ?string $hint = null): string { $last4 = trim((string)$last4); $hint = trim((string)$hint); if ($last4 !== '') return '•••• •••• •••• ' . $last4; if ($hint !== '') return $hint; return 'Not configured'; }
 function sf_ai_default_providers(): array {
   return [
     ['provider_key'=>'chatgpt','provider_label'=>'ChatGPT / OpenAI','provider_type'=>'multimodal','default_model'=>'gpt-4.1','image_model'=>'gpt-image-1','key_status'=>'missing','is_default_text'=>1,'is_default_image'=>1,'monthly_budget_cents'=>0,'monthly_token_limit'=>0,'monthly_image_limit'=>0,'timeout_seconds'=>90,'max_retries'=>2,'temperature'=>'0.70','status'=>'inactive','api_key_last4'=>'','api_key_hint'=>''],
     ['provider_key'=>'claude','provider_label'=>'Claude / Anthropic','provider_type'=>'text','default_model'=>'claude-3-5-sonnet-latest','image_model'=>'','key_status'=>'missing','is_default_text'=>0,'is_default_image'=>0,'monthly_budget_cents'=>0,'monthly_token_limit'=>0,'monthly_image_limit'=>0,'timeout_seconds'=>90,'max_retries'=>2,'temperature'=>'0.70','status'=>'inactive','api_key_last4'=>'','api_key_hint'=>''],
   ];
 }
-function sf_ai_providers(): array {
-  if (!sf_ai_ready()) return sf_ai_default_providers();
-  $rows = sf_admin_fetch_all('SELECT * FROM ai_provider_settings ORDER BY provider_key ASC');
-  return $rows ?: sf_ai_default_providers();
-}
-function sf_ai_provider(string $providerKey): ?array {
-  foreach (sf_ai_providers() as $provider) if (($provider['provider_key'] ?? '') === $providerKey) return $provider;
-  return null;
-}
-function sf_ai_provider_options(): array {
-  $options = [];
-  foreach (sf_ai_providers() as $provider) $options[(string)$provider['provider_key']] = (string)$provider['provider_label'];
-  return $options ?: ['chatgpt'=>'ChatGPT / OpenAI','claude'=>'Claude / Anthropic'];
-}
+function sf_ai_providers(): array { if (!sf_ai_ready()) return sf_ai_default_providers(); $rows = sf_admin_fetch_all('SELECT * FROM ai_provider_settings ORDER BY provider_key ASC'); return $rows ?: sf_ai_default_providers(); }
+function sf_ai_provider(string $providerKey): ?array { foreach (sf_ai_providers() as $provider) if (($provider['provider_key'] ?? '') === $providerKey) return $provider; return null; }
+function sf_ai_provider_options(): array { $options = []; foreach (sf_ai_providers() as $provider) $options[(string)$provider['provider_key']] = (string)$provider['provider_label']; return $options ?: ['chatgpt'=>'ChatGPT / OpenAI','claude'=>'Claude / Anthropic']; }
 function sf_ai_save_provider(array $payload): bool {
   if (!sf_ai_ready()) return false;
   $providerKey = preg_replace('/[^a-z0-9_-]+/i', '', strtolower((string)($payload['provider_key'] ?? '')));
   if ($providerKey === '') return false;
+  $existing = sf_ai_provider($providerKey);
   $plainKey = trim((string)($payload['api_key'] ?? ''));
   $encrypted = null;
   $last4 = null;
-  $keyStatus = (string)($payload['key_status'] ?? 'missing');
-  $existing = sf_ai_provider($providerKey);
+  $keyStatus = (string)($payload['key_status'] ?? ($existing['key_status'] ?? 'missing'));
   if ($plainKey !== '') {
     $encrypted = sf_ai_encrypt_secret($plainKey);
-    if ($encrypted === null) {
-      sf_admin_flash('error', 'OpenSSL AES-256-GCM encryption is required before saving provider secrets. Non-secret settings were not saved for ' . $providerKey . '.');
-      return false;
-    }
+    if ($encrypted === null) { sf_admin_flash('error', 'OpenSSL AES-256-GCM encryption is required before saving provider secrets. Non-secret settings were not saved for ' . $providerKey . '.'); return false; }
     $last4 = substr($plainKey, -4);
     $keyStatus = 'configured';
   }
@@ -97,26 +77,15 @@ function sf_ai_save_provider(array $payload): bool {
     'status'=>(string)($payload['status'] ?? 'inactive'),
     'updated_by_user_id'=>sf_current_user_id(),
   ];
-  if ($plainKey !== '') {
-    $fields['encrypted_api_key'] = $encrypted;
-    $fields['api_key_last4'] = $last4;
-    $fields['api_key_hint'] = sf_ai_mask_key($last4);
-  } elseif (!$existing) {
-    $fields['encrypted_api_key'] = null;
-    $fields['api_key_last4'] = null;
-    $fields['api_key_hint'] = null;
-  }
+  if ($plainKey !== '') { $fields['encrypted_api_key'] = $encrypted; $fields['api_key_last4'] = $last4; $fields['api_key_hint'] = sf_ai_mask_key($last4); }
+  elseif (!$existing) { $fields['encrypted_api_key'] = null; $fields['api_key_last4'] = null; $fields['api_key_hint'] = null; }
   $columns = array_merge(['provider_key'], array_keys($fields), ['created_by_user_id']);
   $values = array_merge([$providerKey], array_values($fields), [sf_current_user_id()]);
   $assignments = [];
   foreach (array_keys($fields) as $field) $assignments[] = '`' . $field . '`=VALUES(`' . $field . '`)';
   $sql = 'INSERT INTO ai_provider_settings (`' . implode('`,`', $columns) . '`) VALUES (' . implode(',', array_fill(0, count($columns), '?')) . ') ON DUPLICATE KEY UPDATE ' . implode(', ', $assignments);
   $ok = sf_admin_execute($sql, $values);
-  if ($ok) {
-    if (!empty($fields['is_default_text'])) sf_admin_execute('UPDATE ai_provider_settings SET is_default_text = IF(provider_key = ?, 1, 0)', [$providerKey]);
-    if (!empty($fields['is_default_image'])) sf_admin_execute('UPDATE ai_provider_settings SET is_default_image = IF(provider_key = ?, 1, 0)', [$providerKey]);
-    sf_admin_audit('update_ai_provider_settings', 'ai_provider_settings', null, null, ['provider_key'=>$providerKey,'status'=>$fields['status'],'key_status'=>$fields['key_status']]);
-  }
+  if ($ok) { if (!empty($fields['is_default_text'])) sf_admin_execute('UPDATE ai_provider_settings SET is_default_text = IF(provider_key = ?, 1, 0)', [$providerKey]); if (!empty($fields['is_default_image'])) sf_admin_execute('UPDATE ai_provider_settings SET is_default_image = IF(provider_key = ?, 1, 0)', [$providerKey]); sf_admin_audit('update_ai_provider_settings', 'ai_provider_settings', null, null, ['provider_key'=>$providerKey,'status'=>$fields['status'],'key_status'=>$fields['key_status']]); }
   return $ok;
 }
 function sf_ai_usage_summary(): array {
