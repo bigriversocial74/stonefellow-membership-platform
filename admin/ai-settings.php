@@ -64,7 +64,7 @@ sf_admin_shell_start('AI Settings', 'Admin AI provider settings', 'Manage Claude
       <div class="sf-admin-form-grid">
         <label>Provider Label<input name="provider_label" value="<?= sf_ai_h($provider['provider_label'] ?? '') ?>"<?= sf_admin_form_disabled_attr() ?>></label>
         <label>Provider Type<?= sf_admin_select('provider_type', ['text'=>'Text','image'=>'Image','multimodal'=>'Multimodal'], $provider['provider_type'] ?? 'text') ?></label>
-        <label>Status><?= sf_admin_select('status', ['active'=>'Active','inactive'=>'Inactive','disabled'=>'Disabled'], $provider['status'] ?? 'inactive') ?></label>
+        <label>Status<?= sf_admin_select('status', ['active'=>'Active','inactive'=>'Inactive','disabled'=>'Disabled'], $provider['status'] ?? 'inactive') ?></label>
       </div>
       <div class="sf-admin-form-grid">
         <label>Default Text Model<input name="default_model" value="<?= sf_ai_h($provider['default_model'] ?? '') ?>" placeholder="gpt-4.1 or claude-3-5-sonnet-latest"<?= sf_admin_form_disabled_attr() ?>></label>
