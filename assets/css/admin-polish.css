@@ -1,0 +1,208 @@
+/* Stonefellow Admin Theme / UI Polish Pass v1 */
+body.admin-catalog-page {
+  background:
+    radial-gradient(circle at 12% 0%, rgba(232, 198, 127, .16), transparent 30%),
+    radial-gradient(circle at 92% 8%, rgba(155, 82, 33, .12), transparent 28%),
+    linear-gradient(180deg, #070604 0%, #030302 100%);
+}
+
+.admin-catalog-page .site-global-header {
+  background: rgba(5, 4, 3, .9);
+  border-bottom-color: rgba(232, 198, 127, .12);
+  backdrop-filter: blur(18px);
+}
+
+.admin-catalog-page .sf-admin-shell {
+  width: min(100% - 32px, 1540px);
+  grid-template-columns: minmax(240px, 286px) minmax(0, 1fr);
+  gap: 24px;
+}
+
+.admin-catalog-page .sf-admin-sidebar {
+  max-height: calc(100vh - 116px);
+  overflow: auto;
+  scrollbar-width: thin;
+}
+
+.admin-catalog-page .sf-admin-nav {
+  display: grid;
+  gap: 16px;
+}
+
+.admin-catalog-page .sf-admin-nav-group {
+  display: grid;
+  gap: 7px;
+  padding-top: 2px;
+}
+
+.admin-catalog-page .sf-admin-nav-group > span {
+  display: block;
+  padding: 0 10px 2px;
+  color: rgba(232, 198, 127, .78);
+  font-size: 10px;
+  font-weight: 950;
+  letter-spacing: .16em;
+  line-height: 1.2;
+  text-transform: uppercase;
+}
+
+.admin-catalog-page .sf-admin-nav a {
+  min-height: 40px;
+  display: flex;
+  align-items: center;
+  border-radius: 13px;
+  font-size: 13px;
+  line-height: 1.2;
+}
+
+.admin-catalog-page .sf-admin-nav a.is-active {
+  box-shadow: inset 3px 0 0 rgba(232, 198, 127, .82);
+}
+
+.admin-catalog-page .sf-admin-hero {
+  position: relative;
+  overflow: hidden;
+  border-color: rgba(232, 198, 127, .18);
+}
+
+.admin-catalog-page .sf-admin-hero::after {
+  content: "";
+  position: absolute;
+  right: -130px;
+  top: -160px;
+  width: 360px;
+  height: 360px;
+  border: 1px solid rgba(232, 198, 127, .14);
+  border-radius: 50%;
+  pointer-events: none;
+}
+
+.admin-catalog-page .sf-admin-hero > * {
+  position: relative;
+  z-index: 1;
+}
+
+.admin-catalog-page .sf-admin-db-card {
+  background:
+    linear-gradient(180deg, rgba(255,255,255,.08), rgba(255,255,255,.035)),
+    rgba(0,0,0,.22);
+}
+
+.admin-catalog-page .sf-admin-action-card,
+.admin-catalog-page .sf-admin-panel,
+.admin-catalog-page .sf-admin-stat-card {
+  border-color: rgba(232, 198, 127, .14);
+}
+
+.admin-catalog-page .sf-admin-action-card {
+  min-height: 142px;
+  align-content: start;
+}
+
+.admin-catalog-page .sf-admin-action-card strong {
+  line-height: 1.04;
+}
+
+.admin-catalog-page .sf-admin-action-card small {
+  max-width: 360px;
+}
+
+.admin-catalog-page .sf-admin-dashboard-section {
+  display: grid;
+  gap: 16px;
+}
+
+.admin-catalog-page .sf-admin-section-title {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 4px 2px 0;
+}
+
+.admin-catalog-page .sf-admin-section-title h2 {
+  margin: 4px 0 0;
+  color: #fff;
+  font-size: clamp(26px, 3vw, 36px);
+  letter-spacing: -.045em;
+}
+
+.admin-catalog-page .sf-admin-section-title p {
+  color: rgba(255,255,255,.62);
+  max-width: 760px;
+}
+
+.admin-catalog-page .sf-admin-mini-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 30px;
+  padding: 7px 10px;
+  border: 1px solid rgba(232, 198, 127, .22);
+  border-radius: 999px;
+  background: rgba(232, 198, 127, .09);
+  color: #e8c67f;
+  font-size: 11px;
+  font-weight: 950;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.admin-catalog-page .sf-admin-table-wrap {
+  background: rgba(0,0,0,.13);
+}
+
+.admin-catalog-page .sf-admin-table tr:last-child td {
+  border-bottom: 0;
+}
+
+.admin-catalog-page .sf-admin-roadmap div a {
+  display: inline-flex;
+  margin-top: 12px;
+  color: #e8c67f;
+  font-weight: 900;
+}
+
+.admin-catalog-page .sf-admin-side-note {
+  position: sticky;
+  bottom: 0;
+  backdrop-filter: blur(12px);
+}
+
+@media (max-width: 1100px) {
+  .admin-catalog-page .sf-admin-shell {
+    width: min(100% - 24px, 1440px);
+  }
+
+  .admin-catalog-page .sf-admin-sidebar {
+    max-height: none;
+  }
+
+  .admin-catalog-page .sf-admin-nav {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .admin-catalog-page .sf-admin-nav-group {
+    min-width: 0;
+  }
+}
+
+@media (max-width: 720px) {
+  .admin-catalog-page .sf-admin-shell {
+    width: min(100% - 20px, 1440px);
+  }
+
+  .admin-catalog-page .sf-admin-nav {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-catalog-page .sf-admin-section-title {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .admin-catalog-page .sf-admin-action-card {
+    min-height: auto;
+  }
+}
