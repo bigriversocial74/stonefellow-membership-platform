@@ -9,16 +9,17 @@ function sf_pkg_grade(int $score): string { return sf_qa_grade($score); }
 function sf_pkg_badge(string $status): string { return sf_qa_badge($status); }
 function sf_pkg_required_files(): array {
   return [
-    'Core runtime' => ['index.php','includes/config.php','includes/db.php','includes/auth.php','includes/header.php','includes/footer.php','includes/qa.php','includes/installer.php','includes/package_readiness.php','includes/smoke_tests.php'],
-    'Install and deploy' => ['install.php','deploy/preflight.php','.env.example','docs/DEPLOYMENT_RUNBOOK.md','docs/SQL_FILE_MAP.md','docs/FINAL_PRODUCTION_QA_ROUTE_REGISTRY_V2.md','docs/PHASE_37_PACKAGE_READINESS.md','docs/PHASE_38_SMOKE_TESTS.md'],
+    'Core runtime' => ['index.php','includes/config.php','includes/db.php','includes/auth.php','includes/header.php','includes/footer.php','includes/qa.php','includes/installer.php','includes/package_readiness.php','includes/smoke_tests.php','includes/release_candidate.php'],
+    'Install and deploy' => ['install.php','deploy/preflight.php','.env.example','docs/DEPLOYMENT_RUNBOOK.md','docs/SQL_FILE_MAP.md','docs/FINAL_PRODUCTION_QA_ROUTE_REGISTRY_V2.md','docs/PHASE_37_PACKAGE_READINESS.md','docs/PHASE_38_SMOKE_TESTS.md','docs/PHASE_39_RELEASE_CANDIDATE.md'],
     'SQL' => array_map(static fn($m) => $m['file'], sf_qa_migration_plan()),
-    'Admin launch' => ['admin/index.php','admin/package-readiness.php','admin/smoke-tests.php','admin/launch-checklist.php','admin/qa.php','admin/migration-checker.php','admin/routes-checker.php','admin/security-check.php','admin/content-audit.php','admin/system-health.php'],
+    'Admin launch' => ['admin/index.php','admin/release-candidate.php','admin/package-readiness.php','admin/smoke-tests.php','admin/launch-checklist.php','admin/qa.php','admin/migration-checker.php','admin/routes-checker.php','admin/security-check.php','admin/content-audit.php','admin/system-health.php'],
     'Production ops' => ['admin/monitoring.php','admin/incidents.php','admin/backups.php','admin/releases.php','admin/ops-scheduler.php','admin/member-messaging.php','admin/member-lifecycle.php','admin/support.php'],
     'Member runtime' => ['member.php','library.php','watchlist.php','playlists.php','feed.php','notifications.php','messages.php','comments.php','support.php','account.php','account-billing.php'],
     'Commerce and billing' => ['subscribe.php','billing-checkout.php','billing-success.php','billing-cancel.php','merch.php','product.php','cart.php','checkout.php','order-confirmation.php'],
     'Media delivery' => ['stream.php','download.php','api/media-token.php','api/player-state.php','api/audio-track.php','api/video-track.php','api/entitlement-check.php'],
     'APIs' => ['api/search.php','api/analytics-summary.php','api/comments.php','api/notifications.php','api/member-messages.php','api/ops-scheduler.php','api/backup-readiness.php','api/release-manager.php','api/monitoring.php','api/incidents.php'],
     'Smoke test matrix' => ['includes/smoke_tests.php','admin/smoke-tests.php','docs/PHASE_38_SMOKE_TESTS.md'],
+    'Release candidate' => ['includes/release_candidate.php','admin/release-candidate.php','docs/PHASE_39_RELEASE_CANDIDATE.md'],
     'Styles and assets' => ['assets/css/stonefellow.css','assets/css/admin-polish.css','assets/css/pwa-upload.css','manifest.webmanifest','service-worker.js'],
   ];
 }
@@ -46,8 +47,7 @@ function sf_pkg_manifest_json(): string {
   $summary = sf_pkg_manifest_summary();
   $payload = ['generated_at'=>date('c'),'platform'=>'Stonefellow Membership Platform','migration_target'=>'020','summary'=>$summary,'files'=>sf_pkg_file_manifest()];
   return json_encode($payload, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
-}
-function sf_pkg_checks(): array {
+}\nfunction sf_pkg_checks(): array {
   $checks = [];
   foreach (sf_pkg_required_files() as $group => $files) {
     foreach ($files as $file) {
@@ -60,10 +60,13 @@ function sf_pkg_checks(): array {
   $checks[] = sf_pkg_check('Installer', sf_qa_contains('includes/installer.php', ["'020'=>", '020_monitoring_incident_alerts.sql']) ? 'pass' : 'fail', 'Installer migration target', 'Installer should include migration 020.', 3);
   $checks[] = sf_pkg_check('Admin', sf_qa_contains('admin/index.php', ['admin/package-readiness.php']) ? 'pass' : 'warn', 'Admin package readiness link', 'Admin dashboard should link to package readiness.', 2);
   $checks[] = sf_pkg_check('Admin', sf_qa_contains('admin/index.php', ['admin/smoke-tests.php']) ? 'pass' : 'warn', 'Admin smoke-test link', 'Admin dashboard should link to smoke tests.', 2);
+  $checks[] = sf_pkg_check('Admin', sf_qa_contains('admin/index.php', ['admin/release-candidate.php']) ? 'pass' : 'warn', 'Admin release candidate link', 'Admin dashboard should link to release candidate.', 2);
   $checks[] = sf_pkg_check('Preflight', sf_qa_contains('deploy/preflight.php', ['sf_pkg_checks', 'Package Readiness']) ? 'pass' : 'warn', 'Preflight package checks', 'Preflight should include package readiness output.', 3);
   $checks[] = sf_pkg_check('Preflight', sf_qa_contains('deploy/preflight.php', ['sf_smoke_checks', 'Smoke Tests']) ? 'pass' : 'warn', 'Preflight smoke tests', 'Preflight should include smoke-test output.', 3);
+  $checks[] = sf_pkg_check('Preflight', sf_qa_contains('deploy/preflight.php', ['sf_rc_checks', 'Release Candidate']) ? 'pass' : 'warn', 'Preflight release candidate', 'Preflight should include release candidate output.', 3);
   $checks[] = sf_pkg_check('Smoke test matrix', sf_qa_contains('includes/smoke_tests.php', ['sf_smoke_scenarios', 'sf_smoke_checks']) ? 'pass' : 'fail', 'Smoke helper registered', 'Smoke scenario helper should expose matrix and checks.', 3);
-  $checks[] = sf_pkg_check('Docs', sf_qa_contains('docs/DEPLOYMENT_RUNBOOK.md', ['020_monitoring_incident_alerts.sql', 'admin/package-readiness.php', 'admin/smoke-tests.php']) ? 'pass' : 'warn', 'Runbook package ready', 'Runbook should reference migration 020, package readiness, and smoke tests.', 2);
+  $checks[] = sf_pkg_check('Release candidate', sf_qa_contains('includes/release_candidate.php', ['sf_rc_checks', 'sf_rc_summary']) ? 'pass' : 'fail', 'Release candidate helper registered', 'Release candidate helper should expose final handoff checks.', 3);
+  $checks[] = sf_pkg_check('Docs', sf_qa_contains('docs/DEPLOYMENT_RUNBOOK.md', ['020_monitoring_incident_alerts.sql', 'admin/package-readiness.php', 'admin/smoke-tests.php', 'admin/release-candidate.php']) ? 'pass' : 'warn', 'Runbook package ready', 'Runbook should reference migration 020, package readiness, smoke tests, and release candidate.', 2);
   $checks[] = sf_pkg_check('Docs', sf_qa_contains('docs/SQL_FILE_MAP.md', ['020_monitoring_incident_alerts.sql']) ? 'pass' : 'fail', 'SQL map target 020', 'SQL map should document migration 020.', 2);
   $routeChecks = sf_qa_route_checks();
   $routeFails = count(array_filter($routeChecks, static fn($c) => in_array(($c['status'] ?? ''), ['fail','missing'], true)));
