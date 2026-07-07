@@ -56,20 +56,18 @@ function sf_url(string $path = ''): string {
 }
 
 function sf_asset(string $path): string {
-  global $site;
-  $cleanPath = ltrim($path, '/');
+  $cleanPath = ltrim(trim($path), '/');
+
+  if ($cleanPath === '') {
+    return '/assets/';
+  }
 
   if (preg_match('~^(https?:)?//~i', $path)) {
     return $path;
   }
 
-  $base = trim((string)($site['base_url'] ?? ''), '/');
-  if ($base !== '') {
-    if (preg_match('~^https?://~i', $base)) {
-      return rtrim($base, '/') . '/assets/' . $cleanPath;
-    }
-
-    return '/' . $base . '/assets/' . $cleanPath;
+  if (stripos($cleanPath, 'assets/') === 0) {
+    return '/' . $cleanPath;
   }
 
   return '/assets/' . $cleanPath;
