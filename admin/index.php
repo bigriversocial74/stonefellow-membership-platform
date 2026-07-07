@@ -1,10 +1,10 @@
 <?php
 $pageTitle = 'Admin Foundation';
-$pageDescription = 'Stonefellow admin foundation for production monitoring, incidents, system alerts, backup restore, release management, release candidate handoff, roles, permissions, security audit, automation scheduler, member messaging, lifecycle, support, membership tiers, revenue dashboard, engagement analytics, content, payments, publishing, package readiness, smoke tests, and deployment readiness.';
+$pageDescription = 'Stonefellow admin foundation for storyboarding, production monitoring, incidents, system alerts, backup restore, release management, release candidate handoff, roles, permissions, security audit, automation scheduler, member messaging, lifecycle, support, membership tiers, revenue dashboard, engagement analytics, content, payments, publishing, package readiness, smoke tests, and deployment readiness.';
 $pageClass = 'membership-page admin-catalog-page';
 require __DIR__ . '/../includes/admin_catalog.php';
 require __DIR__ . '/../includes/header.php';
-sf_admin_shell_start('Admin Foundation', 'Operational build control', 'Manage release candidate handoff, monitoring, incidents, alerts, backups, releases, package readiness, smoke tests, security, automation, member messaging, lifecycle, support, revenue, content, payments, publishing, and delivery.', 'index');
+sf_admin_shell_start('Admin Foundation', 'Operational build control', 'Manage storyboarding, release candidate handoff, monitoring, incidents, alerts, backups, releases, package readiness, smoke tests, security, automation, member messaging, lifecycle, support, revenue, content, payments, publishing, and delivery.', 'index');
 $adminSections = [
   'Launch Gate' => [
     ['RC','Final Handoff','Release candidate score, deploy ZIP, SQL target, backup/release status, and final launch gate.','admin/release-candidate.php'],
@@ -28,6 +28,7 @@ $adminSections = [
     ['Support','Help Desk','Member tickets, replies, priority workflow, and linked account context.','admin/support.php'],
   ],
   'Content + Revenue' => [
+    ['Storyboard','Visual Scripts','Prompt-to-9-scene storyboard shell with characters, scene cards, rewrite/regenerate/upload actions, and admin-managed AI provider.','admin/storyboards.php'],
     ['Media','Catalog','Albums, songs, episodes, videos, assets, publishing, and secure delivery.','admin/music.php'],
     ['Revenue','Launch Dashboard','MRR, ARR, checkout conversion, merch, churn risk, and snapshots.','admin/revenue-dashboard.php'],
     ['Engagement','Analytics','Feed saves, hides, follows, comments, reactions, and top members.','admin/engagement-analytics.php'],
@@ -59,7 +60,7 @@ $adminSections = [
 <section class="sf-admin-panel">
   <div class="sf-admin-panel-head">
     <div><span class="sf-panel-eyebrow">Streaming Platform Foundation</span><h2>What is now built</h2></div>
-    <span class="sf-admin-mini-pill">Phases 1–39</span>
+    <span class="sf-admin-mini-pill">Phases 1–40</span>
   </div>
   <div class="sf-admin-roadmap">
     <div><span>✓</span><strong>Production Monitoring / Error Log Center v1</strong><p>Health snapshots, service checks, runtime metrics, failed notification/job/payment counters, error records, and monitoring APIs.</p></div>
@@ -70,6 +71,7 @@ $adminSections = [
     <div><span>✓</span><strong>Production Package Readiness v1</strong><p>Deployable file manifest, package checks, stronger preflight output, package readiness admin page, and phase handoff docs.</p></div>
     <div><span>✓</span><strong>Production Smoke Test Runner v1</strong><p>Scenario matrix for auth, member pages, media playback, commerce, admin ops, APIs, manual production checks, and combined preflight scoring.</p></div>
     <div><span>✓</span><strong>Production Release Candidate / Final Deploy Handoff v1</strong><p>Final release candidate gate, deploy ZIP, SQL target, backup/release readiness, RC scoring, and launch decision.</p></div>
+    <div><span>✓</span><strong>Storyboarding Module Shell v1</strong><p>Storyboard list, builder workspace, script prompt, creator settings, character references, and 9-scene screenplay grid.</p></div>
   </div>
 </section>
 
