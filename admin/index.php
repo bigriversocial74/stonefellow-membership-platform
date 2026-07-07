@@ -1,10 +1,10 @@
 <?php
 $pageTitle = 'Admin Foundation';
-$pageDescription = 'Stonefellow admin foundation for storyboarding, scene actions, AI provider settings, production monitoring, incidents, system alerts, backup restore, release management, release candidate handoff, roles, permissions, security audit, automation scheduler, member messaging, lifecycle, support, membership tiers, revenue dashboard, engagement analytics, content, payments, publishing, package readiness, smoke tests, and deployment readiness.';
+$pageDescription = 'Stonefellow admin foundation for storyboarding, character management, scene actions, AI provider settings, production monitoring, incidents, system alerts, backup restore, release management, release candidate handoff, roles, permissions, security audit, automation scheduler, member messaging, lifecycle, support, membership tiers, revenue dashboard, engagement analytics, content, payments, publishing, package readiness, smoke tests, and deployment readiness.';
 $pageClass = 'membership-page admin-catalog-page';
 require __DIR__ . '/../includes/admin_catalog.php';
 require __DIR__ . '/../includes/header.php';
-sf_admin_shell_start('Admin Foundation', 'Operational build control', 'Manage storyboarding, scene actions, AI provider settings, release candidate handoff, monitoring, incidents, alerts, backups, releases, package readiness, smoke tests, security, automation, member messaging, lifecycle, support, revenue, content, payments, publishing, and delivery.', 'index');
+sf_admin_shell_start('Admin Foundation', 'Operational build control', 'Manage storyboarding, character management, scene actions, AI provider settings, release candidate handoff, monitoring, incidents, alerts, backups, releases, package readiness, smoke tests, security, automation, member messaging, lifecycle, support, revenue, content, payments, publishing, and delivery.', 'index');
 $adminSections = [
   'Launch Gate' => [
     ['RC','Final Handoff','Release candidate score, deploy ZIP, SQL target, backup/release status, and final launch gate.','admin/release-candidate.php'],
@@ -28,7 +28,7 @@ $adminSections = [
     ['Support','Help Desk','Member tickets, replies, priority workflow, and linked account context.','admin/support.php'],
   ],
   'Content + Revenue' => [
-    ['Storyboard','Visual Scripts','Prompt-to-9-scene storyboard workflow with scene edit, rewrite, image regenerate, upload, and admin-managed AI provider.','admin/storyboards.php'],
+    ['Storyboard','Visual Scripts','Prompt-to-9-scene storyboard workflow with character management, references, assignments, scene actions, job retry controls, and admin-managed AI provider.','admin/storyboards.php'],
     ['AI','Provider Settings','Admin-only Claude/ChatGPT API keys, defaults, usage limits, cost tracking, and secure key status.','admin/ai-settings.php'],
     ['Media','Catalog','Albums, songs, episodes, videos, assets, publishing, and secure delivery.','admin/music.php'],
     ['Revenue','Launch Dashboard','MRR, ARR, checkout conversion, merch, churn risk, and snapshots.','admin/revenue-dashboard.php'],
@@ -42,17 +42,17 @@ $adminSections = [
 <?php endforeach; ?>
 
 <section class="sf-admin-panel">
-  <div class="sf-admin-panel-head"><div><span class="sf-panel-eyebrow">Streaming Platform Foundation</span><h2>What is now built</h2></div><span class="sf-admin-mini-pill">Phases 1–43</span></div>
+  <div class="sf-admin-panel-head"><div><span class="sf-panel-eyebrow">Streaming Platform Foundation</span><h2>What is now built</h2></div><span class="sf-admin-mini-pill">Phases 1–44</span></div>
   <div class="sf-admin-roadmap">
     <div><span>✓</span><strong>Production Monitoring / Error Log Center v1</strong><p>Health snapshots, service checks, runtime metrics, failed notification/job/payment counters, error records, and monitoring APIs.</p></div>
     <div><span>✓</span><strong>System Notifications + Incident Alerts v1</strong><p>Incident records, incident timeline, severity workflow, alert rules, admin alert inbox, and email/in-app alert routing.</p></div>
     <div><span>✓</span><strong>Production Backup / Restore Manager v1</strong><p>Backup profiles, run records, schema manifests, storage coverage, restore readiness checks, and verified-run tracking.</p></div>
     <div><span>✓</span><strong>Deployment Release Manager v1</strong><p>Release records, deployment checklist, migration range, backup links, preflight link, release events, and rollback notes.</p></div>
-    <div><span>✓</span><strong>Production Release Candidate / Final Deploy Handoff v1</strong><p>Final release candidate gate, deploy ZIP, SQL target, backup/release readiness, RC scoring, and launch decision.</p></div>
     <div><span>✓</span><strong>Storyboarding Module Shell v1</strong><p>Storyboard list, builder workspace, script prompt, creator settings, character references, and 9-scene screenplay grid.</p></div>
     <div><span>✓</span><strong>Storyboarding SQL + Admin AI Settings v1</strong><p>Migration 021 adds storyboard persistence, scene/character/reference/job tables, AI providers, usage tracking, and admin-only API key settings.</p></div>
     <div><span>✓</span><strong>Script-to-9-Scene Generation API v1</strong><p>Admin-gated generation endpoint, provider adapter, JSON parser, scene persistence, job status, and usage event logging.</p></div>
     <div><span>✓</span><strong>Scene Actions v1</strong><p>Scene edit persistence, single-scene rewrite, image regeneration, upload replacement, character consistency payloads, and retry-ready job records.</p></div>
+    <div><span>✓</span><strong>Storyboard Character Management + UX Modals v1</strong><p>Add/update characters, upload references, assign/remove scene characters, modal-style panels, job badges, retry controls, and bulk image regeneration.</p></div>
   </div>
 </section>
 

@@ -41,7 +41,7 @@ function sf_storyboard_static_characters(): array {
 function sf_storyboard_characters(?int $storyboardId = null): array {
   if (!sf_storyboard_ready() || !$storyboardId || !sf_admin_table_exists('storyboard_characters')) return sf_storyboard_static_characters();
   $rows = sf_admin_fetch_all('SELECT c.*, ma.file_path AS reference_path FROM storyboard_characters c LEFT JOIN media_assets ma ON ma.id = c.reference_asset_id WHERE c.storyboard_id = ? ORDER BY c.character_order ASC, c.id ASC', [$storyboardId]);
-  if (!$rows) return sf_storyboard_static_characters();
+  if (!$rows) return [];
   return array_map(static fn($row) => ['id'=>$row['id'],'name'=>$row['character_name'],'role'=>$row['role_label'] ?: 'Character','image'=>$row['reference_path'] ?: 'assets/images/uploads/placeholder-character.jpg','summary'=>$row['appearance_notes'] ?: $row['personality_notes'] ?: 'Character profile pending.','notes'=>$row['consistency_prompt'] ?: $row['wardrobe_notes'] ?: 'Add consistency notes.'], $rows);
 }
 function sf_storyboard_settings(?array $project = null): array { return ['scene_count'=>($project['scene_count'] ?? 9) . ' scenes','format'=>'Screenplay + Visual Storyboard','visual_style'=>$project['visual_style'] ?? 'Cinematic realistic dive-bar drama','aspect_ratio'=>$project['aspect_ratio'] ?? '16:9 scene frames','rewrite_mode'=>'Scene-by-scene continuity','ai_provider'=>'Managed by Admin']; }
