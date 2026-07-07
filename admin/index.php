@@ -1,10 +1,10 @@
 <?php
 $pageTitle = 'Admin Foundation';
-$pageDescription = 'Stonefellow admin foundation for storyboarding, production monitoring, incidents, system alerts, backup restore, release management, release candidate handoff, roles, permissions, security audit, automation scheduler, member messaging, lifecycle, support, membership tiers, revenue dashboard, engagement analytics, content, payments, publishing, package readiness, smoke tests, and deployment readiness.';
+$pageDescription = 'Stonefellow admin foundation for storyboarding, AI provider settings, production monitoring, incidents, system alerts, backup restore, release management, release candidate handoff, roles, permissions, security audit, automation scheduler, member messaging, lifecycle, support, membership tiers, revenue dashboard, engagement analytics, content, payments, publishing, package readiness, smoke tests, and deployment readiness.';
 $pageClass = 'membership-page admin-catalog-page';
 require __DIR__ . '/../includes/admin_catalog.php';
 require __DIR__ . '/../includes/header.php';
-sf_admin_shell_start('Admin Foundation', 'Operational build control', 'Manage storyboarding, release candidate handoff, monitoring, incidents, alerts, backups, releases, package readiness, smoke tests, security, automation, member messaging, lifecycle, support, revenue, content, payments, publishing, and delivery.', 'index');
+sf_admin_shell_start('Admin Foundation', 'Operational build control', 'Manage storyboarding, AI provider settings, release candidate handoff, monitoring, incidents, alerts, backups, releases, package readiness, smoke tests, security, automation, member messaging, lifecycle, support, revenue, content, payments, publishing, and delivery.', 'index');
 $adminSections = [
   'Launch Gate' => [
     ['RC','Final Handoff','Release candidate score, deploy ZIP, SQL target, backup/release status, and final launch gate.','admin/release-candidate.php'],
@@ -13,7 +13,7 @@ $adminSections = [
     ['Package','Readiness','Deployable script package checks, required file manifest, SQL target, and final handoff gates.','admin/package-readiness.php'],
     ['Smoke','Scenario Matrix','Auth, member, media, commerce, admin ops, API, monitoring, incident, backup, and release smoke tests.','admin/smoke-tests.php'],
     ['Routes','Registry v2','Public, member, admin, API, media, deployment, monitoring, incident, backup, and release routes.','admin/routes-checker.php'],
-    ['Migrations','Through 020','Base schema plus migrations 001 through 020.','admin/migration-checker.php'],
+    ['Migrations','Through 021','Base schema plus migrations 001 through 021.','admin/migration-checker.php'],
   ],
   'Production Operations' => [
     ['Monitoring','Error Center','Health snapshots, failed jobs, failed email, payments, service checks, and manual error capture.','admin/monitoring.php'],
@@ -29,6 +29,7 @@ $adminSections = [
   ],
   'Content + Revenue' => [
     ['Storyboard','Visual Scripts','Prompt-to-9-scene storyboard shell with characters, scene cards, rewrite/regenerate/upload actions, and admin-managed AI provider.','admin/storyboards.php'],
+    ['AI','Provider Settings','Admin-only Claude/ChatGPT API keys, defaults, usage limits, cost tracking, and secure key status.','admin/ai-settings.php'],
     ['Media','Catalog','Albums, songs, episodes, videos, assets, publishing, and secure delivery.','admin/music.php'],
     ['Revenue','Launch Dashboard','MRR, ARR, checkout conversion, merch, churn risk, and snapshots.','admin/revenue-dashboard.php'],
     ['Engagement','Analytics','Feed saves, hides, follows, comments, reactions, and top members.','admin/engagement-analytics.php'],
@@ -60,7 +61,7 @@ $adminSections = [
 <section class="sf-admin-panel">
   <div class="sf-admin-panel-head">
     <div><span class="sf-panel-eyebrow">Streaming Platform Foundation</span><h2>What is now built</h2></div>
-    <span class="sf-admin-mini-pill">Phases 1–40</span>
+    <span class="sf-admin-mini-pill">Phases 1–41</span>
   </div>
   <div class="sf-admin-roadmap">
     <div><span>✓</span><strong>Production Monitoring / Error Log Center v1</strong><p>Health snapshots, service checks, runtime metrics, failed notification/job/payment counters, error records, and monitoring APIs.</p></div>
@@ -72,6 +73,7 @@ $adminSections = [
     <div><span>✓</span><strong>Production Smoke Test Runner v1</strong><p>Scenario matrix for auth, member pages, media playback, commerce, admin ops, APIs, manual production checks, and combined preflight scoring.</p></div>
     <div><span>✓</span><strong>Production Release Candidate / Final Deploy Handoff v1</strong><p>Final release candidate gate, deploy ZIP, SQL target, backup/release readiness, RC scoring, and launch decision.</p></div>
     <div><span>✓</span><strong>Storyboarding Module Shell v1</strong><p>Storyboard list, builder workspace, script prompt, creator settings, character references, and 9-scene screenplay grid.</p></div>
+    <div><span>✓</span><strong>Storyboarding SQL + Admin AI Settings v1</strong><p>Migration 021 adds storyboard persistence, scene/character/reference/job tables, AI providers, usage tracking, and admin-only API key settings.</p></div>
   </div>
 </section>
 
@@ -80,6 +82,6 @@ $adminSections = [
     <div><span class="sf-panel-eyebrow">Database Mode</span><h2>Runtime notes</h2></div>
     <a href="<?= sf_url('docs/SQL_FILE_MAP.md') ?>">SQL Map</a>
   </div>
-  <p class="sf-admin-copy">The installer runs the base schema plus migrations 001 through 020. Migration 020 adds monitoring health snapshots, error events, service checks, incidents, incident events, alert rules, and admin alert notifications. Existing installs should apply only missing migrations in numeric order after a database backup.</p>
+  <p class="sf-admin-copy">The installer runs the base schema plus migrations 001 through 021. Migration 021 adds storyboard persistence, AI provider settings, storyboard jobs, and AI usage tracking. Existing installs should apply only missing migrations in numeric order after a database backup.</p>
 </section>
 <?php sf_admin_shell_end(); require __DIR__ . '/../includes/footer.php'; ?>
