@@ -67,10 +67,16 @@ function sf_asset(string $path): string {
   }
 
   if (stripos($cleanPath, 'assets/') === 0) {
-    return '/' . $cleanPath;
+    $assetPath = substr($cleanPath, strlen('assets/'));
+  } else {
+    $assetPath = $cleanPath;
   }
 
-  return '/assets/' . $cleanPath;
+  if (preg_match('~^images/.+\.(png|jpe?g|gif|webp|svg)$~i', $assetPath)) {
+    return '/asset-image.php?file=' . rawurlencode($assetPath);
+  }
+
+  return '/assets/' . $assetPath;
 }
 
 function sf_current_page(): string {
