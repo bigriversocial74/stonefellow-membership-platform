@@ -19,7 +19,7 @@ CREATE TABLE IF NOT EXISTS email_templates (
 
 CREATE TABLE IF NOT EXISTS notification_logs (
   id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-  user_id BIGINT UNSIGNED NULL,
+  user_id INT NULL,
   recipient_email VARCHAR(190) NOT NULL,
   recipient_name VARCHAR(190) NULL,
   channel ENUM('email','sms','in_app','webhook') NOT NULL DEFAULT 'email',
@@ -49,7 +49,7 @@ CREATE TABLE IF NOT EXISTS notification_logs (
 
 CREATE TABLE IF NOT EXISTS notification_preferences (
   id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-  user_id BIGINT UNSIGNED NOT NULL,
+  user_id INT NOT NULL,
   preference_key VARCHAR(120) NOT NULL,
   channel ENUM('email','sms','in_app','webhook') NOT NULL DEFAULT 'email',
   is_enabled TINYINT(1) NOT NULL DEFAULT 1,
