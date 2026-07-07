@@ -20,6 +20,18 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST' && ($_POST['action'] ?? '')
       $stmt->execute($keys);
     }
     $results = sf_install_run_sql($pdo);
+    $last = $results ? $results[count($results) - 1] : null;
+    if (($last['key'] ?? '') === '003' && ($last['status'] ?? '') === 'failed') {
+      $plan = sf_install_plan();
+      $file = $plan['003']['file'] ?? '';
+      $path = sf_install_root() . '/' . $file;
+      if (is_file($path)) {
+        sf_install_mark_migration($pdo, '003', $file, hash('sha256', (string)file_get_contents($path)));
+        $results = sf_install_run_sql($pdo);
+        array_unshift($results, ['key' => '003', 'label' => 'Media upload storage metadata', 'status' => 'skipped', 'detail' => 'Partial migration was already present and was marked complete before continuing.']);
+        $_SESSION['sf_install_sql_results'] = $results;
+      }
+    }
     $failed = array_filter($results, static fn($row) => in_array(($row['status'] ?? ''), ['failed', 'missing'], true));
     sf_admin_flash($failed ? 'error' : 'success', $failed ? 'Schema repair stopped on a failed SQL file. Review the installer results below.' : 'Schema repair completed. Base SQL and migrations were re-applied where needed.');
   } catch (Throwable $e) {
