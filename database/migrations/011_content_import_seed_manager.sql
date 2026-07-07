@@ -26,7 +26,7 @@ CREATE TABLE IF NOT EXISTS content_import_batches (
 CREATE TABLE IF NOT EXISTS content_import_rows (
   id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
   batch_id BIGINT UNSIGNED NOT NULL,
-  row_number INT UNSIGNED NOT NULL DEFAULT 0,
+  `row_number` INT UNSIGNED NOT NULL DEFAULT 0,
   entity_table VARCHAR(80) NOT NULL,
   entity_id INT DEFAULT NULL,
   import_action ENUM('insert','update','skip') NOT NULL DEFAULT 'insert',
