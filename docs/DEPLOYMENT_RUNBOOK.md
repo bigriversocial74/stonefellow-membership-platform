@@ -81,6 +81,7 @@ Open these launch-control pages:
 
 - `admin/index.php`
 - `admin/package-readiness.php`
+- `admin/smoke-tests.php`
 - `admin/launch-checklist.php`
 - `admin/qa.php`
 - `admin/migration-checker.php`
@@ -108,7 +109,7 @@ Open these reporting and revenue pages:
 - `admin/security-dashboard.php`
 - `admin/roles.php`
 
-Also run `deploy/preflight.php` before public launch. It now reports QA score, package-readiness score, missing required files, route status, SQL file presence, and launch gate status.
+Also run `deploy/preflight.php` before public launch. It now reports QA score, package-readiness score, smoke-test score, missing required files, route status, SQL file presence, scenario failures, manual review items, and launch gate status.
 
 ## 6. Configure production
 
@@ -131,16 +132,17 @@ In admin, configure:
 
 ## 7. Smoke tests
 
-Test:
+Open `admin/smoke-tests.php` and use the scenario matrix to test:
 
 - signup, signin, logout, forgot password, reset password
 - installer lock behavior
 - subscribe checkout, billing success, and billing cancel flows
 - member dashboard
 - member notifications, messages, comments, and support center
-- library and watchlist
+- library, watchlist, playlists, and feed
 - search
 - music player preview and full access
+- album and song detail pages as full pages
 - episode/watch page playback
 - signed stream/download access
 - merch cart, checkout, and order confirmation
@@ -155,6 +157,8 @@ Test:
 - incidents API
 - analytics summary API
 
+The smoke-test matrix has automatic static checks for required files and JSON endpoint contracts. Manual scenarios still require live browser/provider verification before launch.
+
 ## 8. Package readiness gate
 
 Before creating or uploading a deploy ZIP:
@@ -162,8 +166,9 @@ Before creating or uploading a deploy ZIP:
 1. Open `admin/package-readiness.php`.
 2. Confirm the required file manifest has no missing files.
 3. Confirm the target migration is `020`.
-4. Confirm `deploy/preflight.php` returns no blocking failures.
-5. Confirm the package includes docs, SQL files, deploy tooling, public pages, member pages, admin pages, APIs, styles, manifest, and service worker.
+4. Open `admin/smoke-tests.php` and resolve missing route/API failures.
+5. Confirm `deploy/preflight.php` returns no blocking failures.
+6. Confirm the package includes docs, SQL files, deploy tooling, public pages, member pages, admin pages, APIs, styles, manifest, service worker, and smoke-test docs.
 
 ## 9. Backup and release gate
 
@@ -201,6 +206,8 @@ Launch when:
 - installer completes
 - migrations are applied through `020`
 - package readiness has no missing required files
+- smoke-test matrix has no missing route/API failures
+- manual smoke checks are completed or intentionally waived
 - QA has no failed checks
 - route registry has no missing required routes
 - system health has no critical failures
