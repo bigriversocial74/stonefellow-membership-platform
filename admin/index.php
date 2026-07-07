@@ -1,14 +1,15 @@
 <?php
 $pageTitle = 'Admin Foundation';
-$pageDescription = 'Stonefellow admin foundation for production monitoring, incidents, system alerts, backup restore, release management, roles, permissions, security audit, automation scheduler, member messaging, lifecycle, support, membership tiers, revenue dashboard, engagement analytics, content, payments, publishing, and deployment readiness.';
+$pageDescription = 'Stonefellow admin foundation for production monitoring, incidents, system alerts, backup restore, release management, roles, permissions, security audit, automation scheduler, member messaging, lifecycle, support, membership tiers, revenue dashboard, engagement analytics, content, payments, publishing, package readiness, and deployment readiness.';
 $pageClass = 'membership-page admin-catalog-page';
 require __DIR__ . '/../includes/admin_catalog.php';
 require __DIR__ . '/../includes/header.php';
-sf_admin_shell_start('Admin Foundation', 'Operational build control', 'Manage monitoring, incidents, alerts, backups, releases, security, automation, member messaging, lifecycle, support, revenue, content, payments, publishing, and delivery.', 'index');
+sf_admin_shell_start('Admin Foundation', 'Operational build control', 'Manage monitoring, incidents, alerts, backups, releases, package readiness, security, automation, member messaging, lifecycle, support, revenue, content, payments, publishing, and delivery.', 'index');
 $adminSections = [
   'Launch Gate' => [
     ['QA','Production Readiness','Launch scoring, route checks, security checks, and content audit.','admin/qa.php'],
     ['Checklist','Final Launch Path','Install, migration, route, security, backup, monitoring, and preflight sequence.','admin/launch-checklist.php'],
+    ['Package','Readiness','Deployable script package checks, required file manifest, SQL target, and final handoff gates.','admin/package-readiness.php'],
     ['Routes','Registry v2','Public, member, admin, API, media, deployment, monitoring, incident, backup, and release routes.','admin/routes-checker.php'],
     ['Migrations','Through 020','Base schema plus migrations 001 through 020.','admin/migration-checker.php'],
   ],
@@ -56,15 +57,15 @@ $adminSections = [
 <section class="sf-admin-panel">
   <div class="sf-admin-panel-head">
     <div><span class="sf-panel-eyebrow">Streaming Platform Foundation</span><h2>What is now built</h2></div>
-    <span class="sf-admin-mini-pill">Phases 1–36</span>
+    <span class="sf-admin-mini-pill">Phases 1–37</span>
   </div>
   <div class="sf-admin-roadmap">
     <div><span>✓</span><strong>Production Monitoring / Error Log Center v1</strong><p>Health snapshots, service checks, runtime metrics, failed notification/job/payment counters, error records, and monitoring APIs.</p></div>
     <div><span>✓</span><strong>System Notifications + Incident Alerts v1</strong><p>Incident records, incident timeline, severity workflow, alert rules, admin alert inbox, and email/in-app alert routing.</p></div>
     <div><span>✓</span><strong>Production Backup / Restore Manager v1</strong><p>Backup profiles, run records, schema manifests, storage coverage, restore readiness checks, and verified-run tracking.</p></div>
     <div><span>✓</span><strong>Deployment Release Manager v1</strong><p>Release records, deployment checklist, migration range, backup links, preflight link, release events, and rollback notes.</p></div>
-    <div><span>✓</span><strong>Admin Roles / Permissions v1</strong><p>Role matrix, module permissions, role assignments, sensitive-module helpers, and permission-aware admin security pages.</p></div>
     <div><span>✓</span><strong>Final Production QA / Route Registry v2</strong><p>Migration coverage through 020, current admin/API route registration, launch checklist updates, and final runbook alignment.</p></div>
+    <div><span>✓</span><strong>Production Package Readiness v1</strong><p>Deployable file manifest, package checks, stronger preflight output, package readiness admin page, and phase handoff docs.</p></div>
   </div>
 </section>
 
