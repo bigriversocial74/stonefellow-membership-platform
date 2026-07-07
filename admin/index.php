@@ -1,10 +1,10 @@
 <?php
 $pageTitle = 'Admin Foundation';
-$pageDescription = 'Stonefellow admin foundation for storyboarding, AI provider settings, production monitoring, incidents, system alerts, backup restore, release management, release candidate handoff, roles, permissions, security audit, automation scheduler, member messaging, lifecycle, support, membership tiers, revenue dashboard, engagement analytics, content, payments, publishing, package readiness, smoke tests, and deployment readiness.';
+$pageDescription = 'Stonefellow admin foundation for storyboarding, scene actions, AI provider settings, production monitoring, incidents, system alerts, backup restore, release management, release candidate handoff, roles, permissions, security audit, automation scheduler, member messaging, lifecycle, support, membership tiers, revenue dashboard, engagement analytics, content, payments, publishing, package readiness, smoke tests, and deployment readiness.';
 $pageClass = 'membership-page admin-catalog-page';
 require __DIR__ . '/../includes/admin_catalog.php';
 require __DIR__ . '/../includes/header.php';
-sf_admin_shell_start('Admin Foundation', 'Operational build control', 'Manage storyboarding, AI provider settings, release candidate handoff, monitoring, incidents, alerts, backups, releases, package readiness, smoke tests, security, automation, member messaging, lifecycle, support, revenue, content, payments, publishing, and delivery.', 'index');
+sf_admin_shell_start('Admin Foundation', 'Operational build control', 'Manage storyboarding, scene actions, AI provider settings, release candidate handoff, monitoring, incidents, alerts, backups, releases, package readiness, smoke tests, security, automation, member messaging, lifecycle, support, revenue, content, payments, publishing, and delivery.', 'index');
 $adminSections = [
   'Launch Gate' => [
     ['RC','Final Handoff','Release candidate score, deploy ZIP, SQL target, backup/release status, and final launch gate.','admin/release-candidate.php'],
@@ -28,7 +28,7 @@ $adminSections = [
     ['Support','Help Desk','Member tickets, replies, priority workflow, and linked account context.','admin/support.php'],
   ],
   'Content + Revenue' => [
-    ['Storyboard','Visual Scripts','Prompt-to-9-scene storyboard workflow with characters, scene cards, generated prompts, dialog, and admin-managed AI provider.','admin/storyboards.php'],
+    ['Storyboard','Visual Scripts','Prompt-to-9-scene storyboard workflow with scene edit, rewrite, image regenerate, upload, and admin-managed AI provider.','admin/storyboards.php'],
     ['AI','Provider Settings','Admin-only Claude/ChatGPT API keys, defaults, usage limits, cost tracking, and secure key status.','admin/ai-settings.php'],
     ['Media','Catalog','Albums, songs, episodes, videos, assets, publishing, and secure delivery.','admin/music.php'],
     ['Revenue','Launch Dashboard','MRR, ARR, checkout conversion, merch, churn risk, and snapshots.','admin/revenue-dashboard.php'],
@@ -38,38 +38,23 @@ $adminSections = [
 ];
 ?>
 <?php foreach ($adminSections as $sectionTitle => $cards): ?>
-  <section class="sf-admin-dashboard-section">
-    <div class="sf-admin-section-title">
-      <div><span class="sf-panel-eyebrow"><?= sf_admin_h($sectionTitle) ?></span><h2><?= sf_admin_h($sectionTitle) ?></h2></div>
-      <span class="sf-admin-mini-pill">Launch v2</span>
-    </div>
-    <div class="sf-admin-card-grid">
-      <?php foreach ($cards as $card): ?>
-        <a class="sf-admin-action-card" href="<?= sf_url($card[3]) ?>"><span><?= sf_admin_h($card[0]) ?></span><strong><?= sf_admin_h($card[1]) ?></strong><small><?= sf_admin_h($card[2]) ?></small></a>
-      <?php endforeach; ?>
-    </div>
-  </section>
+  <section class="sf-admin-dashboard-section"><div class="sf-admin-section-title"><div><span class="sf-panel-eyebrow"><?= sf_admin_h($sectionTitle) ?></span><h2><?= sf_admin_h($sectionTitle) ?></h2></div><span class="sf-admin-mini-pill">Launch v2</span></div><div class="sf-admin-card-grid"><?php foreach ($cards as $card): ?><a class="sf-admin-action-card" href="<?= sf_url($card[3]) ?>"><span><?= sf_admin_h($card[0]) ?></span><strong><?= sf_admin_h($card[1]) ?></strong><small><?= sf_admin_h($card[2]) ?></small></a><?php endforeach; ?></div></section>
 <?php endforeach; ?>
 
 <section class="sf-admin-panel">
-  <div class="sf-admin-panel-head"><div><span class="sf-panel-eyebrow">Streaming Platform Foundation</span><h2>What is now built</h2></div><span class="sf-admin-mini-pill">Phases 1–42</span></div>
+  <div class="sf-admin-panel-head"><div><span class="sf-panel-eyebrow">Streaming Platform Foundation</span><h2>What is now built</h2></div><span class="sf-admin-mini-pill">Phases 1–43</span></div>
   <div class="sf-admin-roadmap">
     <div><span>✓</span><strong>Production Monitoring / Error Log Center v1</strong><p>Health snapshots, service checks, runtime metrics, failed notification/job/payment counters, error records, and monitoring APIs.</p></div>
     <div><span>✓</span><strong>System Notifications + Incident Alerts v1</strong><p>Incident records, incident timeline, severity workflow, alert rules, admin alert inbox, and email/in-app alert routing.</p></div>
     <div><span>✓</span><strong>Production Backup / Restore Manager v1</strong><p>Backup profiles, run records, schema manifests, storage coverage, restore readiness checks, and verified-run tracking.</p></div>
     <div><span>✓</span><strong>Deployment Release Manager v1</strong><p>Release records, deployment checklist, migration range, backup links, preflight link, release events, and rollback notes.</p></div>
-    <div><span>✓</span><strong>Final Production QA / Route Registry v2</strong><p>Migration coverage through 020, current admin/API route registration, launch checklist updates, and final runbook alignment.</p></div>
-    <div><span>✓</span><strong>Production Package Readiness v1</strong><p>Deployable file manifest, package checks, stronger preflight output, package readiness admin page, and phase handoff docs.</p></div>
-    <div><span>✓</span><strong>Production Smoke Test Runner v1</strong><p>Scenario matrix for auth, member pages, media playback, commerce, admin ops, APIs, manual production checks, and combined preflight scoring.</p></div>
     <div><span>✓</span><strong>Production Release Candidate / Final Deploy Handoff v1</strong><p>Final release candidate gate, deploy ZIP, SQL target, backup/release readiness, RC scoring, and launch decision.</p></div>
     <div><span>✓</span><strong>Storyboarding Module Shell v1</strong><p>Storyboard list, builder workspace, script prompt, creator settings, character references, and 9-scene screenplay grid.</p></div>
     <div><span>✓</span><strong>Storyboarding SQL + Admin AI Settings v1</strong><p>Migration 021 adds storyboard persistence, scene/character/reference/job tables, AI providers, usage tracking, and admin-only API key settings.</p></div>
     <div><span>✓</span><strong>Script-to-9-Scene Generation API v1</strong><p>Admin-gated generation endpoint, provider adapter, JSON parser, scene persistence, job status, and usage event logging.</p></div>
+    <div><span>✓</span><strong>Scene Actions v1</strong><p>Scene edit persistence, single-scene rewrite, image regeneration, upload replacement, character consistency payloads, and retry-ready job records.</p></div>
   </div>
 </section>
 
-<section class="sf-admin-panel">
-  <div class="sf-admin-panel-head"><div><span class="sf-panel-eyebrow">Database Mode</span><h2>Runtime notes</h2></div><a href="<?= sf_url('docs/SQL_FILE_MAP.md') ?>">SQL Map</a></div>
-  <p class="sf-admin-copy">The installer runs the base schema plus migrations 001 through 021. Migration 021 adds storyboard persistence, AI provider settings, storyboard jobs, and AI usage tracking. Existing installs should apply only missing migrations in numeric order after a database backup.</p>
-</section>
+<section class="sf-admin-panel"><div class="sf-admin-panel-head"><div><span class="sf-panel-eyebrow">Database Mode</span><h2>Runtime notes</h2></div><a href="<?= sf_url('docs/SQL_FILE_MAP.md') ?>">SQL Map</a></div><p class="sf-admin-copy">The installer runs the base schema plus migrations 001 through 021. Migration 021 adds storyboard persistence, AI provider settings, storyboard jobs, and AI usage tracking. Existing installs should apply only missing migrations in numeric order after a database backup.</p></section>
 <?php sf_admin_shell_end(); require __DIR__ . '/../includes/footer.php'; ?>
