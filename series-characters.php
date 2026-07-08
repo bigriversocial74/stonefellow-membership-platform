@@ -7,6 +7,7 @@ $characters = sf_public_character_rows('active');
 $featuredCharacters = array_slice($characters, 0, 3);
 require __DIR__ . '/includes/header.php';
 ?>
+<link rel="stylesheet" href="<?= sf_asset('css/public-characters.css') ?>">
 <section class="sf-character-directory">
   <section class="sf-character-hero sf-character-directory-hero">
     <div class="sf-character-hero-copy">
