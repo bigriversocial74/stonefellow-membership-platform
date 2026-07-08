@@ -16,6 +16,7 @@ $pageDescription = $name . ' character profile from the Stonefellow series.';
 $pageClass = 'character-profile-page stonefellow-character-public-page';
 require __DIR__ . '/includes/header.php';
 ?>
+<link rel="stylesheet" href="<?= sf_asset('css/public-characters.css') ?>">
 <section class="sf-character-profile">
   <nav class="sf-character-breadcrumb"><a href="<?= sf_url('index.php') ?>">Home</a><span>/</span><a href="<?= sf_url('cast.php') ?>">Cast</a><span>/</span><a href="<?= sf_url('series-characters.php') ?>">Series Characters</a><span>/</span><strong><?= htmlspecialchars($name) ?></strong></nav>
 
