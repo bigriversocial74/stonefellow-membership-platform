@@ -1,10 +1,56 @@
 <?php
 $pageTitle = 'Storyboards';
-$pageDescription = 'One-screen Stonefellow producer workspace for Season 1, episodes, current storyboard scenes, and builder scene cards.';
+$pageDescription = 'Stonefellow producer overview for seasons, episodes, and scenes.';
 $pageClass = 'membership-page admin-catalog-page storyboards-page storyboarding-system-page';
 require __DIR__ . '/../includes/storyboards.php';
 require_once __DIR__ . '/../includes/storyboarding_system.php';
 require_once __DIR__ . '/../includes/ai_settings.php';
+
+if (!function_exists('sf_storyboards_overview_text')) {
+  function sf_storyboards_overview_text($value, string $fallback = '—'): string {
+    $text = trim((string)($value ?? ''));
+    if ($text === '') return '<span class="sf-story-overview-muted">' . sf_admin_h($fallback) . '</span>';
+    return nl2br(sf_admin_h($text));
+  }
+}
+if (!function_exists('sf_storyboards_overview_date')) {
+  function sf_storyboards_overview_date($value): string {
+    $text = trim((string)($value ?? ''));
+    if ($text === '') return '<span class="sf-story-overview-muted">—</span>';
+    $time = strtotime($text);
+    if (!$time) return sf_admin_h($text);
+    return sf_admin_h(date('M j, Y', $time));
+  }
+}
+if (!function_exists('sf_storyboards_overview_character_summary')) {
+  function sf_storyboards_overview_character_summary(array $characters, string $fallback = 'No main characters selected'): string {
+    $names = [];
+    foreach ($characters as $character) {
+      $name = trim((string)($character['character_name'] ?? $character['name'] ?? ''));
+      if ($name !== '') $names[] = $name;
+    }
+    if (!$names) return '<span class="sf-story-overview-muted">' . sf_admin_h($fallback) . '</span>';
+    return sf_admin_h(implode(', ', array_slice($names, 0, 6))) . (count($names) > 6 ? ' +' . (count($names) - 6) : '');
+  }
+}
+if (!function_exists('sf_storyboards_overview_ai_summary')) {
+  function sf_storyboards_overview_ai_summary(array $episode): string {
+    $status = trim((string)($episode['ai_outline_status'] ?? ''));
+    $generatedAt = trim((string)($episode['ai_outline_generated_at'] ?? ''));
+    $resultJson = trim((string)($episode['ai_outline_result_json'] ?? ''));
+    $parts = [];
+    $parts[] = $status !== '' ? sf_story_v1_status_label($status) : 'Not generated';
+    if ($generatedAt !== '') $parts[] = 'Generated ' . strip_tags(sf_storyboards_overview_date($generatedAt));
+    if ($resultJson !== '') {
+      $decoded = json_decode($resultJson, true);
+      if (is_array($decoded)) {
+        $note = trim((string)($decoded['producer_notes'] ?? ''));
+        if ($note !== '') $parts[] = $note;
+      }
+    }
+    return sf_admin_h(implode(' · ', $parts));
+  }
+}
 
 if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
   if (!sf_verify_csrf($_POST['csrf_token'] ?? null)) {
@@ -28,10 +74,10 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
       sf_admin_execute('UPDATE storyboards SET story_season_id = ?, story_episode_id = ?, producer_scene_order = IF(producer_scene_order > 0, producer_scene_order, id * 10), producer_scene_status = ?, updated_at = NOW() WHERE id = ?', [$seasonIdForScene ?: null, $episodeIdForScene, 'outline', $storyboardId]);
     }
     if ($storyboardId > 0) {
-      sf_admin_flash('success', 'Storyboard scene created. Open Builder to manage its scene cards.');
-      sf_admin_redirect(sf_url('admin/storyboards.php?episode_id=' . $episodeIdForScene . '&scene_id=' . $storyboardId . '#producer-board'));
+      sf_admin_flash('success', 'Scene created. Open Builder to manage its scene cards.');
+      sf_admin_redirect(sf_url('admin/storyboards.php?episode_id=' . $episodeIdForScene . '&scene_id=' . $storyboardId . '#scenes'));
     }
-    sf_admin_flash('error', 'Storyboard scene could not be created.');
+    sf_admin_flash('error', 'Scene could not be created.');
     sf_admin_redirect();
   }
 
@@ -57,7 +103,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
     ];
     $newId = sf_story_v1_save_row('story_seasons', $payload, $id);
     sf_admin_flash($newId ? 'success' : 'error', $newId ? 'Season saved.' : 'Season could not be saved.');
-    sf_admin_redirect(sf_url('admin/storyboards.php?season_id=' . ($newId ?: $id)));
+    sf_admin_redirect(sf_url('admin/storyboards.php?season_id=' . ($newId ?: $id) . '#seasons'));
   }
 
   if ($action === 'save_episode') {
@@ -81,83 +127,176 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
     $newId = sf_story_v1_save_row('story_episodes', $payload, $id);
     if ($newId) sf_story_v1_sync_episode_characters($newId, $_POST['episode_character_ids'] ?? []);
     sf_admin_flash($newId ? 'success' : 'error', $newId ? 'Episode saved.' : 'Episode could not be saved.');
-    sf_admin_redirect(sf_url('admin/storyboards.php?season_id=' . $seasonId . '&episode_id=' . ($newId ?: $id)));
+    sf_admin_redirect(sf_url('admin/storyboards.php?season_id=' . $seasonId . '&episode_id=' . ($newId ?: $id) . '#episodes'));
   }
 
   sf_admin_redirect();
 }
 
-$counts = sf_story_v1_counts();
 $seasons = sf_story_v1_seasons();
 $allEpisodes = sf_story_v1_episodes();
 $seasonId = sf_admin_int($_GET['season_id'] ?? null, 0) ?? 0;
 if ($seasonId <= 0) $seasonId = (int)($allEpisodes[0]['story_season_id'] ?? sf_story_v1_first_id($seasons));
 $selectedSeason = sf_story_v1_find($seasons, $seasonId) ?: ($seasons[0] ?? []);
+$seasonId = (int)($selectedSeason['id'] ?? $seasonId);
 $episodes = sf_story_v1_episodes($seasonId);
 $episodeId = sf_admin_int($_GET['episode_id'] ?? null, 0) ?? 0;
-if ($episodeId <= 0) $episodeId = sf_story_v1_first_id($episodes ?: $allEpisodes);
-$selectedEpisode = sf_story_v1_find($allEpisodes, $episodeId) ?: ($episodes[0] ?? []);
-if (!$seasonId && $selectedEpisode) $seasonId = (int)($selectedEpisode['story_season_id'] ?? 0);
+if ($episodeId <= 0 || !sf_story_v1_find($episodes, $episodeId)) $episodeId = sf_story_v1_first_id($episodes ?: $allEpisodes);
+$selectedEpisode = sf_story_v1_find($episodes, $episodeId) ?: sf_story_v1_find($allEpisodes, $episodeId) ?: ($episodes[0] ?? []);
+$episodeId = (int)($selectedEpisode['id'] ?? $episodeId);
 $episodeScenes = sf_story_v1_episode_storyboards($episodeId);
 $sceneId = sf_admin_int($_GET['scene_id'] ?? null, 0) ?? 0;
 if ($sceneId <= 0) $sceneId = sf_story_v1_first_id($episodeScenes);
-$selectedScene = sf_story_v1_find($episodeScenes, $sceneId) ?: ($episodeScenes[0] ?? []);
-$selectedSceneCards = $selectedScene ? sf_storyboard_scenes((int)$selectedScene['id']) : [];
 $characters = sf_story_v1_characters('active');
-$episodeCharacters = sf_story_v1_episode_characters($episodeId);
-$episodeCharacterIds = array_map(static fn($row) => (int)($row['id'] ?? 0), $episodeCharacters);
+$episodeCharactersByEpisode = [];
+$episodeCharacterIdsByEpisode = [];
+foreach ($episodes as $episodeRow) {
+  $rowEpisodeId = (int)($episodeRow['id'] ?? 0);
+  if ($rowEpisodeId <= 0) continue;
+  $episodeCharactersByEpisode[$rowEpisodeId] = sf_story_v1_episode_characters($rowEpisodeId);
+  $episodeCharacterIdsByEpisode[$rowEpisodeId] = array_map(static fn($row) => (int)($row['id'] ?? 0), $episodeCharactersByEpisode[$rowEpisodeId]);
+}
+$sceneCharacterNames = [];
+$storyboardIds = array_values(array_unique(array_filter(array_map(static fn($row) => (int)($row['id'] ?? 0), $episodeScenes))));
+if ($storyboardIds && sf_storyboard_ready() && sf_admin_table_exists('storyboard_characters')) {
+  $placeholders = implode(',', array_fill(0, count($storyboardIds), '?'));
+  $links = sf_admin_fetch_all("SELECT storyboard_id, character_name FROM storyboard_characters WHERE storyboard_id IN ({$placeholders}) AND status = 'active' ORDER BY character_order ASC, id ASC", $storyboardIds);
+  foreach ($links as $link) {
+    $storyboardId = (int)($link['storyboard_id'] ?? 0);
+    $name = trim((string)($link['character_name'] ?? ''));
+    if ($storyboardId > 0 && $name !== '') $sceneCharacterNames[$storyboardId][] = $name;
+  }
+}
 $providerOptions = function_exists('sf_ai_provider_options') ? sf_ai_provider_options() : ['chatgpt'=>'ChatGPT / OpenAI','claude'=>'Claude / Anthropic'];
+$statusOptions = sf_story_v1_status_options();
 $disabled = sf_story_v1_disabled_attr();
 $bridgeReady = sf_story_v1_bridge_ready();
 require __DIR__ . '/../includes/header.php';
-sf_admin_shell_start('Storyboarding', 'Season 1 producer board', 'Season → Episode → current storyboard scenes → Open Builder for scene cards.', 'storyboards');
+sf_admin_shell_start('Storyboarding', 'Producer Overview', 'Season → Episode → Scenes. Open Builder remains the detailed scene-card workspace.', 'storyboards');
 ?>
-<div class="sf-story-v1-toolbar"><a href="<?= sf_url('admin/storyboards.php') ?>">Producer Board</a><a href="<?= sf_url('admin/story-characters.php') ?>">Character Catalog</a><a href="<?= sf_url('database/storyboarding_season_episode_bridge_v1.sql') ?>">Bridge SQL</a></div>
-<?php if (!$bridgeReady): ?><section class="sf-story-v1-warning"><strong>Bridge SQL required:</strong> Import <code>database/storyboarding_season_episode_bridge_v1.sql</code> to force Season 1 / Episode 1 and assign existing storyboard rows as episode scenes.</section><?php endif; ?>
+<?php if (!$bridgeReady): ?><div class="sf-story-v1-warning"><strong>Bridge SQL required:</strong> Import <code>database/storyboarding_season_episode_bridge_v1.sql</code> to force Season 1 / Episode 1 and assign existing storyboard rows as episode scenes.</div><?php endif; ?>
 
-<section class="sf-admin-card-grid sf-producer-stats">
-  <div class="sf-admin-action-card"><span>Seasons</span><strong><?= (int)$counts['seasons'] ?></strong><small>Season 1 forced.</small></div>
-  <div class="sf-admin-action-card"><span>Episodes</span><strong><?= (int)$counts['episodes'] ?></strong><small>Inside Season 1.</small></div>
-  <div class="sf-admin-action-card"><span>Storyboard Scenes</span><strong><?= count($episodeScenes) ?></strong><small>Current rows assigned to episode.</small></div>
-  <div class="sf-admin-action-card"><span>Builder Cards</span><strong><?= count($selectedSceneCards) ?></strong><small>Inside selected scene builder.</small></div>
-  <div class="sf-admin-action-card"><span>Characters</span><strong><?= count($episodeCharacters) ?: (int)$counts['characters'] ?></strong><small>Episode main cast.</small></div>
-</section>
-
-<section class="sf-admin-panel sf-producer-board-shell" id="producer-board">
-  <div class="sf-admin-panel-head"><div><span class="sf-panel-eyebrow">Producer Board</span><h2>Season → Episode → Storyboard Scene → Builder Scene Cards</h2></div><span class="sf-admin-mini-pill">Backward data bridge</span></div>
-  <p class="sf-admin-copy">The existing AI storyboard rows are now treated as the current scenes under Season 1 / Episode 1. Open Builder remains the place where the selected storyboard scene expands into the detailed scene-sheet and visual cards.</p>
-  <div class="sf-producer-board">
-    <section class="sf-producer-column sf-producer-column-season">
-      <div class="sf-producer-column-head"><span>Step 1</span><h3>Season</h3></div>
-      <article class="sf-story-v1-item sf-story-v1-selected"><h3>S<?= (int)($selectedSeason['season_number'] ?? 1) ?> · <?= sf_admin_h($selectedSeason['title'] ?? 'Season 1') ?></h3><p><?= sf_admin_h($selectedSeason['logline'] ?? '') ?></p><div class="sf-story-v1-meta"><span><?= sf_story_v1_status_label((string)($selectedSeason['status'] ?? 'active')) ?></span></div></article>
-      <div class="sf-story-v1-muted-copy"><strong>Season Outline</strong><p><?= sf_admin_h($selectedSeason['description'] ?? 'Season outline pending.') ?></p><p><?= sf_admin_h($selectedSeason['arc_notes'] ?? '') ?></p></div>
-      <details><summary>Edit Season Outline</summary><form class="sf-admin-form" method="post"><?= sf_csrf_field() ?><input type="hidden" name="action" value="save_season"><input type="hidden" name="id" value="<?= (int)($selectedSeason['id'] ?? 0) ?>"><label>Title<input name="title" value="<?= sf_admin_h($selectedSeason['title'] ?? 'Season 1') ?>"<?= $disabled ?>></label><label>Logline<textarea name="logline" rows="2"<?= $disabled ?>><?= sf_admin_h($selectedSeason['logline'] ?? '') ?></textarea></label><label>Season Outline<textarea name="description" rows="4"<?= $disabled ?>><?= sf_admin_h($selectedSeason['description'] ?? '') ?></textarea></label><label>Season Arc<textarea name="arc_notes" rows="4"<?= $disabled ?>><?= sf_admin_h($selectedSeason['arc_notes'] ?? '') ?></textarea></label><input type="hidden" name="season_number" value="<?= (int)($selectedSeason['season_number'] ?? 1) ?>"><input type="hidden" name="status" value="<?= sf_admin_h($selectedSeason['status'] ?? 'active') ?>"><button type="submit"<?= $disabled ?>>Save Season</button></form></details>
-    </section>
-
-    <section class="sf-producer-column sf-producer-column-episode">
-      <div class="sf-producer-column-head"><span>Step 2</span><h3>Episode</h3></div>
-      <div class="sf-story-v1-list"><?php foreach ($episodes as $episode): ?><article class="sf-story-v1-item <?= (int)$episode['id'] === $episodeId ? 'sf-story-v1-selected' : '' ?>"><h3>E<?= (int)$episode['episode_number'] ?> · <?= sf_admin_h($episode['title']) ?></h3><p><?= sf_admin_h($episode['logline'] ?? '') ?></p><div class="sf-story-v1-meta"><span><?= sf_story_v1_status_label((string)($episode['production_status'] ?? 'outline')) ?></span><span><?= (int)($episode['runtime_target_minutes'] ?? 0) ?> min</span></div><a href="<?= sf_url('admin/storyboards.php?season_id=' . (int)$seasonId . '&episode_id=' . (int)$episode['id']) ?>">Select Episode</a></article><?php endforeach; ?></div>
-      <div class="sf-story-v1-muted-copy"><strong>Episode Outline</strong><p><?= sf_admin_h(sf_story_v1_episode_outline_text($selectedEpisode)) ?></p><?php if (!empty($selectedEpisode['setting_label'])): ?><p><strong>Setting:</strong> <?= sf_admin_h($selectedEpisode['setting_label']) ?></p><?php endif; ?></div>
-      <details open><summary>Episode Settings + AI Outline</summary><form class="sf-admin-form" method="post"><?= sf_csrf_field() ?><input type="hidden" name="action" value="save_episode"><input type="hidden" name="id" value="<?= (int)$episodeId ?>"><input type="hidden" name="story_season_id" value="<?= (int)$seasonId ?>"><label>Episode Title<input name="title" value="<?= sf_admin_h($selectedEpisode['title'] ?? 'Episode 1') ?>"<?= $disabled ?>></label><label>Episode Logline<textarea name="logline" rows="2"<?= $disabled ?>><?= sf_admin_h($selectedEpisode['logline'] ?? '') ?></textarea></label><label>Episode Outline<textarea name="episode_outline" rows="4"<?= $disabled ?>><?= sf_admin_h(sf_story_v1_episode_outline_text($selectedEpisode)) ?></textarea></label><label>Optional Setting<input name="setting_label" value="<?= sf_admin_h($selectedEpisode['setting_label'] ?? '') ?>"<?= $disabled ?>></label><div class="sf-story-v1-characters"><?php foreach ($characters as $char): ?><label><input type="checkbox" name="episode_character_ids[]" value="<?= (int)$char['id'] ?>" <?= in_array((int)$char['id'], $episodeCharacterIds, true) ? 'checked' : '' ?><?= $disabled ?>><?= sf_admin_h($char['character_name']) ?></label><?php endforeach; ?></div><input type="hidden" name="episode_number" value="<?= (int)($selectedEpisode['episode_number'] ?? 1) ?>"><input type="hidden" name="runtime_target_minutes" value="<?= (int)($selectedEpisode['runtime_target_minutes'] ?? 48) ?>"><input type="hidden" name="production_status" value="<?= sf_admin_h($selectedEpisode['production_status'] ?? 'outline') ?>"><button type="submit"<?= $disabled ?>>Save Episode</button></form><form class="sf-admin-form" method="post" action="<?= sf_url('api/story-episode-outline.php') ?>"><?= sf_csrf_field() ?><input type="hidden" name="episode_id" value="<?= (int)$episodeId ?>"><input type="hidden" name="return_url" value="<?= sf_admin_h(sf_url('admin/storyboards.php?episode_id=' . (int)$episodeId . '#producer-board')) ?>"><label>AI Provider<?= sf_admin_select('provider_key', $providerOptions, (string)($selectedEpisode['ai_outline_provider'] ?? '')) ?></label><label>AI Instruction<textarea name="prompt" rows="2" placeholder="Generate or improve this episode outline using the current scene list and selected main characters."></textarea></label><button type="submit"<?= (!$bridgeReady ? ' disabled' : '') ?>>Generate Episode Outline</button></form></details>
-    </section>
-
-    <section class="sf-producer-column sf-producer-column-scenes">
-      <div class="sf-producer-column-head"><span>Step 3</span><h3>Episode Scenes</h3></div>
-      <p class="sf-admin-copy">These are the current storyboard rows. Dragging changes scene order for this episode.</p>
-      <div class="sf-story-v1-list" data-story-drag-list data-save-url="<?= sf_url('api/storyboarding-system.php') ?>" data-action="reorder_scene_sheets" data-csrf="<?= sf_admin_h(sf_csrf_token()) ?>">
-        <?php foreach ($episodeScenes as $scene): ?><article class="sf-story-v1-item <?= (int)$scene['id'] === $sceneId ? 'sf-story-v1-selected' : '' ?>" data-story-id="<?= (int)$scene['id'] ?>"><div class="sf-story-v1-item-head"><span class="sf-story-v1-drag">↕</span><div><h3><?= sf_admin_h($scene['title'] ?? 'Storyboard Scene') ?></h3><p><?= sf_admin_h($scene['prompt'] ?? $scene['genre'] ?? '') ?></p></div></div><div class="sf-story-v1-meta"><span><?= sf_story_v1_status_label((string)($scene['status'] ?? 'outline')) ?></span><span><?= (int)($scene['completed_scenes'] ?? 0) ?> builder cards</span><span><?= (int)($scene['characters'] ?? 0) ?> characters</span></div><div class="sf-story-v1-mini-actions"><a href="<?= sf_url('admin/storyboards.php?episode_id=' . (int)$episodeId . '&scene_id=' . (int)$scene['id'] . '#producer-board') ?>">Select</a><a href="<?= sf_url('admin/storyboard-builder.php?project_id=' . (int)$scene['id']) ?>">Open Builder</a></div></article><?php endforeach; ?>
-        <?php if (!$episodeScenes): ?><article class="sf-story-v1-item"><h3>No storyboard scenes assigned</h3><p>Import the bridge SQL to assign existing storyboard rows to Season 1 / Episode 1, or create a new storyboard scene below.</p></article><?php endif; ?>
-      </div>
-      <details><summary>Add Storyboard Scene</summary><form class="sf-admin-form" method="post"><?= sf_csrf_field() ?><input type="hidden" name="action" value="create_ai_storyboard"><input type="hidden" name="story_episode_id" value="<?= (int)$episodeId ?>"><label>Scene Title<input name="title" placeholder="Backstage Stories"<?= sf_admin_form_disabled_attr() ?>></label><label>Scene Prompt<textarea name="short_prompt" rows="3" placeholder="Describe the scene/storyboard item."<?= sf_admin_form_disabled_attr() ?>></textarea></label><input type="hidden" name="genre" value="Scene"><input type="hidden" name="scene_count" value="9"><button type="submit"<?= sf_admin_form_disabled_attr() ?>>Create Scene</button></form></details>
-    </section>
-
-    <section class="sf-producer-column sf-producer-column-cards">
-      <div class="sf-producer-column-head"><span>Step 4</span><h3>Builder Cards</h3></div>
-      <?php if ($selectedScene): ?><article class="sf-story-v1-item sf-story-v1-selected"><h3><?= sf_admin_h($selectedScene['title'] ?? 'Selected Scene') ?></h3><p><?= sf_admin_h($selectedScene['prompt'] ?? '') ?></p><div class="sf-story-v1-mini-actions"><a href="<?= sf_url('admin/storyboard-builder.php?project_id=' . (int)$selectedScene['id']) ?>">Open Builder</a></div></article><?php endif; ?>
-      <div class="sf-story-v1-card-list"><?php foreach ($selectedSceneCards as $card): ?><article class="sf-story-v1-scene-card"><span class="sf-story-v1-card-type">Card <?= (int)($card['number'] ?? 0) ?> · <?= sf_admin_h($card['status'] ?? 'draft') ?></span><strong><?= sf_admin_h($card['title'] ?? '') ?></strong><small><?= sf_admin_h($card['prompt'] ?? $card['summary'] ?? '') ?></small></article><?php endforeach; ?><?php if (!$selectedSceneCards): ?><article class="sf-story-v1-item"><h3>No builder cards yet</h3><p>Open Builder to generate or edit this scene’s cards.</p></article><?php endif; ?></div>
-    </section>
+<section class="sf-admin-panel sf-story-overview-panel" id="seasons">
+  <div class="sf-admin-panel-head sf-story-overview-head">
+    <div><h2>SEASONS</h2></div>
+    <button type="button" class="sf-story-overview-add" data-story-modal-open="sf-add-season-modal"<?= $disabled ?>>Add Season</button>
+  </div>
+  <div class="sf-story-overview-table-wrap">
+    <table class="sf-story-overview-table">
+      <thead><tr><th>Season title</th><th>Season number</th><th>Season outline</th><th>Status</th><th>Updated</th><th>Actions</th></tr></thead>
+      <tbody>
+        <?php foreach ($seasons as $season): $sid = (int)($season['id'] ?? 0); ?>
+          <tr class="<?= $sid === $seasonId ? 'is-selected' : '' ?>">
+            <td><strong><?= sf_admin_h($season['title'] ?? 'Season') ?></strong></td>
+            <td>Season <?= (int)($season['season_number'] ?? 1) ?></td>
+            <td class="sf-story-overview-copy"><?= sf_storyboards_overview_text($season['description'] ?? $season['logline'] ?? '', 'Season outline pending.') ?></td>
+            <td><span class="sf-admin-mini-pill"><?= sf_story_v1_status_label((string)($season['status'] ?? 'active')) ?></span></td>
+            <td><?= sf_storyboards_overview_date($season['updated_at'] ?? $season['created_at'] ?? '') ?></td>
+            <td class="sf-story-overview-actions"><a href="<?= sf_url('admin/storyboards.php?season_id=' . $sid . '#seasons') ?>">Select</a><button type="button" data-story-modal-open="sf-season-modal-<?= $sid ?>"<?= $disabled ?>>Edit</button></td>
+          </tr>
+        <?php endforeach; ?>
+        <?php if (!$seasons): ?><tr><td colspan="6" class="sf-story-overview-empty">No seasons found. Add Season to create the first season container.</td></tr><?php endif; ?>
+      </tbody>
+    </table>
   </div>
 </section>
+
+<section class="sf-admin-panel sf-story-overview-panel" id="episodes">
+  <div class="sf-admin-panel-head sf-story-overview-head">
+    <div><h2>EPISODES</h2></div>
+    <button type="button" class="sf-story-overview-add" data-story-modal-open="sf-add-episode-modal"<?= $disabled ?>>Add Episode</button>
+  </div>
+  <div class="sf-story-overview-table-wrap">
+    <table class="sf-story-overview-table">
+      <thead><tr><th>Episode</th><th>Title</th><th>Episode outline</th><th>Optional setting</th><th>Main characters</th><th>AI outline</th><th>Actions</th></tr></thead>
+      <tbody>
+        <?php foreach ($episodes as $episode): $eid = (int)($episode['id'] ?? 0); $episodeCharacterRows = $episodeCharactersByEpisode[$eid] ?? []; ?>
+          <tr class="<?= $eid === $episodeId ? 'is-selected' : '' ?>">
+            <td>Episode <?= (int)($episode['episode_number'] ?? 1) ?></td>
+            <td><strong><?= sf_admin_h($episode['title'] ?? 'Episode') ?></strong></td>
+            <td class="sf-story-overview-copy"><?= sf_storyboards_overview_text(sf_story_v1_episode_outline_text($episode), 'Episode outline pending.') ?></td>
+            <td><?= sf_storyboards_overview_text($episode['setting_label'] ?? '', 'Optional setting not set.') ?></td>
+            <td><?= sf_storyboards_overview_character_summary($episodeCharacterRows) ?></td>
+            <td><?= sf_storyboards_overview_ai_summary($episode) ?></td>
+            <td class="sf-story-overview-actions"><a href="<?= sf_url('admin/storyboards.php?season_id=' . (int)$seasonId . '&episode_id=' . $eid . '#episodes') ?>">Select</a><button type="button" data-story-modal-open="sf-episode-modal-<?= $eid ?>"<?= $disabled ?>>Edit</button><form method="post" action="<?= sf_url('api/story-episode-outline.php') ?>"><?= sf_csrf_field() ?><input type="hidden" name="episode_id" value="<?= $eid ?>"><input type="hidden" name="return_url" value="<?= sf_admin_h(sf_url('admin/storyboards.php?season_id=' . (int)$seasonId . '&episode_id=' . $eid . '#episodes')) ?>"><input type="hidden" name="provider_key" value="<?= sf_admin_h((string)($episode['ai_outline_provider'] ?? '')) ?>"><button type="submit"<?= (!$bridgeReady ? ' disabled' : '') ?>>Generate Outline</button></form></td>
+          </tr>
+        <?php endforeach; ?>
+        <?php if (!$episodes): ?><tr><td colspan="7" class="sf-story-overview-empty">No episodes found for this season. Add Episode to create Episode 1.</td></tr><?php endif; ?>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section class="sf-admin-panel sf-story-overview-panel" id="scenes">
+  <div class="sf-admin-panel-head sf-story-overview-head">
+    <div><h2>SCENES</h2></div>
+    <button type="button" class="sf-story-overview-add" data-story-modal-open="sf-add-scene-modal"<?= sf_admin_form_disabled_attr() ?>>Add Scene</button>
+  </div>
+  <div class="sf-story-overview-table-wrap">
+    <table class="sf-story-overview-table">
+      <thead><tr><th>Scene title</th><th>Status</th><th>Builder cards</th><th>Characters</th><th>Updated</th><th>Actions</th></tr></thead>
+      <tbody data-story-drag-list data-save-url="<?= sf_url('api/storyboarding-system.php') ?>" data-action="reorder_scene_sheets" data-csrf="<?= sf_admin_h(sf_csrf_token()) ?>">
+        <?php foreach ($episodeScenes as $scene): $sceneStoryboardId = (int)($scene['id'] ?? 0); $sceneCharacters = $sceneCharacterNames[$sceneStoryboardId] ?? []; ?>
+          <tr class="<?= $sceneStoryboardId === $sceneId ? 'is-selected' : '' ?>" data-story-id="<?= $sceneStoryboardId ?>">
+            <td><strong><?= sf_admin_h($scene['title'] ?? 'Scene') ?></strong><small><?= sf_admin_h($scene['prompt'] ?? $scene['genre'] ?? '') ?></small></td>
+            <td><span class="sf-admin-mini-pill"><?= sf_story_v1_status_label((string)($scene['status'] ?? 'outline')) ?></span></td>
+            <td><?= (int)($scene['completed_scenes'] ?? 0) ?> builder cards</td>
+            <td><?= $sceneCharacters ? sf_admin_h(implode(', ', $sceneCharacters)) : ((int)($scene['characters'] ?? 0) > 0 ? (int)$scene['characters'] . ' characters' : '<span class="sf-story-overview-muted">No characters attached</span>') ?></td>
+            <td><?= sf_storyboards_overview_date($scene['updated_at'] ?? $scene['created_at'] ?? '') ?></td>
+            <td class="sf-story-overview-actions"><a href="<?= sf_url('admin/storyboards.php?season_id=' . (int)$seasonId . '&episode_id=' . (int)$episodeId . '&scene_id=' . $sceneStoryboardId . '#scenes') ?>">Select</a><a class="sf-story-overview-primary" href="<?= sf_url('admin/storyboard-builder.php?project_id=' . $sceneStoryboardId) ?>">Open Builder</a></td>
+          </tr>
+        <?php endforeach; ?>
+        <?php if (!$episodeScenes): ?><tr><td colspan="6" class="sf-story-overview-empty">No scenes assigned to this episode yet. Existing storyboard rows become scenes through the bridge SQL, or you can add a scene here.</td></tr><?php endif; ?>
+      </tbody>
+    </table>
+    <div class="sf-story-v1-save-status" data-story-save-status></div>
+  </div>
+</section>
+
+<dialog class="sf-story-v1-modal" id="sf-add-season-modal">
+  <div class="sf-story-v1-modal-close"><form method="dialog"><button type="submit" aria-label="Close">×</button></form></div>
+  <div class="sf-story-v1-modal-body">
+    <div class="sf-admin-panel-head"><div><span class="sf-panel-eyebrow">Season</span><h2>Add Season</h2></div></div>
+    <form class="sf-admin-form" method="post"><?= sf_csrf_field() ?><input type="hidden" name="action" value="save_season"><input type="hidden" name="id" value="0"><input type="hidden" name="sort_order" value="10"><label>Season Title<input name="title" value="Season <?= count($seasons) + 1 ?>"<?= $disabled ?>></label><label>Season Number<input type="number" name="season_number" min="1" value="<?= count($seasons) + 1 ?>"<?= $disabled ?>></label><label>Season Outline<textarea name="description" rows="5" placeholder="Producer outline for this season."<?= $disabled ?>></textarea></label><label>Status<?= sf_admin_select('status', $statusOptions, 'draft') ?></label><div class="sf-admin-form-actions"><button type="submit"<?= $disabled ?>>Save Season</button></div></form>
+  </div>
+</dialog>
+
+<?php foreach ($seasons as $season): $sid = (int)($season['id'] ?? 0); ?>
+<dialog class="sf-story-v1-modal" id="sf-season-modal-<?= $sid ?>">
+  <div class="sf-story-v1-modal-close"><form method="dialog"><button type="submit" aria-label="Close">×</button></form></div>
+  <div class="sf-story-v1-modal-body">
+    <div class="sf-admin-panel-head"><div><span class="sf-panel-eyebrow">Season</span><h2>Edit <?= sf_admin_h($season['title'] ?? 'Season') ?></h2></div></div>
+    <form class="sf-admin-form" method="post"><?= sf_csrf_field() ?><input type="hidden" name="action" value="save_season"><input type="hidden" name="id" value="<?= $sid ?>"><input type="hidden" name="sort_order" value="<?= (int)($season['sort_order'] ?? 10) ?>"><label>Season Title<input name="title" value="<?= sf_admin_h($season['title'] ?? '') ?>"<?= $disabled ?>></label><label>Season Number<input type="number" name="season_number" min="1" value="<?= (int)($season['season_number'] ?? 1) ?>"<?= $disabled ?>></label><label>Short Logline<textarea name="logline" rows="2"<?= $disabled ?>><?= sf_admin_h($season['logline'] ?? '') ?></textarea></label><label>Season Outline<textarea name="description" rows="5"<?= $disabled ?>><?= sf_admin_h($season['description'] ?? '') ?></textarea></label><label>Season Arc<textarea name="arc_notes" rows="4"<?= $disabled ?>><?= sf_admin_h($season['arc_notes'] ?? '') ?></textarea></label><label>Status<?= sf_admin_select('status', $statusOptions, (string)($season['status'] ?? 'active')) ?></label><div class="sf-admin-form-actions"><button type="submit"<?= $disabled ?>>Save Season</button></div></form>
+  </div>
+</dialog>
+<?php endforeach; ?>
+
+<dialog class="sf-story-v1-modal" id="sf-add-episode-modal">
+  <div class="sf-story-v1-modal-close"><form method="dialog"><button type="submit" aria-label="Close">×</button></form></div>
+  <div class="sf-story-v1-modal-body">
+    <div class="sf-admin-panel-head"><div><span class="sf-panel-eyebrow">Episode</span><h2>Add Episode</h2></div></div>
+    <form class="sf-admin-form" method="post"><?= sf_csrf_field() ?><input type="hidden" name="action" value="save_episode"><input type="hidden" name="id" value="0"><input type="hidden" name="story_season_id" value="<?= (int)$seasonId ?>"><input type="hidden" name="runtime_target_minutes" value="48"><input type="hidden" name="sort_order" value="10"><label>Episode Title<input name="title" value="Episode <?= count($episodes) + 1 ?>"<?= $disabled ?>></label><label>Episode Number<input type="number" name="episode_number" min="1" value="<?= count($episodes) + 1 ?>"<?= $disabled ?>></label><label>Episode Logline<textarea name="logline" rows="2"<?= $disabled ?>></textarea></label><label>Episode Outline<textarea name="episode_outline" rows="5" placeholder="Producer outline paragraph for this episode."<?= $disabled ?>></textarea></label><label>Optional Setting<input name="setting_label" placeholder="Optional location or setting focus"<?= $disabled ?>></label><label>Status<?= sf_admin_select('production_status', $statusOptions, 'outline') ?></label><div class="sf-story-v1-characters"><?php foreach ($characters as $char): ?><label><input type="checkbox" name="episode_character_ids[]" value="<?= (int)$char['id'] ?>"<?= $disabled ?>><?= sf_admin_h($char['character_name']) ?></label><?php endforeach; ?></div><div class="sf-admin-form-actions"><button type="submit"<?= $disabled ?>>Save Episode</button></div></form>
+  </div>
+</dialog>
+
+<?php foreach ($episodes as $episode): $eid = (int)($episode['id'] ?? 0); $checkedIds = $episodeCharacterIdsByEpisode[$eid] ?? []; ?>
+<dialog class="sf-story-v1-modal" id="sf-episode-modal-<?= $eid ?>">
+  <div class="sf-story-v1-modal-close"><form method="dialog"><button type="submit" aria-label="Close">×</button></form></div>
+  <div class="sf-story-v1-modal-body">
+    <div class="sf-admin-panel-head"><div><span class="sf-panel-eyebrow">Episode</span><h2>Edit <?= sf_admin_h($episode['title'] ?? 'Episode') ?></h2></div></div>
+    <form class="sf-admin-form" method="post"><?= sf_csrf_field() ?><input type="hidden" name="action" value="save_episode"><input type="hidden" name="id" value="<?= $eid ?>"><input type="hidden" name="story_season_id" value="<?= (int)($episode['story_season_id'] ?? $seasonId) ?>"><input type="hidden" name="runtime_target_minutes" value="<?= (int)($episode['runtime_target_minutes'] ?? 48) ?>"><input type="hidden" name="sort_order" value="<?= (int)($episode['sort_order'] ?? 10) ?>"><label>Episode Title<input name="title" value="<?= sf_admin_h($episode['title'] ?? '') ?>"<?= $disabled ?>></label><label>Episode Number<input type="number" name="episode_number" min="1" value="<?= (int)($episode['episode_number'] ?? 1) ?>"<?= $disabled ?>></label><label>Episode Logline<textarea name="logline" rows="2"<?= $disabled ?>><?= sf_admin_h($episode['logline'] ?? '') ?></textarea></label><label>Episode Outline<textarea name="episode_outline" rows="5"<?= $disabled ?>><?= sf_admin_h(sf_story_v1_episode_outline_text($episode)) ?></textarea></label><label>Optional Setting<input name="setting_label" value="<?= sf_admin_h($episode['setting_label'] ?? '') ?>"<?= $disabled ?>></label><label>Status<?= sf_admin_select('production_status', $statusOptions, (string)($episode['production_status'] ?? 'outline')) ?></label><div class="sf-story-v1-characters"><?php foreach ($characters as $char): ?><label><input type="checkbox" name="episode_character_ids[]" value="<?= (int)$char['id'] ?>" <?= in_array((int)$char['id'], $checkedIds, true) ? 'checked' : '' ?><?= $disabled ?>><?= sf_admin_h($char['character_name']) ?></label><?php endforeach; ?></div><div class="sf-admin-form-actions"><button type="submit"<?= $disabled ?>>Save Episode</button></div></form>
+    <form class="sf-admin-form sf-story-overview-ai-form" method="post" action="<?= sf_url('api/story-episode-outline.php') ?>"><?= sf_csrf_field() ?><input type="hidden" name="episode_id" value="<?= $eid ?>"><input type="hidden" name="return_url" value="<?= sf_admin_h(sf_url('admin/storyboards.php?season_id=' . (int)$seasonId . '&episode_id=' . $eid . '#episodes')) ?>"><label>AI Provider<?= sf_admin_select('provider_key', $providerOptions, (string)($episode['ai_outline_provider'] ?? '')) ?></label><label>AI Instruction<textarea name="prompt" rows="2" placeholder="Generate or improve this episode outline using the current scene list and selected main characters."></textarea></label><div class="sf-admin-form-actions"><button type="submit"<?= (!$bridgeReady ? ' disabled' : '') ?>>Generate Episode Outline</button></div></form>
+  </div>
+</dialog>
+<?php endforeach; ?>
+
+<dialog class="sf-story-v1-modal" id="sf-add-scene-modal">
+  <div class="sf-story-v1-modal-close"><form method="dialog"><button type="submit" aria-label="Close">×</button></form></div>
+  <div class="sf-story-v1-modal-body">
+    <div class="sf-admin-panel-head"><div><span class="sf-panel-eyebrow">Scene</span><h2>Add Scene</h2></div></div>
+    <form class="sf-admin-form" method="post"><?= sf_csrf_field() ?><input type="hidden" name="action" value="create_ai_storyboard"><input type="hidden" name="story_episode_id" value="<?= (int)$episodeId ?>"><input type="hidden" name="genre" value="Scene"><input type="hidden" name="scene_count" value="9"><label>Scene Title<input name="title" placeholder="Backstage Stories"<?= sf_admin_form_disabled_attr() ?>></label><label>Scene Prompt<textarea name="short_prompt" rows="4" placeholder="Describe the scene/storyboard item."<?= sf_admin_form_disabled_attr() ?>></textarea></label><div class="sf-admin-form-actions"><button type="submit"<?= sf_admin_form_disabled_attr() ?>>Create Scene</button></div></form>
+  </div>
+</dialog>
 
 <script src="<?= sf_asset('js/storyboarding-system.js') ?>"></script>
 <?php sf_admin_shell_end(); require __DIR__ . '/../includes/footer.php'; ?>
