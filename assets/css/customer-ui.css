@@ -1,9 +1,11 @@
 /* Logged-in customer/account dashboard layout */
 .sf-logged-in .home-nav,
-.sf-logged-in .home-nav-toggle{display:none!important}
+.sf-logged-in .home-nav-toggle,
+.sf-logged-in .sf-customer-drawer{display:none!important}
 .sf-logged-in .site-global-header{width:100%}
-.sf-logged-in .site-global-header .home-header{width:100%;max-width:none;grid-template-columns:auto minmax(0,1fr) auto;min-height:86px;padding-inline:clamp(18px,3vw,48px)}
-.sf-logged-in .home-header-actions{justify-self:end;display:flex;align-items:center;gap:12px}
+.sf-logged-in .site-global-header .home-header{width:100%;max-width:none;grid-template-columns:auto minmax(0,1fr) auto;grid-template-areas:none;min-height:86px;padding-inline:clamp(18px,3vw,48px)}
+.sf-logged-in .home-brand{grid-area:auto}
+.sf-logged-in .home-header-actions{grid-area:auto;justify-self:end;display:flex;align-items:center;gap:12px}
 .sf-logged-in .home-user-menu{position:relative;z-index:1400}
 
 .sf-customer-ui-page main{width:100%;max-width:none;display:block;padding:24px clamp(18px,2.8vw,48px) 72px;background:#080807;color:#f4ead8}
@@ -32,4 +34,4 @@
 .sf-customer-ui-page .sf-admin-two-col,.sf-customer-ui-page .sf-admin-two-col-wide{grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:18px}.sf-customer-ui-page .sf-admin-panel{border-radius:24px;background:linear-gradient(180deg,rgba(255,255,255,.055),rgba(255,255,255,.025))}.sf-customer-ui-page .sf-billing-layout{display:grid;grid-template-columns:minmax(0,1fr) minmax(320px,.42fr);gap:18px}.sf-customer-ui-page .sf-billing-card{border-radius:24px}.sf-customer-ui-page .sf-admin-table-wrap{overflow:auto}
 
 @media(max-width:1180px){.sf-customer-ui-page .sf-member-grid,.sf-customer-ui-page .sf-video-card-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
-@media(max-width:680px){.sf-logged-in .site-global-header .home-header{min-height:76px;padding-inline:14px}.sf-logged-in .home-brand-image{max-width:190px}.sf-customer-ui-page main{padding:16px 14px 54px}.sf-customer-drawer-toggle{min-height:40px;padding-inline:12px}.sf-customer-drawer-toggle b{display:none}.sf-customer-ui-page .sf-member-grid,.sf-customer-ui-page .sf-video-card-grid,.sf-customer-ui-page .sf-admin-two-col,.sf-customer-ui-page .sf-admin-two-col-wide,.sf-customer-ui-page .sf-billing-layout{grid-template-columns:1fr}}
+@media(max-width:680px){.sf-logged-in .site-global-header .home-header{grid-template-columns:minmax(0,1fr) auto;min-height:72px;padding-inline:14px}.sf-logged-in .home-brand-image{max-width:190px}.sf-logged-in .home-header-actions{justify-content:flex-end;padding-top:0}.sf-customer-ui-page main{padding:16px 14px 54px}.sf-customer-ui-page .sf-member-grid,.sf-customer-ui-page .sf-video-card-grid,.sf-customer-ui-page .sf-admin-two-col,.sf-customer-ui-page .sf-admin-two-col-wide,.sf-customer-ui-page .sf-billing-layout{grid-template-columns:1fr}}
