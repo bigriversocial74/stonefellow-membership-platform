@@ -6,6 +6,7 @@ $sfHeaderUser = sf_auth_user();
 $sfPageClass = (string)($pageClass ?? '');
 $sfIsAdminSurface = strpos($sfPageClass, 'admin-catalog-page') !== false || strpos(str_replace('\\', '/', dirname($_SERVER['SCRIPT_NAME'] ?? '')), '/admin') !== false;
 $sfIsAdminUser = $sfHeaderUser && (($sfHeaderUser['role'] ?? '') === 'admin');
+$sfIsCustomerSurface = $sfHeaderUser && !$sfIsAdminSurface && strpos($sfPageClass, 'membership-page') !== false;
 $sfPublicNav = [
   ['label' => 'Home', 'href' => 'index.php', 'pages' => ['index.php']],
   ['label' => 'Series', 'href' => 'series.php', 'pages' => ['series.php']],
@@ -14,11 +15,9 @@ $sfPublicNav = [
   ['label' => 'Cast', 'href' => 'cast.php', 'pages' => ['cast.php']],
   ['label' => 'Merch', 'href' => 'merch.php', 'pages' => ['merch.php', 'product.php']],
 ];
-$sfMemberNav = $sfPublicNav;
-$sfMemberNav[] = ['label' => 'Feed', 'href' => 'feed.php', 'pages' => ['feed.php']];
-$sfMemberNav[] = ['label' => 'Search', 'href' => 'search.php', 'pages' => ['search.php']];
 $sfCurrentPage = sf_current_page();
-$sfMainNav = $sfHeaderUser ? $sfMemberNav : $sfPublicNav;
+$sfMainNav = $sfHeaderUser ? [] : $sfPublicNav;
+$sfBodyClass = trim($sfPageClass . ($sfHeaderUser ? ' sf-logged-in' : '') . ($sfIsCustomerSurface ? ' sf-customer-ui-page' : ''));
 ?>
 <!doctype html>
 <html lang="en">
@@ -40,59 +39,27 @@ $sfMainNav = $sfHeaderUser ? $sfMemberNav : $sfPublicNav;
   <link rel="stylesheet" href="<?= sf_asset('css/pwa-upload.css') ?>">
   <link rel="stylesheet" href="<?= sf_asset('css/nav-cleanup.css') ?>">
   <link rel="stylesheet" href="<?= sf_asset('css/light-card-text.css') ?>">
+  <link rel="stylesheet" href="<?= sf_asset('css/customer-ui.css') ?>">
   <?php if ($sfIsAdminSurface): ?><link rel="stylesheet" href="<?= sf_asset('css/admin-polish.css') ?>"><?php endif; ?>
 </head>
-<body class="<?= htmlspecialchars($pageClass ?? '') ?>">
+<body class="<?= htmlspecialchars($sfBodyClass) ?>">
   <div class="site-noise" aria-hidden="true"></div>
   <header class="home-header-full site-global-header">
     <div class="home-header">
       <a class="home-brand" href="<?= sf_url('index.php') ?>" aria-label="Stonefellow home"><img src="<?= sf_asset('images/brand/home-brand-approved.png') ?>" alt="Stonefellow" class="home-brand-image"></a>
-      <button class="nav-toggle home-nav-toggle" type="button" aria-label="Open navigation" data-nav-toggle><span></span><span></span><span></span></button>
-      <nav class="home-nav" data-site-nav>
-        <?php foreach ($sfMainNav as $item): ?>
-          <?php $isActive = in_array($sfCurrentPage, $item['pages'], true) ? 'is-active' : ''; ?>
-          <a class="<?= $isActive ?>" href="<?= sf_url($item['href']) ?>"><?= htmlspecialchars($item['label']) ?></a>
-        <?php endforeach; ?>
-      </nav>
+      <?php if ($sfMainNav): ?><button class="nav-toggle home-nav-toggle" type="button" aria-label="Open navigation" data-nav-toggle><span></span><span></span><span></span></button><?php endif; ?>
+      <?php if ($sfMainNav): ?><nav class="home-nav" data-site-nav><?php foreach ($sfMainNav as $item): ?><?php $isActive = in_array($sfCurrentPage, $item['pages'], true) ? 'is-active' : ''; ?><a class="<?= $isActive ?>" href="<?= sf_url($item['href']) ?>"><?= htmlspecialchars($item['label']) ?></a><?php endforeach; ?></nav><?php endif; ?>
       <div class="home-header-actions">
         <?php if ($sfHeaderUser): ?>
-          <details class="home-user-menu">
-            <summary class="home-user-summary"><span><?= htmlspecialchars($sfHeaderUser['display_name'] ?: 'Account') ?></span></summary>
-            <div class="home-user-dropdown">
-              <a href="<?= sf_url('member.php') ?>">Member Dashboard</a>
-              <a href="<?= sf_url('library.php') ?>">My Library</a>
-              <a href="<?= sf_url('watchlist.php') ?>">Watchlist</a>
-              <a href="<?= sf_url('playlists.php') ?>">Playlists</a>
-              <a href="<?= sf_url('notifications.php') ?>">Notifications</a>
-              <a href="<?= sf_url('messages.php') ?>">Messages</a>
-              <a href="<?= sf_url('comments.php') ?>">Comments</a>
-              <a href="<?= sf_url('cart.php') ?>">Cart</a>
-              <a href="<?= sf_url('account.php') ?>">Account Settings</a>
-              <a href="<?= sf_url('account-billing.php') ?>">Billing</a>
-              <a href="<?= sf_url('support.php') ?>">Support</a>
-              <?php if ($sfIsAdminUser): ?><a class="home-user-admin-link" href="<?= sf_url('admin/index.php') ?>">Admin Dashboard</a><?php endif; ?>
-              <a href="<?= sf_url('logout.php') ?>">Logout</a>
-            </div>
-          </details>
+          <details class="home-user-menu"><summary class="home-user-summary"><span><?= htmlspecialchars($sfHeaderUser['display_name'] ?: 'Account') ?></span></summary><div class="home-user-dropdown"><a href="<?= sf_url('member.php') ?>">Member Dashboard</a><a href="<?= sf_url('library.php') ?>">My Library</a><a href="<?= sf_url('watchlist.php') ?>">Watchlist</a><a href="<?= sf_url('playlists.php') ?>">Playlists</a><a href="<?= sf_url('notifications.php') ?>">Notifications</a><a href="<?= sf_url('messages.php') ?>">Messages</a><a href="<?= sf_url('comments.php') ?>">Comments</a><a href="<?= sf_url('cart.php') ?>">Cart</a><a href="<?= sf_url('account.php') ?>">Account Settings</a><a href="<?= sf_url('account-billing.php') ?>">Billing</a><a href="<?= sf_url('support.php') ?>">Support</a><?php if ($sfIsAdminUser): ?><a class="home-user-admin-link" href="<?= sf_url('admin/index.php') ?>">Admin Dashboard</a><?php endif; ?><a href="<?= sf_url('logout.php') ?>">Logout</a></div></details>
         <?php else: ?>
-          <details class="home-user-menu home-user-menu-public">
-            <summary class="home-user-summary"><span>Account</span></summary>
-            <div class="home-user-dropdown">
-              <a href="<?= sf_url('signin.php') ?>">Sign In</a>
-              <a href="<?= sf_url('signup.php') ?>">Create Account</a>
-              <a href="<?= sf_url('forgot-password.php') ?>">Forgot Password</a>
-            </div>
-          </details>
-          <a href="<?= sf_url('signup.php') ?>" class="home-subscribe-btn <?= sf_is_active('signup.php') ?>">Subscribe</a>
+          <details class="home-user-menu home-user-menu-public"><summary class="home-user-summary"><span>Account</span></summary><div class="home-user-dropdown"><a href="<?= sf_url('signin.php') ?>">Sign In</a><a href="<?= sf_url('signup.php') ?>">Create Account</a><a href="<?= sf_url('forgot-password.php') ?>">Forgot Password</a></div></details><a href="<?= sf_url('signup.php') ?>" class="home-subscribe-btn <?= sf_is_active('signup.php') ?>">Subscribe</a>
         <?php endif; ?>
       </div>
     </div>
   </header>
   <main>
     <?php $sfAuthFlashes = sf_auth_flashes(); ?>
-    <?php if (strpos($sfPageClass, 'auth-template') !== false): ?>
-      <?php $sfAuthFlashes = array_values(array_filter($sfAuthFlashes, static function ($flash): bool {
-        return !((string)($flash['type'] ?? '') === 'warning' && trim((string)($flash['message'] ?? '')) === 'Sign in to continue.');
-      })); ?>
-    <?php endif; ?>
+    <?php if (strpos($sfPageClass, 'auth-template') !== false): ?><?php $sfAuthFlashes = array_values(array_filter($sfAuthFlashes, static function ($flash): bool { return !((string)($flash['type'] ?? '') === 'warning' && trim((string)($flash['message'] ?? '')) === 'Sign in to continue.'); })); ?><?php endif; ?>
     <?php if ($sfAuthFlashes): ?><div class="sf-flash-stack" role="status" aria-live="polite"><?php foreach ($sfAuthFlashes as $flash): ?><div class="sf-flash sf-flash-<?= htmlspecialchars($flash['type'] ?? 'info') ?>"><?= htmlspecialchars($flash['message'] ?? '') ?></div><?php endforeach; ?></div><?php endif; ?>
+    <?php if ($sfIsCustomerSurface): ?><?php require __DIR__ . '/customer_sidebar.php'; ?><?php endif; ?>
