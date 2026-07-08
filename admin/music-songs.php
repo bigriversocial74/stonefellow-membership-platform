@@ -36,11 +36,12 @@ if ((($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST')) {
       sf_admin_execute('UPDATE songs SET album_id=?, title=?, slug=?, artist=?, track_number=?, duration_seconds=?, cover_asset_id=?, access_level=?, is_featured=?, status=? WHERE id=?', array_merge(array_values($payload), [$id]));
       sf_admin_audit('update_song', 'song', $id, $before, $payload);
       sf_admin_flash('success', 'Song updated.');
+      sf_admin_redirect(sf_url('admin/music-songs.php?edit=' . $id));
     } else {
       sf_admin_execute('INSERT INTO songs (album_id, title, slug, artist, track_number, duration_seconds, cover_asset_id, access_level, is_featured, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', array_values($payload));
       $newId = (int)(sf_admin_db()?->lastInsertId() ?: 0);
       sf_admin_audit('create_song', 'song', $newId, null, $payload);
-      sf_admin_flash('success', 'Song created.');
+      sf_admin_flash('success', 'Song created. Add preview or full audio next.');
       sf_admin_redirect(sf_url('admin/music-songs.php?edit=' . $newId));
     }
   }
@@ -50,6 +51,7 @@ if ((($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST')) {
     sf_admin_execute('DELETE FROM songs WHERE id = ?', [$id]);
     sf_admin_audit('delete_song', 'song', $id, $before, null);
     sf_admin_flash('success', 'Song deleted.');
+    sf_admin_redirect(sf_url('admin/music-songs.php'));
   }
 
   if ($action === 'save_song_file') {
@@ -134,36 +136,54 @@ $assets = sf_admin_assets('image');
 $audioAssets = sf_admin_assets('audio');
 $editId = sf_admin_int($_GET['edit'] ?? null, 0) ?? 0;
 $edit = sf_admin_selected_row($songs, 'songs', $editId) ?: [];
+$isCreating = isset($_GET['new']) && !$edit;
+$showSongForm = $isCreating || !empty($edit);
 $fileEditId = sf_admin_int($_GET['file_edit'] ?? null, 0) ?? 0;
 $fileEdit = $fileEditId > 0 && sf_admin_table_exists('song_files') ? sf_admin_fetch_one('SELECT * FROM song_files WHERE id = ?', [$fileEditId]) : null;
 $fileRows = sf_admin_file_rows('song_files', 'song_id', (int)($edit['id'] ?? 0));
+$songAudioMeta = [];
+if (sf_admin_table_exists('song_files')) {
+  foreach (sf_admin_fetch_all('SELECT * FROM song_files ORDER BY song_id ASC, file_type ASC, is_primary DESC, id ASC') as $row) {
+    $sid = (int)($row['song_id'] ?? 0);
+    if ($sid <= 0) continue;
+    $type = (string)($row['file_type'] ?? 'audio');
+    $songAudioMeta[$sid]['count'] = (int)($songAudioMeta[$sid]['count'] ?? 0) + 1;
+    if (empty($songAudioMeta[$sid]['types'][$type])) {
+      $songAudioMeta[$sid]['types'][$type] = $row;
+    }
+  }
+}
 
 sf_admin_shell_start('Songs', 'Manage songs and audio files', 'Create individual tracks, assign album order, set access level, and add preview/full audio file paths.', 'songs');
 ?>
+<?php if (!$showSongForm): ?>
+<section class="sf-admin-panel">
+  <div class="sf-admin-panel-head"><div><span class="sf-panel-eyebrow">Song Records</span><h2><?= count($songs) ?> songs</h2></div><a href="<?= sf_url('admin/music-songs.php?new=1') ?>">Add Song</a></div>
+  <div class="sf-admin-table-wrap">
+    <table class="sf-admin-table">
+      <thead><tr><th>#</th><th>Song</th><th>Album</th><th>Audio</th><th>Public Player</th><th>Access</th><th>Status</th><th></th></tr></thead>
+      <tbody>
+        <?php foreach ($songs as $song): ?>
+        <?php $audio = $songAudioMeta[(int)($song['id'] ?? 0)] ?? []; $preview = $audio['types']['preview'] ?? null; $full = $audio['types']['full'] ?? null; ?>
+        <tr>
+          <td><?= sf_admin_h($song['track_number'] ?? $song['track'] ?? '—') ?></td>
+          <td><strong><?= sf_admin_h($song['title'] ?? '') ?></strong><small><?= sf_admin_h($song['slug'] ?? '') ?></small></td>
+          <td><?= sf_admin_h($song['album_title'] ?? '—') ?></td>
+          <td><strong><?= $preview ? 'Preview ' . sf_admin_h($preview['preview_seconds'] ?: 30) . ' sec' : 'No preview clip' ?></strong><small><?= $full ? 'Full track attached' : 'No full track' ?><?= !empty($audio['count']) ? ' · ' . (int)$audio['count'] . ' source(s)' : '' ?></small></td>
+          <td><strong><?= !empty($song['is_featured']) ? 'Featured' : 'Catalog' ?></strong><small><?= $preview ? 'Public preview ready' : 'Needs 30-sec preview' ?></small></td>
+          <td><?= sf_admin_h(sf_access_label((string)($song['access_level'] ?? $song['access'] ?? 'subscriber'))) ?></td>
+          <td><?= sf_admin_status_badge((string)($song['status'] ?? 'published')) ?></td>
+          <td><a href="<?= sf_url('admin/music-songs.php?edit=' . (int)($song['id'] ?? 0)) ?>">Edit</a></td>
+        </tr>
+        <?php endforeach; ?>
+      </tbody>
+    </table>
+  </div>
+</section>
+<?php else: ?>
 <section class="sf-admin-two-col sf-admin-two-col-wide">
   <article class="sf-admin-panel">
-    <div class="sf-admin-panel-head"><div><span class="sf-panel-eyebrow">Song Records</span><h2><?= count($songs) ?> songs</h2></div><a href="<?= sf_url('admin/music-songs.php') ?>">New Song</a></div>
-    <div class="sf-admin-table-wrap">
-      <table class="sf-admin-table">
-        <thead><tr><th>#</th><th>Song</th><th>Album</th><th>Access</th><th>Status</th><th></th></tr></thead>
-        <tbody>
-          <?php foreach ($songs as $song): ?>
-          <tr>
-            <td><?= sf_admin_h($song['track_number'] ?? $song['track'] ?? '—') ?></td>
-            <td><strong><?= sf_admin_h($song['title'] ?? '') ?></strong><small><?= sf_admin_h($song['slug'] ?? '') ?></small></td>
-            <td><?= sf_admin_h($song['album_title'] ?? '—') ?></td>
-            <td><?= sf_admin_h(sf_access_label((string)($song['access_level'] ?? $song['access'] ?? 'subscriber'))) ?></td>
-            <td><?= sf_admin_status_badge((string)($song['status'] ?? 'published')) ?></td>
-            <td><a href="<?= sf_url('admin/music-songs.php?edit=' . (int)($song['id'] ?? 0)) ?>">Edit</a></td>
-          </tr>
-          <?php endforeach; ?>
-        </tbody>
-      </table>
-    </div>
-  </article>
-
-  <article class="sf-admin-panel">
-    <div class="sf-admin-panel-head"><div><span class="sf-panel-eyebrow"><?= $edit ? 'Edit' : 'Create' ?></span><h2><?= $edit ? sf_admin_h($edit['title'] ?? '') : 'New song' ?></h2></div></div>
+    <div class="sf-admin-panel-head"><div><span class="sf-panel-eyebrow"><?= $edit ? 'Edit Song' : 'Add Song' ?></span><h2><?= $edit ? sf_admin_h($edit['title'] ?? '') : 'New song' ?></h2></div><a href="<?= sf_url('admin/music-songs.php') ?>">Back to Songs</a></div>
     <form class="sf-admin-form" method="post">
       <?= sf_csrf_field() ?>
       <input type="hidden" name="action" value="save_song"><input type="hidden" name="id" value="<?= sf_admin_h($edit['id'] ?? '') ?>">
@@ -182,17 +202,15 @@ sf_admin_shell_start('Songs', 'Manage songs and audio files', 'Create individual
         <label>Access<?= sf_admin_select('access_level', ['free_preview'=>'Public Preview','subscriber'=>'Subscriber','premium'=>'Premium'], $edit['access_level'] ?? 'subscriber') ?></label>
         <label>Status<?= sf_admin_select('status', ['draft'=>'Draft','published'=>'Published','archived'=>'Archived'], $edit['status'] ?? 'draft') ?></label>
       </div>
-      <label class="sf-admin-check"><input type="checkbox" name="is_featured" value="1" <?= !empty($edit['is_featured']) ? 'checked' : '' ?><?= sf_admin_form_disabled_attr() ?>> Featured song</label>
+      <label class="sf-admin-check"><input type="checkbox" name="is_featured" value="1" <?= !empty($edit['is_featured']) ? 'checked' : '' ?><?= sf_admin_form_disabled_attr() ?>> Feature in public player / promoted music areas</label>
       <div class="sf-admin-form-actions"><button type="submit"<?= sf_admin_form_disabled_attr() ?>><?= $edit ? 'Save Song' : 'Create Song' ?></button></div>
     </form>
     <?php if ($edit): ?>
       <form method="post" class="sf-admin-delete-form"><input type="hidden" name="action" value="delete_song"><input type="hidden" name="id" value="<?= (int)($edit['id'] ?? 0) ?>"><?= sf_admin_confirm_delete_button('Delete Song') ?></form>
     <?php endif; ?>
   </article>
-</section>
 
-<?php if ($edit): ?>
-<section class="sf-admin-two-col sf-admin-two-col-wide">
+  <?php if ($edit): ?>
   <article class="sf-admin-panel">
     <div class="sf-admin-panel-head"><div><span class="sf-panel-eyebrow">Audio Files</span><h2>Preview and full tracks</h2></div></div>
     <div class="sf-admin-table-wrap">
@@ -210,27 +228,31 @@ sf_admin_shell_start('Songs', 'Manage songs and audio files', 'Create individual
       </table>
     </div>
   </article>
-  <article class="sf-admin-panel">
-    <div class="sf-admin-panel-head"><div><span class="sf-panel-eyebrow"><?= $fileEdit ? 'Edit File' : 'Add File' ?></span><h2>Audio source</h2></div></div>
-    <form class="sf-admin-form" method="post" enctype="multipart/form-data">
-      <?= sf_csrf_field() ?>
-      <input type="hidden" name="action" value="save_song_file"><input type="hidden" name="song_id" value="<?= (int)($edit['id'] ?? 0) ?>"><input type="hidden" name="file_id" value="<?= sf_admin_h($fileEdit['id'] ?? '') ?>">
-      <div class="sf-admin-form-grid">
-        <label>File Type<?= sf_admin_select('file_type', ['preview'=>'Preview','full'=>'Full','live'=>'Live','demo'=>'Demo','acoustic'=>'Acoustic'], $fileEdit['file_type'] ?? 'full') ?></label>
-        <label>MIME Type<input name="mime_type" value="<?= sf_admin_h($fileEdit['mime_type'] ?? 'audio/wav') ?>"<?= sf_admin_form_disabled_attr() ?>></label>
-      </div>
-      <label>Choose Uploaded Audio<?= sf_admin_asset_path_select('audio_asset_id', $audioAssets, '', 'Choose audio from asset library') ?></label>
-      <label>Upload Audio File<input type="file" name="audio_upload" accept="audio/*"<?= sf_admin_form_disabled_attr() ?>></label>
-      <label>Upload Title<input name="audio_upload_title" value="<?= sf_admin_h($edit['title'] ?? '') ?>" placeholder="Optional asset title"<?= sf_admin_form_disabled_attr() ?>></label>
-      <label>File Path<input name="file_path" value="<?= sf_admin_h($fileEdit['file_path'] ?? '') ?>" placeholder="audio/full/song-name.wav, choose uploaded audio, or upload a file above"<?= sf_admin_form_disabled_attr() ?>></label>
-      <?= sf_admin_asset_preview(null, $fileEdit['file_path'] ?? '', 'audio') ?>
-      <p class="sf-admin-form-note">Upload a new audio file here, choose an existing uploaded audio asset, or <a href="<?= sf_url('admin/uploads.php?type=audio') ?>">manage audio files</a>.</p>
-      <div class="sf-admin-form-grid"><label>Duration Seconds<input type="number" name="file_duration_seconds" value="<?= sf_admin_h($fileEdit['duration_seconds'] ?? '') ?>"<?= sf_admin_form_disabled_attr() ?>></label><label>Preview Seconds<input type="number" name="preview_seconds" value="<?= sf_admin_h($fileEdit['preview_seconds'] ?? '') ?>"<?= sf_admin_form_disabled_attr() ?>></label><label>Bitrate kbps<input type="number" name="bitrate_kbps" value="<?= sf_admin_h($fileEdit['bitrate_kbps'] ?? '') ?>"<?= sf_admin_form_disabled_attr() ?>></label></div>
-      <label class="sf-admin-check"><input type="checkbox" name="file_is_primary" value="1" <?= !empty($fileEdit['is_primary']) ? 'checked' : '' ?><?= sf_admin_form_disabled_attr() ?>> Primary source for this type</label>
-      <div class="sf-admin-form-actions"><button type="submit"<?= sf_admin_form_disabled_attr() ?>><?= $fileEdit ? 'Save File' : 'Add File' ?></button></div>
-    </form>
-    <?php if ($fileEdit): ?><form method="post" class="sf-admin-delete-form"><input type="hidden" name="action" value="delete_song_file"><input type="hidden" name="song_id" value="<?= (int)($edit['id'] ?? 0) ?>"><input type="hidden" name="file_id" value="<?= (int)($fileEdit['id'] ?? 0) ?>"><?= sf_admin_confirm_delete_button('Delete Audio File') ?></form><?php endif; ?>
-  </article>
+  <?php endif; ?>
 </section>
+
+<?php if ($edit): ?>
+<section class="sf-admin-panel">
+  <div class="sf-admin-panel-head"><div><span class="sf-panel-eyebrow"><?= $fileEdit ? 'Edit File' : 'Add File' ?></span><h2>Audio source</h2></div></div>
+  <form class="sf-admin-form" method="post" enctype="multipart/form-data">
+    <?= sf_csrf_field() ?>
+    <input type="hidden" name="action" value="save_song_file"><input type="hidden" name="song_id" value="<?= (int)($edit['id'] ?? 0) ?>"><input type="hidden" name="file_id" value="<?= sf_admin_h($fileEdit['id'] ?? '') ?>">
+    <div class="sf-admin-form-grid">
+      <label>File Type<?= sf_admin_select('file_type', ['preview'=>'30-Second Preview','full'=>'Full Track','live'=>'Live','demo'=>'Demo','acoustic'=>'Acoustic'], $fileEdit['file_type'] ?? 'preview') ?></label>
+      <label>MIME Type<input name="mime_type" value="<?= sf_admin_h($fileEdit['mime_type'] ?? 'audio/wav') ?>"<?= sf_admin_form_disabled_attr() ?>></label>
+    </div>
+    <label>Choose Uploaded Audio<?= sf_admin_asset_path_select('audio_asset_id', $audioAssets, '', 'Choose audio from asset library') ?></label>
+    <label>Upload Audio File<input type="file" name="audio_upload" accept="audio/*"<?= sf_admin_form_disabled_attr() ?>></label>
+    <label>Upload Title<input name="audio_upload_title" value="<?= sf_admin_h($edit['title'] ?? '') ?>" placeholder="Optional asset title"<?= sf_admin_form_disabled_attr() ?>></label>
+    <label>File Path<input name="file_path" value="<?= sf_admin_h($fileEdit['file_path'] ?? '') ?>" placeholder="audio/previews/song-name-preview.wav, choose uploaded audio, or upload a file above"<?= sf_admin_form_disabled_attr() ?>></label>
+    <?= sf_admin_asset_preview(null, $fileEdit['file_path'] ?? '', 'audio') ?>
+    <p class="sf-admin-form-note">Use File Type = 30-Second Preview for the public player clip. Use Full Track for subscriber playback. The public player already limits preview playback to the configured preview seconds.</p>
+    <div class="sf-admin-form-grid"><label>Duration Seconds<input type="number" name="file_duration_seconds" value="<?= sf_admin_h($fileEdit['duration_seconds'] ?? '') ?>"<?= sf_admin_form_disabled_attr() ?>></label><label>Preview Seconds<input type="number" name="preview_seconds" value="<?= sf_admin_h($fileEdit['preview_seconds'] ?? 30) ?>"<?= sf_admin_form_disabled_attr() ?>></label><label>Bitrate kbps<input type="number" name="bitrate_kbps" value="<?= sf_admin_h($fileEdit['bitrate_kbps'] ?? '') ?>"<?= sf_admin_form_disabled_attr() ?>></label></div>
+    <label class="sf-admin-check"><input type="checkbox" name="file_is_primary" value="1" <?= !empty($fileEdit['is_primary']) ? 'checked' : '' ?><?= sf_admin_form_disabled_attr() ?>> Primary source for this type</label>
+    <div class="sf-admin-form-actions"><button type="submit"<?= sf_admin_form_disabled_attr() ?>><?= $fileEdit ? 'Save File' : 'Add File' ?></button></div>
+  </form>
+  <?php if ($fileEdit): ?><form method="post" class="sf-admin-delete-form"><input type="hidden" name="action" value="delete_song_file"><input type="hidden" name="song_id" value="<?= (int)($edit['id'] ?? 0) ?>"><input type="hidden" name="file_id" value="<?= (int)($fileEdit['id'] ?? 0) ?>"><?= sf_admin_confirm_delete_button('Delete Audio File') ?></form><?php endif; ?>
+</section>
+<?php endif; ?>
 <?php endif; ?>
 <?php sf_admin_shell_end(); require __DIR__ . '/../includes/footer.php'; ?>
