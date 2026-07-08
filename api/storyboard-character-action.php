@@ -13,14 +13,18 @@ $data = sf_request_json();
 if (!$data && $_POST) $data = $_POST;
 $action = (string)($data['action'] ?? 'add_character');
 $returnUrl = trim((string)($data['return_url'] ?? ''));
+$storyboardId = (int)($data['storyboard_id'] ?? 0);
+$sceneId = (int)($data['scene_id'] ?? 0);
+$characterId = (int)($data['character_id'] ?? 0);
+$storyCharacterId = (int)($data['story_character_id'] ?? 0);
 $result = ['ok'=>false,'error'=>'unknown_action'];
 
-if ($action === 'add_character') $result = sf_sbc_add_character((int)($data['storyboard_id'] ?? 0), $data);
-elseif ($action === 'update_character') $result = sf_sbc_update_character((int)($data['character_id'] ?? 0), $data);
-elseif ($action === 'upload_reference') $result = sf_sbc_upload_reference((int)($data['character_id'] ?? 0), 'reference_image');
-elseif ($action === 'assign_scene_character') $result = sf_sbc_assign_scene_character((int)($data['storyboard_id'] ?? 0), (int)($data['scene_id'] ?? 0), (int)($data['character_id'] ?? 0));
-elseif ($action === 'remove_scene_character') $result = sf_sbc_remove_scene_character((int)($data['scene_id'] ?? 0), (int)($data['character_id'] ?? 0));
-elseif ($action === 'bulk_regenerate_images') $result = sf_sbc_bulk_regenerate_images((int)($data['storyboard_id'] ?? 0));
+if ($action === 'add_character') $result = sf_sbc_add_character($storyboardId, $data);
+elseif ($action === 'update_character') $result = sf_sbc_update_character($characterId, $data);
+elseif ($action === 'upload_reference') $result = sf_sbc_upload_reference($characterId, 'reference_image');
+elseif ($action === 'assign_scene_character') $result = sf_sbc_assign_scene_character($storyboardId, $sceneId, $characterId, $storyCharacterId);
+elseif ($action === 'remove_scene_character') $result = sf_sbc_remove_scene_character($sceneId, $characterId, $storyCharacterId);
+elseif ($action === 'bulk_regenerate_images') $result = sf_sbc_bulk_regenerate_images($storyboardId);
 
 if ($returnUrl !== '') {
   sf_admin_flash(!empty($result['ok']) ? 'success' : 'error', !empty($result['ok']) ? 'Character action completed.' : ('Character action failed: ' . ($result['error'] ?? 'unknown_error')));

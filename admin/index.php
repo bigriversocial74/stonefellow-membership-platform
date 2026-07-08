@@ -28,8 +28,8 @@ $adminSections = [
     ['Support','Help Desk','Member tickets, replies, priority workflow, and linked account context.','admin/support.php'],
   ],
   'Content + Revenue' => [
-    ['Storyboarding','Combined System','Season, episode, scene sheet, draggable scene card, character catalog, and AI storyboard generation in one workspace.','admin/storyboards.php'],
-    ['Characters','Catalog','Main character profiles, motivations, relationships, arcs, images, and scene appearance counts.','admin/story-characters.php'],
+    ['Storyboarding','Producer Overview','Season, episode, scene sheet, draggable scene card, and AI storyboard generation.','admin/storyboards.php'],
+    ['Characters','Catalog','Master character profiles used by seasons, episodes, scenes, and storyboard builder assignments.','admin/characters.php'],
     ['AI','Provider Settings','Admin-only Claude/ChatGPT API keys, defaults, usage limits, cost tracking, and secure key status.','admin/ai-settings.php'],
     ['Media','Catalog','Albums, songs, episodes, videos, assets, publishing, and secure delivery.','admin/music.php'],
     ['Revenue','Launch Dashboard','MRR, ARR, checkout conversion, merch, churn risk, and snapshots.','admin/revenue-dashboard.php'],
@@ -49,13 +49,11 @@ $adminSections = [
     <div><span>✓</span><strong>System Notifications + Incident Alerts v1</strong><p>Incident records, incident timeline, severity workflow, alert rules, admin alert inbox, and email/in-app alert routing.</p></div>
     <div><span>✓</span><strong>Production Backup / Restore Manager v1</strong><p>Backup profiles, run records, schema manifests, storage coverage, restore readiness checks, and verified-run tracking.</p></div>
     <div><span>✓</span><strong>Deployment Release Manager v1</strong><p>Release records, deployment checklist, migration range, backup links, preflight link, release events, and rollback notes.</p></div>
-    <div><span>✓</span><strong>Storyboarding Module Shell v1</strong><p>Storyboard list, builder workspace, script prompt, creator settings, character references, and 9-scene screenplay grid.</p></div>
-    <div><span>✓</span><strong>Storyboarding SQL + Admin AI Settings v1</strong><p>Migration 021 adds storyboard persistence, scene/character/reference/job tables, AI providers, usage tracking, and admin-only API key settings.</p></div>
-    <div><span>✓</span><strong>Script-to-9-Scene Generation API v1</strong><p>Admin-gated generation endpoint, provider adapter, JSON parser, scene persistence, job status, and usage event logging.</p></div>
+    <div><span>✓</span><strong>Storyboard Producer Overview</strong><p>Season, episode, scene hierarchy with existing scene builder links preserved.</p></div>
+    <div><span>✓</span><strong>Character Catalog Foundation</strong><p>Master reusable character profiles now source assignments for seasons, episodes, scenes, and builder UI.</p></div>
+    <div><span>✓</span><strong>Script-to-Scene Generation API v1</strong><p>Admin-gated generation endpoint, dynamic scene-card total, provider adapter, JSON parser, persistence, job status, and usage logging.</p></div>
     <div><span>✓</span><strong>Scene Actions v1</strong><p>Scene edit persistence, single-scene rewrite, image regeneration, upload replacement, character consistency payloads, and retry-ready job records.</p></div>
-    <div><span>✓</span><strong>Storyboard Character Management + UX Modals v1</strong><p>Add/update characters, upload references, assign/remove scene characters, modal-style panels, job badges, retry controls, and bulk image regeneration.</p></div>
     <div><span>✓</span><strong>Storyboard Queue + Export v1</strong><p>Image queue batching, process-next worker action, cancel controls, job summary, screenplay export, shot-list CSV export, JSON export, and reference gallery review.</p></div>
-    <div><span>✓</span><strong>Combined Storyboarding System</strong><p>Season, episode, scene sheet, draggable scene-card order, editable scene titles, AI storyboard generation, and main character catalog foundation.</p></div>
   </div>
 </section>
 
