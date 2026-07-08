@@ -61,13 +61,28 @@ if ((($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST')) {
     $fileId = sf_admin_int($_POST['file_id'] ?? null, 0) ?? 0;
     $filePath = trim((string)($_POST['file_path'] ?? ''));
     $audioAssetId = sf_admin_int($_POST['audio_asset_id'] ?? null, 0) ?? 0;
+    $hasUpload = isset($_FILES['audio_upload']) && is_array($_FILES['audio_upload']) && (int)($_FILES['audio_upload']['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_NO_FILE;
+    if ($hasUpload) {
+      if (!sf_admin_table_exists('media_assets')) {
+        sf_admin_flash('warning', 'Media assets table is not available. Run the base SQL first.');
+        sf_admin_redirect();
+      }
+      $songRow = $songId > 0 ? (sf_admin_fetch_one('SELECT title FROM songs WHERE id = ? LIMIT 1', [$songId]) ?: []) : [];
+      $uploadTitle = trim((string)($_POST['audio_upload_title'] ?? '')) ?: trim((string)($songRow['title'] ?? 'Song audio')) ?: 'Song audio';
+      $upload = sf_admin_handle_upload('audio_upload', 'audio', 'song_audio', $uploadTitle, '');
+      if (empty($upload['ok'])) {
+        sf_admin_flash('error', 'Audio upload failed: ' . (string)($upload['message'] ?? 'Unknown upload error.'));
+        sf_admin_redirect();
+      }
+      $audioAssetId = (int)($upload['id'] ?? 0);
+    }
     $audioAsset = $audioAssetId > 0 ? sf_admin_asset_by_id($audioAssetId) : null;
     if ($filePath === '' && $audioAsset) {
       $filePath = trim((string)($audioAsset['file_path'] ?? ''));
     }
     $mimeType = trim((string)($_POST['mime_type'] ?? '')) ?: trim((string)($audioAsset['mime_type'] ?? '')) ?: 'audio/wav';
     if ($songId <= 0 || $filePath === '') {
-      sf_admin_flash('error', 'Select a song and choose an uploaded audio asset or enter an audio file path.');
+      sf_admin_flash('error', 'Select a song and choose/upload an audio asset or enter an audio file path.');
       sf_admin_redirect();
     }
     $payload = [
@@ -197,7 +212,7 @@ sf_admin_shell_start('Songs', 'Manage songs and audio files', 'Create individual
   </article>
   <article class="sf-admin-panel">
     <div class="sf-admin-panel-head"><div><span class="sf-panel-eyebrow"><?= $fileEdit ? 'Edit File' : 'Add File' ?></span><h2>Audio source</h2></div></div>
-    <form class="sf-admin-form" method="post">
+    <form class="sf-admin-form" method="post" enctype="multipart/form-data">
       <?= sf_csrf_field() ?>
       <input type="hidden" name="action" value="save_song_file"><input type="hidden" name="song_id" value="<?= (int)($edit['id'] ?? 0) ?>"><input type="hidden" name="file_id" value="<?= sf_admin_h($fileEdit['id'] ?? '') ?>">
       <div class="sf-admin-form-grid">
@@ -205,9 +220,11 @@ sf_admin_shell_start('Songs', 'Manage songs and audio files', 'Create individual
         <label>MIME Type<input name="mime_type" value="<?= sf_admin_h($fileEdit['mime_type'] ?? 'audio/wav') ?>"<?= sf_admin_form_disabled_attr() ?>></label>
       </div>
       <label>Choose Uploaded Audio<?= sf_admin_asset_path_select('audio_asset_id', $audioAssets, '', 'Choose audio from asset library') ?></label>
-      <label>File Path<input name="file_path" value="<?= sf_admin_h($fileEdit['file_path'] ?? '') ?>" placeholder="audio/full/song-name.wav or choose uploaded audio above"<?= sf_admin_form_disabled_attr() ?>></label>
+      <label>Upload Audio File<input type="file" name="audio_upload" accept="audio/*"<?= sf_admin_form_disabled_attr() ?>></label>
+      <label>Upload Title<input name="audio_upload_title" value="<?= sf_admin_h($edit['title'] ?? '') ?>" placeholder="Optional asset title"<?= sf_admin_form_disabled_attr() ?>></label>
+      <label>File Path<input name="file_path" value="<?= sf_admin_h($fileEdit['file_path'] ?? '') ?>" placeholder="audio/full/song-name.wav, choose uploaded audio, or upload a file above"<?= sf_admin_form_disabled_attr() ?>></label>
       <?= sf_admin_asset_preview(null, $fileEdit['file_path'] ?? '', 'audio') ?>
-      <p class="sf-admin-form-note"><a href="<?= sf_url('admin/uploads.php?type=audio') ?>">Upload or manage audio files</a></p>
+      <p class="sf-admin-form-note">Upload a new audio file here, choose an existing uploaded audio asset, or <a href="<?= sf_url('admin/uploads.php?type=audio') ?>">manage audio files</a>.</p>
       <div class="sf-admin-form-grid"><label>Duration Seconds<input type="number" name="file_duration_seconds" value="<?= sf_admin_h($fileEdit['duration_seconds'] ?? '') ?>"<?= sf_admin_form_disabled_attr() ?>></label><label>Preview Seconds<input type="number" name="preview_seconds" value="<?= sf_admin_h($fileEdit['preview_seconds'] ?? '') ?>"<?= sf_admin_form_disabled_attr() ?>></label><label>Bitrate kbps<input type="number" name="bitrate_kbps" value="<?= sf_admin_h($fileEdit['bitrate_kbps'] ?? '') ?>"<?= sf_admin_form_disabled_attr() ?>></label></div>
       <label class="sf-admin-check"><input type="checkbox" name="file_is_primary" value="1" <?= !empty($fileEdit['is_primary']) ? 'checked' : '' ?><?= sf_admin_form_disabled_attr() ?>> Primary source for this type</label>
       <div class="sf-admin-form-actions"><button type="submit"<?= sf_admin_form_disabled_attr() ?>><?= $fileEdit ? 'Save File' : 'Add File' ?></button></div>
