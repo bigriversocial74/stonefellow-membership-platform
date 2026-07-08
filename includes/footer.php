@@ -7,37 +7,27 @@
       <div class="home-footer-links grouped-links">
         <div>
           <h4>Explore</h4>
-          <a href="<?= sf_url('index.php') ?>">Home</a>
-          <a href="<?= sf_url('series.php') ?>">Series</a>
-          <a href="<?= sf_url('episodes.php') ?>">Episodes</a>
-          <a href="<?= sf_url('music.php') ?>">Music</a>
-          <a href="<?= sf_url('feed.php') ?>">Feed</a>
-          <a href="<?= sf_url('search.php') ?>">Search</a>
-          <a href="<?= sf_url('cast.php') ?>">Cast</a>
-          <a href="<?= sf_url('merch.php') ?>">Merch</a>
-          <a href="<?= sf_url('cart.php') ?>">Cart</a>
-          <a href="<?= sf_url('checkout.php') ?>">Checkout</a>
+          <a href="<?= sf_url('episodes.php') ?>">Watch Episodes</a>
+          <a href="<?= sf_url('music.php') ?>">Listen to Music</a>
+          <a href="<?= sf_url('merch.php') ?>">Shop Merch</a>
           <a href="<?= sf_url('member.php') ?>">Member Dashboard</a>
-          <a href="<?= sf_url('library.php') ?>">Library</a>
-          <a href="<?= sf_url('watchlist.php') ?>">Watchlist</a>
-          <a href="<?= sf_url('account.php') ?>">Account</a>
-          <a href="<?= sf_url('playlists.php') ?>">Playlists</a>
-          <a href="<?= sf_url('admin/index.php') ?>">Admin</a>
+          <a href="<?= sf_url('signup.php') ?>">Create Account</a>
         </div>
         <div>
           <h4>Support</h4>
           <a href="<?= sf_url('support.php') ?>">Support Center</a>
           <a href="<?= sf_url('signin.php') ?>">Sign In</a>
-          <a href="<?= sf_url('signup.php') ?>">Create Account</a>
           <a href="<?= sf_url('forgot-password.php') ?>">Forgot Password</a>
-          <a href="<?= sf_url('offline.php') ?>">Offline Shell</a>
-          <a href="<?= sf_url('logout.php') ?>">Logout</a>
+          <a href="<?= sf_url('account.php') ?>">Account Settings</a>
         </div>
       </div>
       <div class="home-footer-social">
         <h4>Follow Us</h4>
         <div class="social-row">
-          <span>f</span><span>◎</span><span>◉</span><span>♪</span><span>𝕏</span>
+          <a href="https://instagram.com/stonefellow" target="_blank" rel="noopener" aria-label="Stonefellow on Instagram">◎</a>
+          <a href="https://youtube.com/@stonefellow" target="_blank" rel="noopener" aria-label="Stonefellow on YouTube">▶</a>
+          <a href="https://x.com/stonefellow" target="_blank" rel="noopener" aria-label="Stonefellow on X">𝕏</a>
+          <a href="https://facebook.com/stonefellow" target="_blank" rel="noopener" aria-label="Stonefellow on Facebook">f</a>
         </div>
       </div>
       <form class="home-newsletter" action="#" method="post">
