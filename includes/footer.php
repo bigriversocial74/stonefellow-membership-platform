@@ -9,6 +9,8 @@
           <h4>Explore</h4>
           <a href="<?= sf_url('episodes.php') ?>">Watch Episodes</a>
           <a href="<?= sf_url('music.php') ?>">Listen to Music</a>
+          <a href="<?= sf_url('cast.php') ?>">Cast</a>
+          <a href="<?= sf_url('series-characters.php') ?>">Series Characters</a>
           <a href="<?= sf_url('merch.php') ?>">Shop Merch</a>
           <a href="<?= sf_url('member.php') ?>">Member Dashboard</a>
           <a href="<?= sf_url('signup.php') ?>">Create Account</a>
