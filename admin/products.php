@@ -141,6 +141,8 @@ $categories = sf_store_categories();
 $imageAssets = sf_admin_assets('image');
 $editId = sf_admin_int($_GET['edit'] ?? null, 0) ?? 0;
 $selected = $editId > 0 ? sf_store_product_by_id($editId) : null;
+$isCreating = isset($_GET['new']) && !$selected;
+$showProductForm = $isCreating || !empty($selected);
 $variants = $selected ? sf_store_product_variants((int)$selected['id']) : [];
 $categoryOptions = ['' => 'No category'];
 foreach ($categories as $category) {
@@ -155,8 +157,19 @@ sf_admin_shell_start('Merch Runtime', 'Products + Inventory', 'Manage merch prod
   <a class="sf-admin-action-card" href="<?= sf_url('cart.php') ?>"><span>Runtime</span><strong>Cart Flow</strong><small>Test add, update, checkout, and confirmation.</small></a>
 </section>
 
+<?php if (!$showProductForm): ?>
 <section class="sf-admin-panel">
-  <div class="sf-admin-panel-head"><div><span class="sf-panel-eyebrow"><?= $selected ? 'Edit Product' : 'Create Product' ?></span><h2><?= $selected ? sf_admin_h($selected['name'] ?? '') : 'New merch product' ?></h2></div></div>
+  <div class="sf-admin-panel-head"><div><span class="sf-panel-eyebrow">Catalog</span><h2>Merch products</h2></div><a href="<?= sf_url('admin/products.php?new=1') ?>">Add Product</a></div>
+  <div class="sf-admin-table-wrap"><table class="sf-admin-table"><thead><tr><th>Product</th><th>Category</th><th>Access</th><th>Price</th><th>Inventory</th><th>Status</th><th>Actions</th></tr></thead><tbody>
+    <?php if (!$products): ?><tr><td colspan="7">No products found. Use Add Product to create the first merch item.</td></tr><?php endif; ?>
+    <?php foreach ($products as $product): ?>
+      <tr><td><strong><?= sf_admin_h($product['name'] ?? '') ?></strong><br><small><?= sf_admin_h($product['slug'] ?? '') ?></small></td><td><?= sf_admin_h($product['category_name'] ?? '') ?></td><td><?= sf_admin_h(sf_access_label((string)($product['access_level'] ?? 'public'))) ?></td><td><?= sf_store_money((int)($product['price_cents'] ?? 0)) ?></td><td><?= (int)($product['inventory_quantity'] ?? 0) ?></td><td><?= sf_admin_status_badge($product['status'] ?? 'draft') ?></td><td><a href="<?= sf_url('admin/products.php?edit=' . (int)($product['id'] ?? 0)) ?>">Edit</a> · <a href="<?= sf_url('product.php?slug=' . urlencode((string)($product['slug'] ?? ''))) ?>">View</a><?php if (sf_admin_db_ready()): ?> <form action="<?= sf_url('admin/products.php') ?>" method="post" class="sf-inline-form"><?= sf_csrf_field() ?><input type="hidden" name="action" value="delete_product"><input type="hidden" name="id" value="<?= (int)($product['id'] ?? 0) ?>"><?= sf_admin_confirm_delete_button('Delete') ?></form><?php endif; ?></td></tr>
+    <?php endforeach; ?>
+  </tbody></table></div>
+</section>
+<?php else: ?>
+<section class="sf-admin-panel">
+  <div class="sf-admin-panel-head"><div><span class="sf-panel-eyebrow"><?= $selected ? 'Edit Product' : 'Add Product' ?></span><h2><?= $selected ? sf_admin_h($selected['name'] ?? '') : 'New merch product' ?></h2></div><a href="<?= sf_url('admin/products.php') ?>">Back to Products</a></div>
   <form class="sf-admin-form" action="<?= sf_url('admin/products.php') ?>" method="post">
     <?= sf_csrf_field() ?>
     <input type="hidden" name="action" value="save_product">
@@ -179,7 +192,7 @@ sf_admin_shell_start('Merch Runtime', 'Products + Inventory', 'Manage merch prod
     <label>Description <textarea name="description" rows="4"<?= sf_admin_form_disabled_attr() ?>><?= sf_admin_h($selected['description'] ?? '') ?></textarea></label>
     <div class="sf-admin-check-row"><label><input type="checkbox" name="is_featured" <?= !empty($selected['is_featured']) ? 'checked' : '' ?><?= sf_admin_form_disabled_attr() ?>> Featured</label><label><input type="checkbox" name="is_limited_drop" <?= !empty($selected['is_limited_drop']) ? 'checked' : '' ?><?= sf_admin_form_disabled_attr() ?>> Limited Drop</label></div>
     <?= sf_admin_asset_preview_by_id($selected['primary_image_asset_id'] ?? null, 'image') ?>
-    <div class="sf-admin-form-actions"><button type="submit"<?= sf_admin_form_disabled_attr() ?>><?= $selected ? 'Save Product' : 'Create Product' ?></button><a href="<?= sf_url('admin/products.php') ?>">New Product</a></div>
+    <div class="sf-admin-form-actions"><button type="submit"<?= sf_admin_form_disabled_attr() ?>><?= $selected ? 'Save Product' : 'Create Product' ?></button></div>
   </form>
 </section>
 
@@ -200,16 +213,7 @@ sf_admin_shell_start('Merch Runtime', 'Products + Inventory', 'Manage merch prod
   </form>
 </section>
 <?php endif; ?>
-
-<section class="sf-admin-panel">
-  <div class="sf-admin-panel-head"><div><span class="sf-panel-eyebrow">Catalog</span><h2>Merch products</h2></div></div>
-  <div class="sf-admin-table-wrap"><table class="sf-admin-table"><thead><tr><th>Product</th><th>Category</th><th>Access</th><th>Price</th><th>Inventory</th><th>Status</th><th>Actions</th></tr></thead><tbody>
-    <?php if (!$products): ?><tr><td colspan="7">No products found.</td></tr><?php endif; ?>
-    <?php foreach ($products as $product): ?>
-      <tr><td><strong><?= sf_admin_h($product['name'] ?? '') ?></strong><br><small><?= sf_admin_h($product['slug'] ?? '') ?></small></td><td><?= sf_admin_h($product['category_name'] ?? '') ?></td><td><?= sf_admin_h(sf_access_label((string)($product['access_level'] ?? 'public'))) ?></td><td><?= sf_store_money((int)($product['price_cents'] ?? 0)) ?></td><td><?= (int)($product['inventory_quantity'] ?? 0) ?></td><td><?= sf_admin_status_badge($product['status'] ?? 'draft') ?></td><td><a href="<?= sf_url('admin/products.php?edit=' . (int)($product['id'] ?? 0)) ?>">Edit</a> · <a href="<?= sf_url('product.php?slug=' . urlencode((string)($product['slug'] ?? ''))) ?>">View</a><?php if (sf_admin_db_ready()): ?> <form action="<?= sf_url('admin/products.php') ?>" method="post" class="sf-inline-form"><?= sf_csrf_field() ?><input type="hidden" name="action" value="delete_product"><input type="hidden" name="id" value="<?= (int)($product['id'] ?? 0) ?>"><?= sf_admin_confirm_delete_button('Delete') ?></form><?php endif; ?></td></tr>
-    <?php endforeach; ?>
-  </tbody></table></div>
-</section>
+<?php endif; ?>
 <?php
 sf_admin_shell_end();
 require __DIR__ . '/../includes/footer.php';
