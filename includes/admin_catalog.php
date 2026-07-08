@@ -52,18 +52,6 @@ function sf_admin_nav_links(): array {
   return [
     'index' => ['Admin Home', 'admin/index.php'],
     'storyboards' => ['Storyboarding', 'admin/storyboards.php'],
-    'launch-checklist' => ['Launch Checklist', 'admin/launch-checklist.php'],
-    'qa' => ['Production QA', 'admin/qa.php'],
-    'migration-checker' => ['Migration Checker', 'admin/migration-checker.php'],
-    'routes-checker' => ['Routes Checker', 'admin/routes-checker.php'],
-    'security-check' => ['Security Check', 'admin/security-check.php'],
-    'content-audit' => ['Content Audit', 'admin/content-audit.php'],
-    'health' => ['System Health', 'admin/system-health.php'],
-    'streaming-analytics' => ['Streaming Analytics', 'admin/streaming-analytics.php'],
-    'analytics' => ['Analytics', 'admin/analytics.php'],
-    'audio-analytics' => ['Audio Report', 'admin/audio-analytics.php'],
-    'video-analytics' => ['Video Report', 'admin/video-analytics.php'],
-    'member-activity' => ['Activity', 'admin/member-activity.php'],
     'music' => ['Media Dashboard', 'admin/music.php'],
     'albums' => ['Albums', 'admin/music-albums.php'],
     'songs' => ['Songs', 'admin/music-songs.php'],
@@ -72,8 +60,7 @@ function sf_admin_nav_links(): array {
     'seasons' => ['Seasons', 'admin/seasons.php'],
     'release-schedule' => ['Release Schedule', 'admin/release-schedule.php'],
     'publishing' => ['Publishing', 'admin/publishing.php'],
-    'media-delivery' => ['Secure Media', 'admin/media-delivery.php'],
-    'search-discovery' => ['Search Discovery', 'admin/search-discovery.php'],
+    'uploads' => ['Assets', 'admin/uploads.php'],
     'members' => ['Members', 'admin/members.php'],
     'entitlements' => ['Entitlements', 'admin/entitlements.php'],
     'access' => ['Access', 'admin/media-access.php'],
@@ -83,14 +70,12 @@ function sf_admin_nav_links(): array {
     'email-templates' => ['Email Templates', 'admin/email-templates.php'],
     'products' => ['Merch Products', 'admin/products.php'],
     'orders' => ['Merch Orders', 'admin/orders.php'],
+    'analytics' => ['Analytics', 'admin/analytics.php'],
     'import' => ['Content Import', 'admin/import.php'],
-    'seed-manager' => ['Seed Manager', 'admin/seed-manager.php'],
-    'demo-content' => ['Demo Content', 'admin/demo-content.php'],
-    'uploads' => ['Assets', 'admin/uploads.php'],
     'settings' => ['Settings', 'admin/settings.php'],
   ];
 }
-function sf_admin_shell_start(string $eyebrow, string $title, string $description, string $active = ''): void { $links = sf_admin_nav_links(); echo '<section class="sf-admin-shell"><aside class="sf-admin-sidebar"><div class="sf-admin-side-brand"><span>Stonefellow</span><strong>Media Admin</strong></div><nav class="sf-admin-nav">'; foreach ($links as $key => $item) { $class = $active === $key ? 'is-active' : ''; echo '<a class="' . $class . '" href="' . sf_admin_h(sf_url($item[1])) . '">' . sf_admin_h($item[0]) . '</a>'; } echo '</nav><div class="sf-admin-side-note"><strong>Launch v1</strong><span>Installer, route registry, QA, and streaming ops are registered.</span></div></aside><section class="sf-admin-main">'; echo '<section class="sf-admin-hero"><div><span class="sf-panel-eyebrow">' . sf_admin_h($eyebrow) . '</span><h1>' . sf_admin_h($title) . '</h1><p>' . sf_admin_h($description) . '</p></div>'; echo '<div class="sf-admin-db-card"><span>Database</span><strong>' . (sf_admin_db_ready() ? 'Connected' : 'Static Preview') . '</strong><small>' . (sf_admin_db_ready() ? 'Forms save to MySQL tables.' : 'Run install.php to enable saves.') . '</small></div></section>'; foreach (sf_admin_flash() as $message) echo '<div class="sf-admin-alert sf-admin-alert-' . sf_admin_h($message['type'] ?? 'info') . '">' . sf_admin_h($message['message'] ?? '') . '</div>'; if (!sf_admin_db_ready()) echo '<div class="sf-admin-alert sf-admin-alert-warning">No database connection is configured. This page is showing static/demo catalog data and save/delete forms are disabled.</div>'; }
+function sf_admin_shell_start(string $eyebrow, string $title, string $description, string $active = ''): void { $links = sf_admin_nav_links(); echo '<section class="sf-admin-shell"><aside class="sf-admin-sidebar"><div class="sf-admin-side-brand"><span>Stonefellow</span><strong>Media Admin</strong></div><nav class="sf-admin-nav">'; foreach ($links as $key => $item) { $class = $active === $key ? 'is-active' : ''; echo '<a class="' . $class . '" href="' . sf_admin_h(sf_url($item[1])) . '">' . sf_admin_h($item[0]) . '</a>'; } echo '</nav><div class="sf-admin-side-note"><strong>Admin</strong><span>Manage content, members, commerce, media, and site settings.</span></div></aside><section class="sf-admin-main">'; echo '<section class="sf-admin-hero"><div><span class="sf-panel-eyebrow">' . sf_admin_h($eyebrow) . '</span><h1>' . sf_admin_h($title) . '</h1><p>' . sf_admin_h($description) . '</p></div>'; echo '<div class="sf-admin-db-card"><span>Database</span><strong>' . (sf_admin_db_ready() ? 'Connected' : 'Static Preview') . '</strong><small>' . (sf_admin_db_ready() ? 'Forms save to MySQL tables.' : 'Run install.php to enable saves.') . '</small></div></section>'; foreach (sf_admin_flash() as $message) echo '<div class="sf-admin-alert sf-admin-alert-' . sf_admin_h($message['type'] ?? 'info') . '">' . sf_admin_h($message['message'] ?? '') . '</div>'; if (!sf_admin_db_ready()) echo '<div class="sf-admin-alert sf-admin-alert-warning">No database connection is configured. This page is showing static/demo catalog data and save/delete forms are disabled.</div>'; }
 function sf_admin_shell_end(): void { echo '</section></section>'; }
 function sf_admin_form_disabled_attr(): string { return sf_admin_db_ready() ? '' : ' disabled'; }
 function sf_admin_confirm_delete_button(string $label = 'Delete'): string { return '<button class="sf-admin-danger" type="submit" onclick="return confirm(\'Delete this record? This cannot be undone.\')"' . sf_admin_form_disabled_attr() . '>' . sf_admin_h($label) . '</button>'; }
