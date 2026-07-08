@@ -1,8 +1,9 @@
 <?php
 $pageTitle = 'Storyboards';
-$pageDescription = 'Storyboard project list and visual screenplay workspace entry point.';
-$pageClass = 'membership-page admin-catalog-page storyboards-page';
+$pageDescription = 'Season-first Stonefellow storyboarding workspace with episode, scene sheet, scene card, character catalog, and AI storyboard project entry points.';
+$pageClass = 'membership-page admin-catalog-page storyboards-page storyboarding-system-page';
 require __DIR__ . '/../includes/storyboards.php';
+require_once __DIR__ . '/../includes/storyboarding_system.php';
 require_once __DIR__ . '/../includes/ai_settings.php';
 
 if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
@@ -24,29 +25,64 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
 }
 
 $projects = sf_storyboard_projects();
+$storyCounts = function_exists('sf_story_v1_counts') ? sf_story_v1_counts() : ['seasons'=>0,'episodes'=>0,'scenes'=>0,'cards'=>0,'characters'=>0];
+$storySeasons = function_exists('sf_story_v1_seasons') ? sf_story_v1_seasons() : [];
+$storyEpisodes = function_exists('sf_story_v1_episodes') ? sf_story_v1_episodes() : [];
 $providerOptions = function_exists('sf_ai_provider_options') ? sf_ai_provider_options() : ['chatgpt'=>'ChatGPT / OpenAI','claude'=>'Claude / Anthropic'];
 $isCreating = isset($_GET['new']);
 require __DIR__ . '/../includes/header.php';
-sf_admin_shell_start('Storyboarding', 'Storyboard projects', 'Create and manage AI-assisted 9-scene visual screenplay projects. API keys are managed in admin AI settings and never shown in this workspace.', 'storyboards');
+sf_admin_shell_start('Storyboarding', 'Season-first story development', 'Start with seasons, then episodes, then scene sheets and scene cards. AI storyboard projects remain available below for visual generation.', 'storyboards');
 ?>
 <section class="sf-admin-card-grid" style="grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));">
-  <div class="sf-admin-action-card" style="min-height: 108px;"><span>Projects</span><strong><?= count($projects) ?></strong><small><?= sf_storyboard_ready() ? 'Current storyboard projects.' : 'Static preview until migration 021.' ?></small></div>
-  <div class="sf-admin-action-card" style="min-height: 108px;"><span>Scenes</span><strong>9</strong><small>Default screenplay plan per project.</small></div>
-  <div class="sf-admin-action-card" style="min-height: 108px;"><span>AI Provider</span><strong>Admin Managed</strong><small>Claude/ChatGPT keys stay in AI settings.</small></div>
-  <div class="sf-admin-action-card" style="min-height: 108px;"><span>Status</span><strong><?= sf_storyboard_ready() ? 'Ready' : 'Setup' ?></strong><small><?= sf_storyboard_ready() ? 'Database-backed workspace.' : 'Install migration 021 to save.' ?></small></div>
+  <div class="sf-admin-action-card" style="min-height:108px;"><span>Seasons</span><strong><?= (int)$storyCounts['seasons'] ?></strong><small>Required first step before episodes.</small></div>
+  <div class="sf-admin-action-card" style="min-height:108px;"><span>Episodes</span><strong><?= (int)$storyCounts['episodes'] ?></strong><small>Each episode owns its scene sheets.</small></div>
+  <div class="sf-admin-action-card" style="min-height:108px;"><span>Scene Sheets</span><strong><?= (int)$storyCounts['scenes'] ?></strong><small>Editable scene title, setting, purpose, and cast.</small></div>
+  <div class="sf-admin-action-card" style="min-height:108px;"><span>Scene Cards</span><strong><?= (int)$storyCounts['cards'] ?></strong><small>Some scenes can have more cards than others.</small></div>
+  <div class="sf-admin-action-card" style="min-height:108px;"><span>Characters</span><strong><?= (int)$storyCounts['characters'] ?></strong><small>Main catalog for appearances and arcs.</small></div>
+</section>
+
+<section class="sf-admin-panel sf-story-v1-season-overview">
+  <div class="sf-admin-panel-head">
+    <div><span class="sf-panel-eyebrow">Seasons First</span><h2>Season → Episode → Scene Sheet → Scene Cards</h2></div>
+    <div class="sf-admin-inline-form"><a href="<?= sf_url('admin/story-system.php') ?>">Open Story System</a><a href="<?= sf_url('admin/story-characters.php') ?>">Character Catalog</a></div>
+  </div>
+  <p class="sf-admin-copy">A user should create a season before creating an episode. Each episode then holds multiple scene sheets. Each scene sheet can hold multiple ordered scene cards, and different scenes can have different card counts.</p>
+  <div class="sf-story-v1-season-strip">
+    <?php if (!$storySeasons): ?><article class="sf-story-v1-season-card"><strong>No seasons yet</strong><p>Create your first season to unlock episode and scene planning.</p><a href="<?= sf_url('admin/story-system.php') ?>">Create Season</a></article><?php endif; ?>
+    <?php foreach ($storySeasons as $season): $seasonEpisodes = array_values(array_filter($storyEpisodes, static fn($episode) => (int)($episode['story_season_id'] ?? 0) === (int)($season['id'] ?? 0))); ?>
+      <article class="sf-story-v1-season-card">
+        <span>Season <?= (int)($season['season_number'] ?? 1) ?></span>
+        <strong><?= sf_storyboard_h($season['title'] ?? 'Untitled Season') ?></strong>
+        <p><?= sf_storyboard_h($season['logline'] ?? 'Season logline pending.') ?></p>
+        <div class="sf-story-v1-meta"><span><?= count($seasonEpisodes) ?> episodes</span><span><?= sf_storyboard_h(ucwords(str_replace('_',' ', (string)($season['status'] ?? 'draft')))) ?></span></div>
+        <a href="<?= sf_url('admin/story-system.php?season_id=' . (int)($season['id'] ?? 0)) ?>">Manage Season</a>
+      </article>
+    <?php endforeach; ?>
+  </div>
+</section>
+
+<section class="sf-admin-panel sf-story-v1-workflow-panel">
+  <div class="sf-admin-panel-head"><div><span class="sf-panel-eyebrow">Workflow</span><h2>Correct creation order</h2></div><span class="sf-admin-mini-pill">Backward compatible</span></div>
+  <div class="sf-admin-roadmap">
+    <div><span>1</span><strong>Create Season</strong><p>Season title, logline, theme notes, status, and long arc.</p></div>
+    <div><span>2</span><strong>Create Episode</strong><p>Episode belongs to a season and carries logline, synopsis, runtime target, and status.</p></div>
+    <div><span>3</span><strong>Add Scene Sheets</strong><p>Each episode has ordered scene sheets with editable scene title, location, time, conflict, and production notes.</p></div>
+    <div><span>4</span><strong>Add Scene Cards</strong><p>Each scene can have as many scene cards as needed: beats, dialogue, camera, music, prop, wardrobe, or notes.</p></div>
+  </div>
 </section>
 
 <?php if (!$isCreating): ?>
 <section class="sf-admin-panel">
   <div class="sf-admin-panel-head">
-    <div><span class="sf-panel-eyebrow">Project List</span><h2>Current storyboards</h2></div>
-    <a href="<?= sf_url('admin/storyboards.php?new=1') ?>">Add Storyboard</a>
+    <div><span class="sf-panel-eyebrow">AI Storyboard Projects</span><h2>Current storyboards</h2></div>
+    <a href="<?= sf_url('admin/storyboards.php?new=1') ?>">Add AI Storyboard</a>
   </div>
+  <p class="sf-admin-copy">These are the visual/AI storyboard projects. They should now be treated as a generation layer after the season, episode, and scene-sheet structure is planned.</p>
   <div class="sf-admin-table-wrap">
     <table class="sf-admin-table">
       <thead><tr><th>Storyboard</th><th>Status</th><th>Scenes</th><th>Characters</th><th>Updated</th><th></th></tr></thead>
       <tbody>
-        <?php if (!$projects): ?><tr><td colspan="6">No storyboard projects yet. Use Add Storyboard to create the first project.</td></tr><?php endif; ?>
+        <?php if (!$projects): ?><tr><td colspan="6">No storyboard projects yet. Use Add AI Storyboard after your season/episode outline is ready.</td></tr><?php endif; ?>
         <?php foreach ($projects as $project): ?>
           <tr>
             <td><strong><?= sf_storyboard_h($project['title'] ?? '') ?></strong><small><?= sf_storyboard_h($project['genre'] ?? 'Storyboard project') ?></small></td>
@@ -64,9 +100,10 @@ sf_admin_shell_start('Storyboarding', 'Storyboard projects', 'Create and manage 
 <?php else: ?>
 <section class="sf-admin-panel">
   <div class="sf-admin-panel-head">
-    <div><span class="sf-panel-eyebrow">Create</span><h2>New storyboard project</h2></div>
+    <div><span class="sf-panel-eyebrow">Create</span><h2>New AI storyboard project</h2></div>
     <a href="<?= sf_url('admin/storyboards.php') ?>">Back to Storyboards</a>
   </div>
+  <p class="sf-admin-copy">Use this after the season, episode, and scene-sheet structure is ready. This builder remains for 9-scene visual generation and AI-assisted boards.</p>
   <form class="sf-admin-form" method="post">
     <?= sf_csrf_field() ?>
     <label>Title<input name="title" placeholder="Stonefellow and the Sunrise Jam"<?= sf_admin_form_disabled_attr() ?>></label>
@@ -81,10 +118,8 @@ sf_admin_shell_start('Storyboarding', 'Storyboard projects', 'Create and manage 
       <label>Scene Count<input type="number" min="1" max="12" name="scene_count" value="9"<?= sf_admin_form_disabled_attr() ?>></label>
       <label>Text Provider<?= sf_admin_select('default_text_provider', $providerOptions, 'chatgpt') ?></label>
     </div>
-    <div class="sf-admin-form-grid">
-      <label>Image Provider<?= sf_admin_select('default_image_provider', $providerOptions, 'chatgpt') ?></label>
-    </div>
-    <div class="sf-admin-form-actions"><button type="submit"<?= sf_admin_form_disabled_attr() ?>>Create Storyboard</button></div>
+    <div class="sf-admin-form-grid"><label>Image Provider<?= sf_admin_select('default_image_provider', $providerOptions, 'chatgpt') ?></label></div>
+    <div class="sf-admin-form-actions"><button type="submit"<?= sf_admin_form_disabled_attr() ?>>Create AI Storyboard</button></div>
   </form>
 </section>
 <?php endif; ?>
