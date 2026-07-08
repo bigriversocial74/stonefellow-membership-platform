@@ -1,5 +1,6 @@
 <?php
 require_once __DIR__ . '/admin_catalog.php';
+require_once __DIR__ . '/storyboards.php';
 
 function sf_story_v1_ready(): bool {
   return sf_admin_db_ready()
@@ -10,6 +11,14 @@ function sf_story_v1_ready(): bool {
     && sf_admin_table_exists('story_characters');
 }
 
+function sf_story_v1_bridge_ready(): bool {
+  return sf_story_v1_ready()
+    && sf_storyboard_ready()
+    && sf_admin_column_exists('storyboards', 'story_episode_id')
+    && sf_admin_column_exists('storyboards', 'producer_scene_order')
+    && sf_admin_table_exists('story_episode_characters');
+}
+
 function sf_story_v1_disabled_attr(): string { return sf_story_v1_ready() ? '' : ' disabled'; }
 function sf_story_v1_status_options(): array { return ['draft'=>'Draft','active'=>'Active','outline'=>'Outline','in_progress'=>'In Progress','needs_review'=>'Needs Review','ready'=>'Ready','published'=>'Published','archived'=>'Archived']; }
 function sf_story_v1_role_options(): array { return ['lead'=>'Lead','supporting'=>'Supporting','guest'=>'Guest','background'=>'Background','antagonist'=>'Antagonist','mentor'=>'Mentor']; }
@@ -17,10 +26,10 @@ function sf_story_v1_card_type_options(): array { return ['beat'=>'Beat','action
 function sf_story_v1_status_label(string $status): string { return ucwords(str_replace('_', ' ', $status ?: 'draft')); }
 
 function sf_story_v1_static_seasons(): array {
-  return [['id'=>1,'season_number'=>1,'title'=>'Season 1','slug'=>'season-1-story-bible','logline'=>'The band rebuilds itself while every secret threatens the comeback.','description'=>'Primary Stonefellow season planning container.','theme_notes'=>'Found family, second chances, music as confession.','arc_notes'=>'A comeback begins as old wounds reopen.','status'=>'active','sort_order'=>10]];
+  return [['id'=>1,'season_number'=>1,'title'=>'Season 1','slug'=>'stonefellow-season-1','logline'=>'Season 1 follows the Stonefellow world as the band, crew, and local characters turn small music moments into a connected story.','description'=>'Season 1 is the main container for the current Stonefellow storyboards.','theme_notes'=>'Music, community, second chances, late nights, and local characters.','arc_notes'=>'The season begins by organizing current storyboard scenes into a real episode workflow.','status'=>'active','sort_order'=>10]];
 }
 function sf_story_v1_static_episodes(): array {
-  return [['id'=>1,'story_season_id'=>1,'episode_number'=>1,'title'=>'First to Fall','slug'=>'first-to-fall-story-outline','logline'=>'A forgotten band gets one last shot, but the past refuses to stay quiet.','synopsis'=>'Pilot episode planning outline for Stonefellow.','runtime_target_minutes'=>48,'production_status'=>'outline','sort_order'=>10,'season_title'=>'Season 1','season_number'=>1]];
+  return [['id'=>1,'story_season_id'=>1,'episode_number'=>1,'title'=>'Episode 1','slug'=>'stonefellow-season-1-episode-1','logline'=>'Episode 1 gathers the current Stonefellow storyboard scenes into the first real episode workflow.','synopsis'=>'The current AI storyboard records are treated as the first episode scene list.','episode_outline'=>'Episode 1 starts as a producer organization pass. The current storyboard items become the episode scenes, and each scene can be expanded through the existing builder into scene cards, prompts, image direction, dialogue, and continuity notes.','setting_label'=>'Stonefellow music-world locations, bars, stages, backstage spaces, roads, and community scenes.','runtime_target_minutes'=>48,'production_status'=>'outline','sort_order'=>10,'season_title'=>'Season 1','season_number'=>1]];
 }
 function sf_story_v1_static_characters(): array {
   return [
@@ -49,12 +58,14 @@ function sf_story_v1_static_scene_cards(int $sceneSheetId): array {
 }
 
 function sf_story_v1_counts(): array {
-  if (!sf_story_v1_ready()) return ['seasons'=>1,'episodes'=>1,'scenes'=>2,'cards'=>4,'characters'=>2];
+  if (!sf_story_v1_ready()) return ['seasons'=>1,'episodes'=>1,'scenes'=>count(sf_storyboard_static_projects()),'cards'=>27,'characters'=>2];
+  $sceneCount = sf_story_v1_bridge_ready() ? sf_admin_count_table('storyboards') : sf_admin_count_table('story_scene_sheets');
+  $cardCount = sf_story_v1_bridge_ready() && sf_admin_table_exists('storyboard_scenes') ? sf_admin_count_table('storyboard_scenes') : sf_admin_count_table('story_scene_cards');
   return [
     'seasons' => sf_admin_count_table('story_seasons'),
     'episodes' => sf_admin_count_table('story_episodes'),
-    'scenes' => sf_admin_count_table('story_scene_sheets'),
-    'cards' => sf_admin_count_table('story_scene_cards'),
+    'scenes' => $sceneCount,
+    'cards' => $cardCount,
     'characters' => sf_admin_count_table('story_characters'),
   ];
 }
@@ -76,6 +87,15 @@ function sf_story_v1_characters(string $status = ''): array {
   if ($status !== '') { $where = 'WHERE c.status = ?'; $params[] = $status; }
   return sf_admin_fetch_all("SELECT c.*, COUNT(DISTINCT l.story_scene_sheet_id) AS scene_count FROM story_characters c LEFT JOIN story_scene_sheet_characters l ON l.story_character_id = c.id {$where} GROUP BY c.id ORDER BY c.sort_order ASC, c.character_name ASC", $params);
 }
+function sf_story_v1_episode_characters(int $episodeId): array {
+  if (!sf_story_v1_ready() || $episodeId <= 0 || !sf_admin_table_exists('story_episode_characters')) return [];
+  return sf_admin_fetch_all('SELECT c.* FROM story_episode_characters ec INNER JOIN story_characters c ON c.id = ec.story_character_id WHERE ec.story_episode_id = ? ORDER BY c.sort_order ASC, c.character_name ASC', [$episodeId]);
+}
+function sf_story_v1_sync_episode_characters(int $episodeId, array $characterIds): void {
+  if (!sf_story_v1_ready() || $episodeId <= 0 || !sf_admin_table_exists('story_episode_characters')) return;
+  sf_admin_execute('DELETE FROM story_episode_characters WHERE story_episode_id = ?', [$episodeId]);
+  foreach (array_unique(array_filter(array_map('intval', $characterIds))) as $characterId) sf_admin_execute('INSERT IGNORE INTO story_episode_characters (story_episode_id, story_character_id) VALUES (?, ?)', [$episodeId, $characterId]);
+}
 function sf_story_v1_scene_sheets(?int $episodeId = null): array {
   if (!sf_story_v1_ready()) return sf_story_v1_static_scene_sheets();
   $params = [];
@@ -91,6 +111,18 @@ function sf_story_v1_scene_sheets(?int $episodeId = null): array {
     foreach ($links as $link) $charactersByScene[(int)$link['story_scene_sheet_id']][] = (string)$link['character_name'];
   }
   foreach ($rows as &$row) $row['characters'] = $charactersByScene[(int)$row['id']] ?? [];
+  return $rows;
+}
+function sf_story_v1_episode_storyboards(?int $episodeId = null): array {
+  if (!sf_story_v1_bridge_ready() || !$episodeId) return sf_storyboard_projects();
+  $rows = sf_admin_fetch_all("SELECT s.*, COUNT(DISTINCT sc.id) AS completed_scenes, COUNT(DISTINCT ch.id) AS characters FROM storyboards s LEFT JOIN storyboard_scenes sc ON sc.storyboard_id = s.id LEFT JOIN storyboard_characters ch ON ch.storyboard_id = s.id AND ch.status = 'active' WHERE s.story_episode_id = ? GROUP BY s.id ORDER BY s.producer_scene_order ASC, s.id ASC", [$episodeId]);
+  if (!$rows) return [];
+  foreach ($rows as &$row) {
+    $row['status'] = $row['producer_scene_status'] ?? $row['storyboard_status'] ?? $row['generation_status'] ?? 'outline';
+    $row['genre'] = $row['genre'] ?? 'Scene';
+    $row['prompt'] = $row['short_prompt'] ?? $row['source_script'] ?? '';
+    $row['updated_at'] = $row['updated_at'] ?? $row['created_at'] ?? '';
+  }
   return $rows;
 }
 function sf_story_v1_scene_cards(?int $sceneSheetId = null): array {
@@ -125,11 +157,19 @@ function sf_story_v1_save_row(string $table, array $payload, int $id = 0): int {
 function sf_story_v1_sync_scene_characters(int $sceneId, array $characterIds): void {
   if (!sf_story_v1_ready() || $sceneId <= 0 || !sf_admin_table_exists('story_scene_sheet_characters')) return;
   sf_admin_execute('DELETE FROM story_scene_sheet_characters WHERE story_scene_sheet_id = ?', [$sceneId]);
-  foreach (array_unique(array_filter(array_map('intval', $characterIds))) as $characterId) {
-    sf_admin_execute('INSERT IGNORE INTO story_scene_sheet_characters (story_scene_sheet_id, story_character_id) VALUES (?, ?)', [$sceneId, $characterId]);
-  }
+  foreach (array_unique(array_filter(array_map('intval', $characterIds))) as $characterId) sf_admin_execute('INSERT IGNORE INTO story_scene_sheet_characters (story_scene_sheet_id, story_character_id) VALUES (?, ?)', [$sceneId, $characterId]);
 }
 function sf_story_v1_update_scene_order(array $ids): bool {
+  if (sf_story_v1_bridge_ready()) {
+    $order = 10;
+    foreach ($ids as $id) {
+      $id = (int)$id;
+      if ($id <= 0) continue;
+      sf_admin_execute('UPDATE storyboards SET producer_scene_order = ? WHERE id = ?', [$order, $id]);
+      $order += 10;
+    }
+    return true;
+  }
   if (!sf_story_v1_ready()) return false;
   $order = 10;
   $sceneNumber = 1;
@@ -152,5 +192,8 @@ function sf_story_v1_update_card_order(array $ids): bool {
     $order += 10;
   }
   return true;
+}
+function sf_story_v1_episode_outline_text(array $episode): string {
+  return trim((string)($episode['episode_outline'] ?? '')) ?: trim((string)($episode['synopsis'] ?? '')) ?: 'Episode outline pending.';
 }
 ?>
