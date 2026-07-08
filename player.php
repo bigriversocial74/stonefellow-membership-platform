@@ -86,5 +86,6 @@ $featuredTrack = $trackMap[(int)($featuredSong['id'] ?? 0)] ?? ($trackPayloads[0
   </section>
   <script>window.STONEFELLOW_TRACKS = <?= json_encode($trackPayloads, JSON_UNESCAPED_SLASHES) ?>;</script>
   <script src="<?= sf_asset('js/stonefellow.js') ?>"></script>
+  <script src="<?= sf_asset('js/member-runtime.js') ?>"></script>
 </body>
 </html>

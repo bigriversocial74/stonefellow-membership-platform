@@ -1,5 +1,5 @@
 <?php
-require_once __DIR__ . '/../includes/db.php';
+require_once __DIR__ . '/../includes/library.php';
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
   sf_json_response(['ok' => false, 'error' => 'POST required'], 405);
@@ -59,6 +59,15 @@ try {
       ':complete_inc' => $eventType === 'complete' ? 1 : 0,
       ':event_type' => $eventType,
     ]);
+
+    $item = sf_library_catalog_item('song', $songId, $eventType === 'complete' || $percent >= 90 ? 'completed' : 'saved', [
+      'progress_percent' => (int)round($percent),
+      'position_seconds' => $position,
+      'metadata' => ['last_event_type' => $eventType],
+    ]);
+    if ($item) {
+      sf_library_save_item((int)$userId, $item);
+    }
   }
 
   sf_json_response(['ok' => true, 'stored' => true, 'user_progress_updated' => (bool)$userId]);

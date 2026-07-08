@@ -42,6 +42,7 @@
   </footer>
   <script>window.STONEFELLOW_PWA = {serviceWorker: "<?= sf_url('service-worker.js') ?>", offline: "<?= sf_url('offline.php') ?>"};</script>
   <script src="<?= sf_asset('js/stonefellow.js') ?>"></script>
+  <script src="<?= sf_asset('js/member-runtime.js') ?>"></script>
   <script src="<?= sf_asset('js/pwa-upload.js') ?>"></script>
   <script src="<?= sf_asset('js/customer-ui.js') ?>"></script>
 </body>

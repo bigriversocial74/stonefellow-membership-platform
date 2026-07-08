@@ -1,5 +1,5 @@
 <?php
-require_once __DIR__ . '/../includes/db.php';
+require_once __DIR__ . '/../includes/library.php';
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
   sf_json_response(['ok' => false, 'error' => 'POST required'], 405);
@@ -74,6 +74,16 @@ try {
         ':completed' => $completed ? 1 : 0,
         ':completed_at' => $completed ? date('Y-m-d H:i:s') : null,
       ]);
+    }
+
+    $status = ($eventType === 'complete' || $percent >= 90) ? 'completed' : 'watchlist';
+    $item = sf_library_catalog_item('video', $videoId, $status, [
+      'progress_percent' => (int)round($percent),
+      'position_seconds' => $position,
+      'metadata' => ['episode_id' => $episodeId, 'last_event_type' => $eventType],
+    ]);
+    if ($item) {
+      sf_library_save_item((int)$userId, $item);
     }
   }
 

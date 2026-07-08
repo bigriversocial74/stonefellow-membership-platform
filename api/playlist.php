@@ -22,6 +22,22 @@ if (!$pdo) {
 $data = sf_request_json();
 $action = (string)($data['action'] ?? 'create');
 
+function sf_playlist_slug(string $title): string {
+  return strtolower(trim(preg_replace('/[^a-z0-9]+/i', '-', $title), '-')) . '-' . substr(bin2hex(random_bytes(3)), 0, 6);
+}
+
+function sf_member_default_playlist(PDO $pdo, int $userId): int {
+  $find = $pdo->prepare('SELECT id FROM playlists WHERE user_id = ? ORDER BY id ASC LIMIT 1');
+  $find->execute([$userId]);
+  $playlistId = (int)$find->fetchColumn();
+  if ($playlistId > 0) return $playlistId;
+
+  $title = 'My Road Songs';
+  $stmt = $pdo->prepare("INSERT INTO playlists (user_id, title, slug, description, visibility) VALUES (?, ?, ?, ?, 'private')");
+  $stmt->execute([$userId, $title, sf_playlist_slug($title), 'Auto-created member playlist for saved Stonefellow songs.']);
+  return (int)$pdo->lastInsertId();
+}
+
 try {
   if ($action === 'create') {
     $title = trim((string)($data['title'] ?? ''));
@@ -29,17 +45,19 @@ try {
     if ($title === '') {
       sf_json_response(['ok' => false, 'error' => 'title_required'], 422);
     }
-    $slug = strtolower(trim(preg_replace('/[^a-z0-9]+/i', '-', $title), '-')) . '-' . substr(bin2hex(random_bytes(3)), 0, 6);
     $stmt = $pdo->prepare("INSERT INTO playlists (user_id, title, slug, description, visibility) VALUES (?, ?, ?, ?, 'private')");
-    $stmt->execute([$userId, $title, $slug, $description]);
+    $stmt->execute([$userId, $title, sf_playlist_slug($title), $description]);
     sf_json_response(['ok' => true, 'playlist_id' => (int)$pdo->lastInsertId(), 'title' => $title]);
   }
 
   if ($action === 'add_song') {
     $playlistId = sf_int_from_request($data, 'playlist_id');
     $songId = sf_int_from_request($data, 'song_id');
-    if ($playlistId <= 0 || $songId <= 0) {
-      sf_json_response(['ok' => false, 'error' => 'playlist_id_and_song_id_required'], 422);
+    if ($songId <= 0) {
+      sf_json_response(['ok' => false, 'error' => 'song_id_required'], 422);
+    }
+    if ($playlistId <= 0) {
+      $playlistId = sf_member_default_playlist($pdo, (int)$userId);
     }
     $owner = $pdo->prepare('SELECT id FROM playlists WHERE id = ? AND user_id = ? LIMIT 1');
     $owner->execute([$playlistId, $userId]);
@@ -48,7 +66,18 @@ try {
     }
     $stmt = $pdo->prepare("INSERT IGNORE INTO playlist_songs (playlist_id, song_id, sort_order) VALUES (?, ?, 0)");
     $stmt->execute([$playlistId, $songId]);
-    sf_json_response(['ok' => true, 'playlist_id' => $playlistId, 'song_id' => $songId]);
+    sf_json_response(['ok' => true, 'playlist_id' => $playlistId, 'song_id' => $songId, 'message' => 'Song added to playlist.']);
+  }
+
+  if ($action === 'remove_song') {
+    $playlistId = sf_int_from_request($data, 'playlist_id');
+    $songId = sf_int_from_request($data, 'song_id');
+    if ($playlistId <= 0 || $songId <= 0) {
+      sf_json_response(['ok' => false, 'error' => 'playlist_id_and_song_id_required'], 422);
+    }
+    $stmt = $pdo->prepare('DELETE ps FROM playlist_songs ps INNER JOIN playlists p ON p.id = ps.playlist_id WHERE p.user_id = ? AND ps.playlist_id = ? AND ps.song_id = ?');
+    $stmt->execute([$userId, $playlistId, $songId]);
+    sf_json_response(['ok' => true, 'playlist_id' => $playlistId, 'song_id' => $songId, 'removed' => true]);
   }
 
   sf_json_response(['ok' => false, 'error' => 'unknown_action'], 400);
