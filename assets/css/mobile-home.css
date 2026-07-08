@@ -1,0 +1,43 @@
+/* Mobile homepage cleanup */
+@media (max-width: 700px){
+  .home-template .home-header-actions .home-subscribe-btn{
+    display:none!important;
+  }
+
+  .home-template .home-header-actions{
+    width:100%;
+  }
+
+  .home-template .home-user-menu,
+  .home-template .home-user-summary{
+    width:100%;
+  }
+
+  .home-template .home-user-dropdown a[href$="signup.php"]{
+    display:flex;
+  }
+
+  .home-template .home-hero-grid{
+    display:grid;
+    grid-template-columns:1fr!important;
+  }
+
+  .home-template .home-hero-image{
+    order:-1;
+    width:100%;
+    justify-content:center;
+    margin:0 0 18px;
+  }
+
+  .home-template .home-hero-image img{
+    width:100%;
+    max-width:100%;
+    object-fit:cover;
+    object-position:center top;
+  }
+
+  .home-template .home-copy{
+    order:1;
+    padding-top:0!important;
+  }
+}
