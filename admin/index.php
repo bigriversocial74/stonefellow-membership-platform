@@ -28,6 +28,8 @@ $adminSections = [
     ['Support','Help Desk','Member tickets, replies, priority workflow, and linked account context.','admin/support.php'],
   ],
   'Content + Revenue' => [
+    ['Story','System v1','Season, episode, scene sheet, draggable scene card, and character-catalog planning workspace.','admin/story-system.php'],
+    ['Characters','Catalog','Main character profiles, motivations, relationships, arcs, images, and scene appearance counts.','admin/story-characters.php'],
     ['Storyboard','Visual Scripts','Prompt-to-9-scene storyboard workflow with queue batching, exports, character references, assignments, scene actions, and admin-managed AI provider.','admin/storyboards.php'],
     ['AI','Provider Settings','Admin-only Claude/ChatGPT API keys, defaults, usage limits, cost tracking, and secure key status.','admin/ai-settings.php'],
     ['Media','Catalog','Albums, songs, episodes, videos, assets, publishing, and secure delivery.','admin/music.php'],
@@ -42,7 +44,7 @@ $adminSections = [
 <?php endforeach; ?>
 
 <section class="sf-admin-panel">
-  <div class="sf-admin-panel-head"><div><span class="sf-panel-eyebrow">Streaming Platform Foundation</span><h2>What is now built</h2></div><span class="sf-admin-mini-pill">Phases 1–45</span></div>
+  <div class="sf-admin-panel-head"><div><span class="sf-panel-eyebrow">Streaming Platform Foundation</span><h2>What is now built</h2></div><span class="sf-admin-mini-pill">Phases 1–46</span></div>
   <div class="sf-admin-roadmap">
     <div><span>✓</span><strong>Production Monitoring / Error Log Center v1</strong><p>Health snapshots, service checks, runtime metrics, failed notification/job/payment counters, error records, and monitoring APIs.</p></div>
     <div><span>✓</span><strong>System Notifications + Incident Alerts v1</strong><p>Incident records, incident timeline, severity workflow, alert rules, admin alert inbox, and email/in-app alert routing.</p></div>
@@ -54,8 +56,9 @@ $adminSections = [
     <div><span>✓</span><strong>Scene Actions v1</strong><p>Scene edit persistence, single-scene rewrite, image regeneration, upload replacement, character consistency payloads, and retry-ready job records.</p></div>
     <div><span>✓</span><strong>Storyboard Character Management + UX Modals v1</strong><p>Add/update characters, upload references, assign/remove scene characters, modal-style panels, job badges, retry controls, and bulk image regeneration.</p></div>
     <div><span>✓</span><strong>Storyboard Queue + Export v1</strong><p>Image queue batching, process-next worker action, cancel controls, job summary, screenplay export, shot-list CSV export, JSON export, and reference gallery review.</p></div>
+    <div><span>✓</span><strong>Storyboarding System v1</strong><p>Season, episode, scene sheet, draggable scene-card order, editable scene titles, and main character catalog foundation.</p></div>
   </div>
 </section>
 
-<section class="sf-admin-panel"><div class="sf-admin-panel-head"><div><span class="sf-panel-eyebrow">Database Mode</span><h2>Runtime notes</h2></div><a href="<?= sf_url('docs/SQL_FILE_MAP.md') ?>">SQL Map</a></div><p class="sf-admin-copy">The installer runs the base schema plus migrations 001 through 021. Migration 021 adds storyboard persistence, AI provider settings, storyboard jobs, and AI usage tracking. Existing installs should apply only missing migrations in numeric order after a database backup.</p></section>
+<section class="sf-admin-panel"><div class="sf-admin-panel-head"><div><span class="sf-panel-eyebrow">Database Mode</span><h2>Runtime notes</h2></div><a href="<?= sf_url('docs/SQL_FILE_MAP.md') ?>">SQL Map</a></div><p class="sf-admin-copy">The installer runs the base schema plus migrations 001 through 021. Migration 021 adds storyboard persistence, AI provider settings, storyboard jobs, and AI usage tracking. Existing installs should apply only missing migrations in numeric order after a database backup. Storyboarding System v1 adds an optional additive migration at <code>database/storyboarding_system_v1.sql</code>.</p></section>
 <?php sf_admin_shell_end(); require __DIR__ . '/../includes/footer.php'; ?>
