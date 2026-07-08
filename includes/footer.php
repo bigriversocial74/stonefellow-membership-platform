@@ -24,10 +24,10 @@
       <div class="home-footer-social">
         <h4>Follow Us</h4>
         <div class="social-row">
-          <a href="https://instagram.com/stonefellow" target="_blank" rel="noopener" aria-label="Stonefellow on Instagram">◎</a>
-          <a href="https://youtube.com/@stonefellow" target="_blank" rel="noopener" aria-label="Stonefellow on YouTube">▶</a>
-          <a href="https://x.com/stonefellow" target="_blank" rel="noopener" aria-label="Stonefellow on X">𝕏</a>
-          <a href="https://facebook.com/stonefellow" target="_blank" rel="noopener" aria-label="Stonefellow on Facebook">f</a>
+          <a href="https://instagram.com/stonefellow" target="_blank" rel="noopener" aria-label="Stonefellow on Instagram"><span>◎</span></a>
+          <a href="https://youtube.com/@stonefellow" target="_blank" rel="noopener" aria-label="Stonefellow on YouTube"><span>▶</span></a>
+          <a href="https://x.com/stonefellow" target="_blank" rel="noopener" aria-label="Stonefellow on X"><span>𝕏</span></a>
+          <a href="https://facebook.com/stonefellow" target="_blank" rel="noopener" aria-label="Stonefellow on Facebook"><span>f</span></a>
         </div>
       </div>
       <form class="home-newsletter" action="#" method="post">
