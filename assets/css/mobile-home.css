@@ -3,6 +3,126 @@
   display:none;
 }
 
+.home-hero-image{
+  position:relative;
+}
+
+.home-video-trigger{
+  position:absolute;
+  right:clamp(16px,3vw,34px);
+  bottom:clamp(16px,3vw,30px);
+  z-index:3;
+  display:inline-flex;
+  align-items:center;
+  gap:9px;
+  min-height:42px;
+  padding:0 14px;
+  border:1px solid rgba(232,197,127,.72);
+  border-radius:999px;
+  background:rgba(5,4,3,.78);
+  color:#f3d7a1;
+  box-shadow:0 16px 42px rgba(0,0,0,.42);
+  backdrop-filter:blur(12px);
+  cursor:pointer;
+  font-size:12px;
+  font-weight:900;
+  letter-spacing:.14em;
+  line-height:1;
+  text-transform:uppercase;
+}
+
+.home-video-trigger:hover,
+.home-video-trigger:focus-visible{
+  background:linear-gradient(180deg,#e8c57f,#d0a257);
+  border-color:rgba(255,255,255,.28);
+  color:#120b06;
+  outline:0;
+}
+
+.home-video-trigger-icon{
+  display:inline-block;
+  width:0;
+  height:0;
+  border-top:6px solid transparent;
+  border-bottom:6px solid transparent;
+  border-left:10px solid currentColor;
+}
+
+.home-video-modal[hidden]{
+  display:none;
+}
+
+.home-video-modal{
+  position:fixed;
+  inset:0;
+  z-index:80;
+  display:grid;
+  place-items:center;
+  padding:clamp(18px,4vw,46px);
+}
+
+.home-video-backdrop{
+  position:absolute;
+  inset:0;
+  background:rgba(0,0,0,.78);
+  backdrop-filter:blur(10px);
+}
+
+.home-video-dialog{
+  position:relative;
+  z-index:1;
+  width:min(960px,100%);
+  border:1px solid rgba(232,197,127,.34);
+  border-radius:18px;
+  background:#050403;
+  box-shadow:0 30px 90px rgba(0,0,0,.72);
+  overflow:hidden;
+}
+
+.home-video-close{
+  position:absolute;
+  right:12px;
+  top:10px;
+  z-index:2;
+  display:grid;
+  place-items:center;
+  width:38px;
+  height:38px;
+  border:1px solid rgba(232,197,127,.42);
+  border-radius:50%;
+  background:rgba(5,4,3,.82);
+  color:#f1d39c;
+  cursor:pointer;
+  font-size:25px;
+  line-height:1;
+}
+
+.home-video-close:hover,
+.home-video-close:focus-visible{
+  background:#e2bc75;
+  color:#130c06;
+  outline:0;
+}
+
+.home-video-frame-wrap{
+  position:relative;
+  width:100%;
+  aspect-ratio:16/9;
+  background:#000;
+}
+
+.home-video-frame-wrap iframe{
+  position:absolute;
+  inset:0;
+  width:100%;
+  height:100%;
+  border:0;
+}
+
+body.home-video-modal-open{
+  overflow:hidden;
+}
+
 @media (max-width: 700px){
   .home-header-actions .home-subscribe-btn,
   .home-header-actions .home-user-menu-public{
@@ -60,6 +180,19 @@
     max-width:100%;
     object-fit:cover;
     object-position:center top;
+  }
+
+  .home-video-trigger{
+    right:14px;
+    bottom:14px;
+    min-height:36px;
+    padding:0 12px;
+    font-size:10px;
+    letter-spacing:.12em;
+  }
+
+  .home-video-dialog{
+    border-radius:12px;
   }
 
   .home-template .home-copy{
