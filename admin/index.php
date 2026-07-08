@@ -28,9 +28,8 @@ $adminSections = [
     ['Support','Help Desk','Member tickets, replies, priority workflow, and linked account context.','admin/support.php'],
   ],
   'Content + Revenue' => [
-    ['Story','System v1','Season, episode, scene sheet, draggable scene card, and character-catalog planning workspace.','admin/story-system.php'],
+    ['Storyboarding','Combined System','Season, episode, scene sheet, draggable scene card, character catalog, and AI storyboard generation in one workspace.','admin/storyboards.php'],
     ['Characters','Catalog','Main character profiles, motivations, relationships, arcs, images, and scene appearance counts.','admin/story-characters.php'],
-    ['Storyboard','Visual Scripts','Prompt-to-9-scene storyboard workflow with queue batching, exports, character references, assignments, scene actions, and admin-managed AI provider.','admin/storyboards.php'],
     ['AI','Provider Settings','Admin-only Claude/ChatGPT API keys, defaults, usage limits, cost tracking, and secure key status.','admin/ai-settings.php'],
     ['Media','Catalog','Albums, songs, episodes, videos, assets, publishing, and secure delivery.','admin/music.php'],
     ['Revenue','Launch Dashboard','MRR, ARR, checkout conversion, merch, churn risk, and snapshots.','admin/revenue-dashboard.php'],
@@ -56,7 +55,7 @@ $adminSections = [
     <div><span>✓</span><strong>Scene Actions v1</strong><p>Scene edit persistence, single-scene rewrite, image regeneration, upload replacement, character consistency payloads, and retry-ready job records.</p></div>
     <div><span>✓</span><strong>Storyboard Character Management + UX Modals v1</strong><p>Add/update characters, upload references, assign/remove scene characters, modal-style panels, job badges, retry controls, and bulk image regeneration.</p></div>
     <div><span>✓</span><strong>Storyboard Queue + Export v1</strong><p>Image queue batching, process-next worker action, cancel controls, job summary, screenplay export, shot-list CSV export, JSON export, and reference gallery review.</p></div>
-    <div><span>✓</span><strong>Storyboarding System v1</strong><p>Season, episode, scene sheet, draggable scene-card order, editable scene titles, and main character catalog foundation.</p></div>
+    <div><span>✓</span><strong>Combined Storyboarding System</strong><p>Season, episode, scene sheet, draggable scene-card order, editable scene titles, AI storyboard generation, and main character catalog foundation.</p></div>
   </div>
 </section>
 
