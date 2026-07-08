@@ -13,7 +13,7 @@ $sfPublicNav = [
   ['label' => 'Episodes', 'href' => 'episodes.php', 'pages' => ['episodes.php', 'episode.php', 'watch.php']],
   ['label' => 'Music', 'href' => 'music.php', 'pages' => ['music.php', 'player.php', 'album.php', 'song.php']],
   ['label' => 'Cast', 'href' => 'cast.php', 'pages' => ['cast.php']],
-  ['label' => 'Merch', 'href' => 'merch.php', 'pages' => ['merch.php', 'product.php']],
+  ['label' => 'Merch', 'href' => 'merch.php', 'product.php'],
 ];
 $sfCurrentPage = sf_current_page();
 $sfMainNav = $sfHeaderUser ? [] : $sfPublicNav;
@@ -41,7 +41,7 @@ $sfBodyClass = trim($sfPageClass . ($sfHeaderUser ? ' sf-logged-in' : '') . ($sf
   <link rel="stylesheet" href="<?= sf_asset('css/light-card-text.css') ?>">
   <link rel="stylesheet" href="<?= sf_asset('css/customer-ui.css') ?>">
   <link rel="stylesheet" href="<?= sf_asset('css/mobile-home.css') ?>">
-  <?php if ($sfIsAdminSurface): ?><link rel="stylesheet" href="<?= sf_asset('css/admin-polish.css') ?>"><link rel="stylesheet" href="<?= sf_asset('css/storyboarding-system.css') ?>"><?php endif; ?>
+  <?php if ($sfIsAdminSurface): ?><link rel="stylesheet" href="<?= sf_asset('css/admin-polish.css') ?>"><link rel="stylesheet" href="<?= sf_asset('css/admin-tabs.css') ?>"><link rel="stylesheet" href="<?= sf_asset('css/storyboarding-system.css') ?>"><?php endif; ?>
 </head>
 <body class="<?= htmlspecialchars($sfBodyClass) ?>">
   <div class="site-noise" aria-hidden="true"></div>
