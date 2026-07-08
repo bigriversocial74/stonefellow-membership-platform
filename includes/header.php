@@ -39,6 +39,7 @@ $sfMainNav = $sfHeaderUser ? $sfMemberNav : $sfPublicNav;
   <link rel="stylesheet" href="<?= sf_asset('css/stonefellow.css') ?>">
   <link rel="stylesheet" href="<?= sf_asset('css/pwa-upload.css') ?>">
   <link rel="stylesheet" href="<?= sf_asset('css/nav-cleanup.css') ?>">
+  <link rel="stylesheet" href="<?= sf_asset('css/light-card-text.css') ?>">
   <?php if ($sfIsAdminSurface): ?><link rel="stylesheet" href="<?= sf_asset('css/admin-polish.css') ?>"><?php endif; ?>
 </head>
 <body class="<?= htmlspecialchars($pageClass ?? '') ?>">
