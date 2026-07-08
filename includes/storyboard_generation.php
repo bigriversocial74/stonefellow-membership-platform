@@ -6,23 +6,29 @@ function sf_sbgen_ready(): bool { return sf_storyboard_ready() && sf_ai_ready() 
 function sf_sbgen_h($value): string { return sf_storyboard_h($value); }
 function sf_sbgen_normalize_prompt(string $prompt): string { $prompt = trim(preg_replace('/\s+/', ' ', $prompt)); return mb_substr($prompt, 0, 4000); }
 function sf_sbgen_estimate_tokens(string $text): int { return max(1, (int)ceil(strlen($text) / 4)); }
+function sf_sbgen_scene_count(?array $storyboard = null, ?int $override = null): int {
+  $value = $override !== null && $override > 0 ? $override : (int)($storyboard['scene_count'] ?? 9);
+  return max(1, min(30, $value ?: 9));
+}
 function sf_sbgen_default_provider(?array $storyboard = null): ?array {
   $key = trim((string)($storyboard['default_text_provider'] ?? ''));
   if ($key !== '') { $provider = sf_ai_provider($key); if ($provider) return $provider; }
   foreach (sf_ai_providers() as $provider) if (!empty($provider['is_default_text'])) return $provider;
   $providers = sf_ai_providers(); return $providers[0] ?? null;
 }
-function sf_sbgen_system_prompt(): string {
-  return 'You are a professional screenplay storyboarding assistant. Return JSON only. Create exactly 9 scenes for a visual storyboard. Keep it safe for a mainstream streaming membership platform. Do not include markdown fences. Use this top-level JSON object shape: {"title":"","logline":"","genre":"","tone":"","visual_style":"","characters":[{"name":"","role":"","appearance_notes":"","personality_notes":"","wardrobe_notes":"","consistency_prompt":""}],"scenes":[{"scene_number":1,"scene_title":"","scene_summary":"","scene_prompt":"","image_prompt":"","dialog_text":"","action_notes":"","location_label":"","time_of_day":"","characters":["Character Name"]}]}. Each scene must include cinematic visual direction, concise dialog, and character names matching the characters array.';
+function sf_sbgen_system_prompt(int $sceneCount = 9): string {
+  $sceneCount = sf_sbgen_scene_count(null, $sceneCount);
+  return 'You are a professional screenplay storyboarding assistant. Return JSON only. Create exactly ' . $sceneCount . ' scenes for a visual storyboard. Keep it safe for a mainstream streaming membership platform. Do not include markdown fences. Use this top-level JSON object shape: {"title":"","logline":"","genre":"","tone":"","visual_style":"","characters":[{"name":"","role":"","appearance_notes":"","personality_notes":"","wardrobe_notes":"","consistency_prompt":""}],"scenes":[{"scene_number":1,"scene_title":"","scene_summary":"","scene_prompt":"","image_prompt":"","dialog_text":"","action_notes":"","location_label":"","time_of_day":"","characters":["Character Name"]}]}. Each scene must include cinematic visual direction, concise dialog, and character names matching the characters array. Number the scenes sequentially from 1 through ' . $sceneCount . '.';
 }
-function sf_sbgen_user_prompt(array $storyboard, string $prompt): string {
+function sf_sbgen_user_prompt(array $storyboard, string $prompt, ?int $sceneCount = null): string {
+  $sceneCount = sf_sbgen_scene_count($storyboard, $sceneCount);
   $settings = [
     'Title: ' . (string)($storyboard['title'] ?? 'Untitled Storyboard'),
     'Genre: ' . (string)($storyboard['genre'] ?? ''),
     'Tone: ' . (string)($storyboard['tone'] ?? ''),
     'Visual Style: ' . (string)($storyboard['visual_style'] ?? ''),
     'Aspect Ratio: ' . (string)($storyboard['aspect_ratio'] ?? '16:9'),
-    'Scene Count: exactly 9',
+    'Scene Count: exactly ' . $sceneCount,
     'Basic Script Prompt: ' . $prompt,
   ];
   return implode("\n", $settings);
@@ -65,7 +71,7 @@ function sf_sbgen_call_provider(array $provider, string $systemPrompt, string $u
   $retries = max(0, min(5, (int)($provider['max_retries'] ?? 1)));
   $temperature = max(0, min(2, (float)($provider['temperature'] ?? 0.7)));
   if ($providerKey === 'claude') {
-    $payload = ['model'=>$model,'max_tokens'=>5000,'temperature'=>$temperature,'system'=>$systemPrompt,'messages'=>[['role'=>'user','content'=>$userPrompt]]];
+    $payload = ['model'=>$model,'max_tokens'=>7000,'temperature'=>$temperature,'system'=>$systemPrompt,'messages'=>[['role'=>'user','content'=>$userPrompt]]];
     $result = sf_sbgen_http_json('https://api.anthropic.com/v1/messages', ['Content-Type: application/json','x-api-key: ' . $secret,'anthropic-version: 2023-06-01'], $payload, $timeout, $retries);
     if (!$result['ok']) return ['ok'=>false,'error'=>$result['error'] ?: 'provider_error','text'=>'','usage'=>[],'raw'=>$result['json'] ?: $result['raw']];
     return ['ok'=>true,'error'=>'','text'=>sf_sbgen_extract_claude_text($result['json'] ?? []),'usage'=>$result['json']['usage'] ?? [],'raw'=>$result['json']];
@@ -75,7 +81,8 @@ function sf_sbgen_call_provider(array $provider, string $systemPrompt, string $u
   if (!$result['ok']) return ['ok'=>false,'error'=>$result['error'] ?: 'provider_error','text'=>'','usage'=>[],'raw'=>$result['json'] ?: $result['raw']];
   return ['ok'=>true,'error'=>'','text'=>sf_sbgen_extract_openai_text($result['json'] ?? []),'usage'=>$result['json']['usage'] ?? [],'raw'=>$result['json']];
 }
-function sf_sbgen_parse_json_text(string $text): array {
+function sf_sbgen_parse_json_text(string $text, int $expectedSceneCount = 9): array {
+  $expectedSceneCount = sf_sbgen_scene_count(null, $expectedSceneCount);
   $text = trim($text);
   $text = preg_replace('/^```(?:json)?\s*/i', '', $text);
   $text = preg_replace('/\s*```$/', '', $text);
@@ -86,7 +93,7 @@ function sf_sbgen_parse_json_text(string $text): array {
   }
   if (!is_array($json)) return ['ok'=>false,'error'=>'invalid_json','data'=>null];
   $scenes = $json['scenes'] ?? [];
-  if (!is_array($scenes) || count($scenes) !== 9) return ['ok'=>false,'error'=>'scene_count_not_9','data'=>$json];
+  if (!is_array($scenes) || count($scenes) !== $expectedSceneCount) return ['ok'=>false,'error'=>'scene_count_not_' . $expectedSceneCount,'data'=>$json];
   return ['ok'=>true,'error'=>'','data'=>$json];
 }
 function sf_sbgen_start_job(int $storyboardId, ?int $sceneId, string $providerKey, string $jobType, array $input): int {
@@ -116,8 +123,10 @@ function sf_sbgen_save_result(int $storyboardId, array $data): array {
   try {
     $pdo->beginTransaction();
     $title = trim((string)($data['title'] ?? ''));
+    $sceneTotal = count($data['scenes'] ?? []);
     $updates = ['logline'=>trim((string)($data['logline'] ?? '')), 'genre'=>trim((string)($data['genre'] ?? '')), 'tone'=>trim((string)($data['tone'] ?? '')), 'visual_style'=>trim((string)($data['visual_style'] ?? '')), 'generation_status'=>'complete', 'storyboard_status'=>'draft'];
     if ($title !== '') $updates['title'] = $title;
+    if (sf_admin_column_exists('storyboards', 'scene_count')) $updates['scene_count'] = $sceneTotal;
     $sets = []; $values = [];
     foreach ($updates as $key=>$value) { $sets[] = '`' . $key . '` = ?'; $values[] = $value; }
     $values[] = $storyboardId;
@@ -139,27 +148,34 @@ function sf_sbgen_save_result(int $storyboardId, array $data): array {
       }
     }
     $pdo->commit();
-    sf_admin_audit('generate_storyboard_scenes', 'storyboard', $storyboardId, null, ['scenes'=>count($data['scenes'] ?? [])]);
-    return ['ok'=>true,'scenes'=>count($data['scenes'] ?? [])];
+    sf_admin_audit('generate_storyboard_scenes', 'storyboard', $storyboardId, null, ['scenes'=>$sceneTotal]);
+    return ['ok'=>true,'scenes'=>$sceneTotal];
   } catch (Throwable $e) { if ($pdo->inTransaction()) $pdo->rollBack(); return ['ok'=>false,'error'=>$e->getMessage()]; }
 }
-function sf_sbgen_generate_storyboard(int $storyboardId, string $promptOverride = ''): array {
+function sf_sbgen_generate_storyboard(int $storyboardId, string $promptOverride = '', ?int $sceneCountOverride = null): array {
   if (!sf_sbgen_ready()) return ['ok'=>false,'error'=>'storyboard_generation_not_ready'];
   $storyboard = sf_storyboard_project($storyboardId);
   if (!$storyboard || (int)($storyboard['id'] ?? 0) <= 0) return ['ok'=>false,'error'=>'storyboard_not_found'];
+  $sceneCount = sf_sbgen_scene_count($storyboard, $sceneCountOverride);
   $prompt = sf_sbgen_normalize_prompt($promptOverride !== '' ? $promptOverride : (string)($storyboard['prompt'] ?? ''));
   if ($prompt === '') return ['ok'=>false,'error'=>'prompt_required'];
   $provider = sf_sbgen_default_provider($storyboard);
   if (!$provider) return ['ok'=>false,'error'=>'provider_missing'];
   if (($provider['status'] ?? '') !== 'active' || !in_array(($provider['key_status'] ?? ''), ['configured','connected'], true)) return ['ok'=>false,'error'=>'provider_not_active_or_configured'];
   $providerKey = (string)($provider['provider_key'] ?? 'chatgpt');
-  $system = sf_sbgen_system_prompt();
-  $user = sf_sbgen_user_prompt($storyboard, $prompt);
-  $jobId = sf_sbgen_start_job($storyboardId, null, $providerKey, 'generate_storyboard', ['prompt'=>$prompt]);
-  sf_admin_execute("UPDATE storyboards SET generation_status = 'generating', updated_at = NOW() WHERE id = ?", [$storyboardId]);
+  if (sf_admin_column_exists('storyboards', 'scene_count')) {
+    sf_admin_execute('UPDATE storyboards SET short_prompt = ?, scene_count = ?, generation_status = ?, updated_at = NOW() WHERE id = ?', [$prompt, $sceneCount, 'generating', $storyboardId]);
+  } else {
+    sf_admin_execute("UPDATE storyboards SET generation_status = 'generating', updated_at = NOW() WHERE id = ?", [$storyboardId]);
+  }
+  $storyboard['scene_count'] = $sceneCount;
+  $storyboard['prompt'] = $prompt;
+  $system = sf_sbgen_system_prompt($sceneCount);
+  $user = sf_sbgen_user_prompt($storyboard, $prompt, $sceneCount);
+  $jobId = sf_sbgen_start_job($storyboardId, null, $providerKey, 'generate_storyboard', ['prompt'=>$prompt,'scene_count'=>$sceneCount]);
   $call = sf_sbgen_call_provider($provider, $system, $user);
   if (!$call['ok']) { sf_admin_execute("UPDATE storyboards SET generation_status = 'failed', updated_at = NOW() WHERE id = ?", [$storyboardId]); sf_sbgen_finish_job($jobId, 'failed', [], $call['error']); sf_sbgen_log_usage($providerKey, $storyboardId, [], 'failed'); return ['ok'=>false,'error'=>$call['error'] ?: 'provider_error']; }
-  $parsed = sf_sbgen_parse_json_text($call['text']);
+  $parsed = sf_sbgen_parse_json_text($call['text'], $sceneCount);
   if (!$parsed['ok']) { sf_admin_execute("UPDATE storyboards SET generation_status = 'failed', updated_at = NOW() WHERE id = ?", [$storyboardId]); sf_sbgen_finish_job($jobId, 'failed', ['raw_text'=>$call['text']], $parsed['error']); sf_sbgen_log_usage($providerKey, $storyboardId, $call['usage'], 'failed'); return ['ok'=>false,'error'=>$parsed['error'],'raw_text'=>$call['text']]; }
   $saved = sf_sbgen_save_result($storyboardId, $parsed['data']);
   if (!$saved['ok']) { sf_admin_execute("UPDATE storyboards SET generation_status = 'failed', updated_at = NOW() WHERE id = ?", [$storyboardId]); sf_sbgen_finish_job($jobId, 'failed', $parsed['data'], $saved['error']); sf_sbgen_log_usage($providerKey, $storyboardId, $call['usage'], 'failed'); return ['ok'=>false,'error'=>$saved['error']]; }
