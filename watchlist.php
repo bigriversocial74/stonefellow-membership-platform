@@ -1,7 +1,7 @@
 <?php
 require __DIR__ . '/includes/library.php';
 $user = sf_require_login();
-$items = array_values(array_filter(sf_library_items((int)$user['id']), fn($item) => ($item['library_status'] ?? '') === 'watchlist' || in_array(($item['content_type'] ?? ''), ['video','episode'], true)));
+$items = sf_library_items((int)$user['id'], 'watchlist');
 $pageTitle = 'Watchlist';
 $pageDescription = 'Stonefellow watchlist for queued episodes, videos, live sessions, and member-only streams.';
 $pageClass = 'member-dashboard-page membership-page';
@@ -14,11 +14,15 @@ require __DIR__ . '/includes/header.php';
   </section>
   <section class="sf-member-section">
     <div class="sf-member-section-head"><div><span class="sf-panel-eyebrow">Queue</span><h2>Watch next</h2></div></div>
-    <div class="sf-video-card-grid">
-      <?php foreach ($items as $item): ?>
-        <a class="sf-video-card" href="<?= htmlspecialchars($item['content_url'] ?? '#') ?>"><img src="<?= sf_asset($item['image_path'] ?? 'images/episodes/episode-01.png') ?>" alt="<?= htmlspecialchars($item['title'] ?? 'Watchlist item') ?> artwork"><span><?= htmlspecialchars(ucfirst((string)($item['content_type'] ?? 'video'))) ?></span><strong><?= htmlspecialchars($item['title'] ?? 'Stonefellow') ?></strong><small><?= (int)($item['progress_percent'] ?? 0) ?>% watched</small></a>
-      <?php endforeach; ?>
-    </div>
+    <?php if ($items): ?>
+      <div class="sf-video-card-grid">
+        <?php foreach ($items as $item): ?>
+          <a class="sf-video-card" href="<?= htmlspecialchars($item['content_url'] ?? '#') ?>"><img src="<?= sf_asset($item['image_path'] ?? 'images/episodes/episode-01.png') ?>" alt="<?= htmlspecialchars($item['title'] ?? 'Watchlist item') ?> artwork"><span><?= htmlspecialchars(ucfirst((string)($item['content_type'] ?? 'video'))) ?></span><strong><?= htmlspecialchars($item['title'] ?? 'Stonefellow') ?></strong><small><?= (int)($item['progress_percent'] ?? 0) ?>% watched</small></a>
+        <?php endforeach; ?>
+      </div>
+    <?php else: ?>
+      <article class="sf-dashboard-empty sf-dashboard-empty-wide"><strong>No watchlist items yet</strong><p>Use Save to Watchlist on a watch page, or start playback to create a resume queue automatically.</p><div><a href="<?= sf_url('episodes.php') ?>">Browse Episodes</a><a href="<?= sf_url('library.php') ?>">Open Library</a></div></article>
+    <?php endif; ?>
   </section>
 </section>
 <?php require __DIR__ . '/includes/footer.php'; ?>
