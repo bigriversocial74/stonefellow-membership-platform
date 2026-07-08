@@ -1,10 +1,18 @@
 <?php
 $pageTitle = 'Player';
-$pageDescription = 'Stonefellow streaming player with database-backed songs, full-track playback, playlists, queue, and sticky controls.';
+$pageDescription = 'Stonefellow member streaming player with database-backed songs, full-track playback, playlists, queue, and sticky controls.';
 $pageClass = 'music-app-page music-player-page music-browse-page';
 require __DIR__ . '/includes/audio_player.php';
 require __DIR__ . '/includes/music_catalog.php';
 $member = sf_member_snapshot();
+if (!sf_auth_user()) {
+  sf_auth_flash('warning', 'Sign in to access the Stonefellow member player. The public music page remains available without an account.');
+  sf_redirect(sf_url('signin.php?next=' . urlencode('player.php')));
+}
+if (empty($member['can_stream_full_music']) && !sf_access_allows('subscriber', (string)($member['access_level'] ?? 'public'))) {
+  sf_auth_flash('warning', 'A paid membership is required to access the full player.');
+  sf_redirect(sf_url('subscribe.php'));
+}
 $catalogSongs = sf_music_public_catalog_songs();
 $featuredSong = $catalogSongs[0] ?? null;
 $newReleases = array_slice($catalogSongs, 0, 4);
@@ -43,9 +51,9 @@ $albumSlug = $featuredSong['album_slug'] ?? ($musicAlbum['slug'] ?? 'the-road-is
 
     <main class="sf-stream-main">
       <header class="sf-stream-topbar">
-        <div class="sf-history-buttons"><a href="<?= sf_url('index.php') ?>">‹</a><a href="<?= sf_url('album.php?slug=' . urlencode($albumSlug)) ?>">›</a></div>
+        <div class="sf-history-buttons"><a href="<?= sf_url('music.php') ?>">‹</a><a href="<?= sf_url('album.php?slug=' . urlencode($albumSlug)) ?>">›</a></div>
         <label class="sf-stream-search"><span>⌕</span><input type="search" placeholder="Search Stonefellow" aria-label="Search Stonefellow"></label>
-        <div class="sf-topbar-actions"><a href="<?= sf_url('signup.php') ?>">Subscribe</a><a class="sf-avatar" href="<?= sf_url('signin.php') ?>"><img src="<?= sf_asset('images/cast/cast-jax.png') ?>" alt="Account"></a></div>
+        <div class="sf-topbar-actions"><a href="<?= sf_url('account-billing.php') ?>"><?= htmlspecialchars($member['access_label']) ?></a><a class="sf-avatar" href="<?= sf_url('member.php') ?>"><img src="<?= sf_asset('images/cast/cast-jax.png') ?>" alt="Account"></a></div>
       </header>
 
       <section class="sf-home-section">
@@ -59,8 +67,8 @@ $albumSlug = $featuredSong['album_slug'] ?? ($musicAlbum['slug'] ?? 'the-road-is
       </section>
 
       <section class="sf-home-section sf-admin-panel">
-        <div class="sf-member-section-head"><div><span class="sf-panel-eyebrow">Audio Player v3</span><h2>Database-backed full-track playback</h2></div><a href="<?= sf_url('account-billing.php') ?>"><?= htmlspecialchars($member['access_label']) ?></a></div>
-        <p class="sf-admin-copy">The player now reads published tracks from the database and plays the attached full-track source when available. Demo tracks are editable sample records in the admin song catalog.</p>
+        <div class="sf-member-section-head"><div><span class="sf-panel-eyebrow">Member Player</span><h2>Subscriber full-track playback</h2></div><a href="<?= sf_url('account-billing.php') ?>"><?= htmlspecialchars($member['access_label']) ?></a></div>
+        <p class="sf-admin-copy">This full player is for logged-in paying members. The public music page at <strong>music.php</strong> remains the public-facing soundtrack page and can still play the public tracks you choose to display.</p>
       </section>
 
       <section id="new" class="sf-home-section">
