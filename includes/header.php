@@ -13,7 +13,7 @@ $sfPublicNav = [
   ['label' => 'Episodes', 'href' => 'episodes.php', 'pages' => ['episodes.php', 'episode.php', 'watch.php']],
   ['label' => 'Music', 'href' => 'music.php', 'pages' => ['music.php', 'player.php', 'album.php', 'song.php']],
   ['label' => 'Cast', 'href' => 'cast.php', 'pages' => ['cast.php']],
-  ['label' => 'Merch', 'href' => 'merch.php', 'product.php'],
+  ['label' => 'Merch', 'href' => 'merch.php', 'pages' => ['merch.php', 'product.php']],
 ];
 $sfCurrentPage = sf_current_page();
 $sfMainNav = $sfHeaderUser ? [] : $sfPublicNav;
