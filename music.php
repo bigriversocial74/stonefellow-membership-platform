@@ -1,6 +1,6 @@
 <?php
 $pageTitle = 'Music';
-$pageDescription = 'Stream the official Stonefellow soundtrack from the database-backed public catalog.';
+$pageDescription = 'Public Stonefellow soundtrack page powered by the database-backed song catalog.';
 $pageClass = 'music-template';
 require __DIR__ . '/includes/music_catalog.php';
 require __DIR__ . '/includes/header.php';
@@ -22,11 +22,11 @@ $liveSessions = [
   <section class="music-hero">
     <div class="music-hero-copy">
       <h1>Music</h1>
-      <div class="music-kicker">The Soundtrack of the Road.</div>
-      <p>The public music page now reads from the database song catalog. Use the admin song manager to edit the sample tracks, upload full audio, and control which tracks appear in the public player.</p>
+      <div class="music-kicker">The public soundtrack page.</div>
+      <p>This is the public Stonefellow music page. It reads from the database song catalog, uses the tracks marked for public display, and remains separate from the paying-member player at <strong>player.php</strong>.</p>
       <div class="music-actions">
-        <a href="#tracks" class="music-btn music-btn-primary"><span class="music-play-icon"></span>Play the Soundtrack</a>
-        <a href="player.php" class="music-btn music-btn-outline">Open Full Player</a>
+        <a href="#tracks" class="music-btn music-btn-primary"><span class="music-play-icon"></span>Play Public Tracks</a>
+        <a href="player.php" class="music-btn music-btn-outline">Member Player</a>
         <a href="subscribe.php" class="music-btn music-btn-outline">Subscribe</a>
       </div>
     </div>
@@ -41,14 +41,14 @@ $liveSessions = [
       <img data-player-cover src="<?= sf_asset($featuredSong['cover']) ?>" alt="Stonefellow soundtrack cover">
     </div>
     <div class="music-album-info">
-      <div class="music-eyebrow">Featured · Database Catalog</div>
+      <div class="music-eyebrow">Public · Database Catalog</div>
       <h2><?= htmlspecialchars($featuredSong['album_title'] ?? 'The Road Is Calling') ?></h2>
-      <div class="album-meta"><?= count($catalogSongs) ?> Public Tracks · Full-song playback</div>
-      <p>These tracks are loaded from the database. Edit the existing sample records in the admin song catalog and attach full audio files as needed.</p>
+      <div class="album-meta"><?= count($catalogSongs) ?> Public Tracks · Admin-controlled display</div>
+      <p>These public tracks are loaded from the database. Edit the existing sample records in the admin song catalog and choose which tracks display publicly.</p>
       <div class="stream-mode-banner">
-        <span>Public Player</span>
-        <strong>Full track mode</strong>
-        <a href="player.php">Open player →</a>
+        <span>Public Music Page</span>
+        <strong>music.php</strong>
+        <a href="subscribe.php">Unlock member player →</a>
       </div>
       <div class="catalog-player" data-player-shell>
         <button class="catalog-play-main" type="button" data-play-song
@@ -60,7 +60,7 @@ $liveSessions = [
           data-preview-seconds="<?= (int)$featuredSong['duration_seconds'] ?>"
           data-source-mode="full">▶</button>
         <div class="catalog-player-meta">
-          <span>Now Playing</span>
+          <span>Now Playing Public Track</span>
           <strong data-player-title><?= htmlspecialchars($featuredSong['title']) ?></strong>
           <em data-player-artist><?= htmlspecialchars($featuredSong['artist']) ?></em>
           <div class="catalog-progress"><span data-player-progress></span></div>
@@ -68,7 +68,7 @@ $liveSessions = [
         </div>
         <div class="catalog-player-actions">
           <button type="button" data-save-song>♡ Save</button>
-          <a href="player.php">Open Full Player</a>
+          <a href="player.php">Member Player</a>
         </div>
       </div>
     </div>
@@ -78,7 +78,7 @@ $liveSessions = [
   <section id="tracks" class="music-content-grid streaming-content-grid">
     <div class="music-list-panel catalog-list-panel">
       <div class="music-section-head compact-head">
-        <div><h3>Streaming Catalog</h3><p>Database-backed public tracks from the admin song manager.</p></div>
+        <div><h3>Public Streaming Catalog</h3><p>Database-backed tracks selected for the public music page.</p></div>
       </div>
       <ol class="music-track-list catalog-track-list">
         <?php foreach ($catalogSongs as $i => $track): ?>
@@ -97,26 +97,26 @@ $liveSessions = [
               <small><?= htmlspecialchars($track['episode']) ?></small>
             </div>
             <em><?= htmlspecialchars($track['duration']) ?></em>
-            <span class="preview-badge">Full track</span>
+            <span class="preview-badge">Public track</span>
             <button class="library-btn" type="button" data-save-song title="Save requires login">♡</button>
-            <a class="unlock-link" href="player.php">Play</a>
+            <a class="unlock-link" href="player.php">Member</a>
           </li>
         <?php endforeach; ?>
       </ol>
     </div>
 
     <div class="episode-song-panel library-panel">
-      <h3>Admin-Controlled Library</h3>
+      <h3>Admin-Controlled Public Page</h3>
       <div class="library-teaser">
         <div class="library-icon">SF</div>
         <div>
           <strong>Edit these records in Songs.</strong>
-          <p>The demo songs are now real sample records. Replace titles, cover art, and audio files in the admin catalog.</p>
+          <p>The demo songs are real sample records. Replace titles, cover art, and audio files in the admin catalog. The full player remains gated for paying members.</p>
         </div>
       </div>
       <div class="library-actions-grid">
-        <a href="player.php">Open Player</a>
-        <a href="#tracks">Browse Catalog</a>
+        <a href="player.php">Member Player</a>
+        <a href="#tracks">Browse Public Tracks</a>
         <a href="subscribe.php">Subscribe</a>
       </div>
       <h3 class="songs-from-heading">Songs From Episodes</h3>
@@ -132,9 +132,9 @@ $liveSessions = [
               data-duration-seconds="<?= (int)$song['duration_seconds'] ?>"
               data-preview-seconds="<?= (int)$song['duration_seconds'] ?>"
               data-source-mode="full">▶</button>
-            <div><span><?= htmlspecialchars($song['episode_short']) ?></span><strong><?= htmlspecialchars($song['title']) ?></strong><small>Full track attached</small></div>
+            <div><span><?= htmlspecialchars($song['episode_short']) ?></span><strong><?= htmlspecialchars($song['title']) ?></strong><small>Public page track</small></div>
             <em><?= htmlspecialchars($song['duration']) ?></em>
-            <a href="player.php" class="add-song">▶</a>
+            <a href="player.php" class="add-song">🔒</a>
           </div>
         <?php endforeach; ?>
       </div>
@@ -143,13 +143,13 @@ $liveSessions = [
 
   <section id="playlists" class="playlist-preview-panel">
     <div class="music-section-head">
-      <div><h3>Library & Playlists</h3><p>Foundation for the logged-in streaming platform.</p></div>
+      <div><h3>Library & Playlists</h3><p>The saved-song, queue, and playlist experience lives in the member player.</p></div>
       <a href="subscribe.php" class="music-btn music-btn-outline">Subscribe</a>
     </div>
     <div class="playlist-grid">
-      <article><span>System Playlist</span><h4>Road Songs</h4><p>Episode tracks for driving, escape, and bad decisions.</p></article>
-      <article><span>Subscriber Playlist</span><h4>Saved Songs</h4><p>Logged-in users collect their favorite Stonefellow tracks.</p></article>
-      <article><span>Playback History</span><h4>Recently Played</h4><p>Resume songs and track engagement across the catalog.</p></article>
+      <article><span>Public Page</span><h4>Music.php</h4><p>Browse and play public Stonefellow tracks.</p></article>
+      <article><span>Member Player</span><h4>Player.php</h4><p>Logged-in paying users get the full player, playlists, and queue.</p></article>
+      <article><span>Playback History</span><h4>Recently Played</h4><p>Resume songs and track engagement inside the member experience.</p></article>
     </div>
   </section>
 
@@ -165,6 +165,6 @@ $liveSessions = [
     </div>
   </section>
 
-  <section class="music-platform-panel"><div class="platform-mark">SF</div><div><h3>Database Songs. Full Playback.</h3><p>The public soundtrack is now connected to the songs and song_files tables so admin edits flow into the public player.</p></div></section>
+  <section class="music-platform-panel"><div class="platform-mark">SF</div><div><h3>Public Music. Member Player.</h3><p>The public soundtrack is database-backed through <strong>music.php</strong>. The deeper player, queue, and library experience is gated behind <strong>player.php</strong>.</p></div></section>
 </section>
 <?php require __DIR__ . '/includes/footer.php'; ?>
