@@ -41,7 +41,7 @@ $sfBodyClass = trim($sfPageClass . ($sfHeaderUser ? ' sf-logged-in' : '') . ($sf
   <link rel="stylesheet" href="<?= sf_asset('css/light-card-text.css') ?>">
   <link rel="stylesheet" href="<?= sf_asset('css/customer-ui.css') ?>">
   <link rel="stylesheet" href="<?= sf_asset('css/mobile-home.css') ?>">
-  <?php if ($sfIsAdminSurface): ?><link rel="stylesheet" href="<?= sf_asset('css/admin-polish.css') ?>"><link rel="stylesheet" href="<?= sf_asset('css/storyboarding-system.css') ?>"><?php endif; ?>
+  <?php if ($sfIsAdminSurface): ?><link rel="stylesheet" href="<?= sf_asset('css/admin-polish.css') ?>"><link rel="stylesheet" href="<?= sf_asset('css/storyboarding-system.css') ?>"><link rel="stylesheet" href="<?= sf_asset('css/storyboard-builder-cleanup.css') ?>"><?php endif; ?>
 </head>
 <body class="<?= htmlspecialchars($sfBodyClass) ?>">
   <div class="site-noise" aria-hidden="true"></div>
