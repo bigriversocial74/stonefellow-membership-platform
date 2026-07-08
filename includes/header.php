@@ -40,6 +40,7 @@ $sfBodyClass = trim($sfPageClass . ($sfHeaderUser ? ' sf-logged-in' : '') . ($sf
   <link rel="stylesheet" href="<?= sf_asset('css/nav-cleanup.css') ?>">
   <link rel="stylesheet" href="<?= sf_asset('css/light-card-text.css') ?>">
   <link rel="stylesheet" href="<?= sf_asset('css/customer-ui.css') ?>">
+  <link rel="stylesheet" href="<?= sf_asset('css/mobile-home.css') ?>">
   <?php if ($sfIsAdminSurface): ?><link rel="stylesheet" href="<?= sf_asset('css/admin-polish.css') ?>"><?php endif; ?>
 </head>
 <body class="<?= htmlspecialchars($sfBodyClass) ?>">
