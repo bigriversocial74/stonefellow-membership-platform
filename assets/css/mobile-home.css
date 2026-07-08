@@ -1,11 +1,11 @@
-/* Mobile homepage cleanup */
+/* Mobile public header cleanup */
 .home-mobile-account-links{
   display:none;
 }
 
 @media (max-width: 700px){
-  .home-template .home-header-actions .home-subscribe-btn,
-  .home-template .home-header-actions .home-user-menu-public{
+  .home-header-actions .home-subscribe-btn,
+  .home-header-actions .home-user-menu-public{
     display:none!important;
   }
 
