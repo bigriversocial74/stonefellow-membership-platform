@@ -1,4 +1,8 @@
 (function(){
+  const runtime = window.STONEFELLOW_RUNTIME || {};
+  const libraryApi = runtime.libraryApi || 'api/library.php';
+  const playlistApi = runtime.playlistApi || 'api/playlist.php';
+
   async function postJson(url, payload){
     const response = await fetch(url, {
       method: 'POST',
@@ -30,7 +34,7 @@
       if (!contentId || !contentType) return;
       setButtonState(button, 'Saving...', true);
       try {
-        await postJson('api/library.php', {
+        await postJson(libraryApi, {
           action: 'save',
           content_type: contentType,
           content_id: contentId,
@@ -58,7 +62,7 @@
       const original = button.textContent;
       button.textContent = '…';
       try {
-        await postJson('api/library.php', {
+        await postJson(libraryApi, {
           action: 'save',
           content_type: 'song',
           content_id: songId,
@@ -84,7 +88,7 @@
       const originalText = button.textContent.trim() || '＋ Add';
       setButtonState(button, 'Saving...', true);
       try {
-        await postJson('api/playlist.php', {
+        await postJson(playlistApi, {
           action: 'add_song',
           song_id: songId,
           playlist_id: playlistId
