@@ -48,34 +48,63 @@ function sf_admin_select(string $name, array $options, $selected, string $class 
 function sf_admin_asset_select(string $name, array $assets, $selected, string $type = ''): string { $html = '<select name="' . sf_admin_h($name) . '"' . sf_admin_form_disabled_attr() . '><option value="">No asset selected</option>'; foreach ($assets as $asset) { if ($type !== '' && ($asset['file_type'] ?? '') !== $type) continue; $label = trim((string)($asset['title'] ?? 'Asset #' . ($asset['id'] ?? '')) . ' — ' . (string)($asset['file_path'] ?? '')); $html .= '<option value="' . sf_admin_h($asset['id'] ?? '') . '"' . (((string)($asset['id'] ?? '') === (string)$selected) ? ' selected' : '') . '>' . sf_admin_h($label) . '</option>'; } return $html . '</select>'; }
 function sf_admin_relation_select(string $name, array $rows, $selected, string $emptyLabel = 'None'): string { $html = '<select name="' . sf_admin_h($name) . '"' . sf_admin_form_disabled_attr() . '><option value="">' . sf_admin_h($emptyLabel) . '</option>'; foreach ($rows as $row) { $label = (string)($row['title'] ?? $row['name'] ?? ('#' . ($row['id'] ?? ''))); if (isset($row['season_number'], $row['episode_number'])) $label = 'S' . $row['season_number'] . ':E' . $row['episode_number'] . ' — ' . $label; $html .= '<option value="' . sf_admin_h($row['id'] ?? '') . '"' . (((string)($row['id'] ?? '') === (string)$selected) ? ' selected' : '') . '>' . sf_admin_h($label) . '</option>'; } return $html . '</select>'; }
 function sf_admin_status_badge(string $status): string { $status = $status ?: 'draft'; return '<span class="sf-admin-status sf-admin-status-' . sf_admin_h(str_replace('_', '-', $status)) . '">' . sf_admin_h(ucfirst(str_replace('_', ' ', $status))) . '</span>'; }
-function sf_admin_nav_links(): array {
+
+function sf_admin_nav_groups(): array {
   return [
-    'index' => ['Admin Home', 'admin/index.php'],
-    'storyboards' => ['Storyboarding', 'admin/storyboards.php'],
-    'music' => ['Media Dashboard', 'admin/music.php'],
-    'albums' => ['Albums', 'admin/music-albums.php'],
-    'songs' => ['Songs', 'admin/music-songs.php'],
-    'episodes' => ['Episodes', 'admin/episodes.php'],
-    'videos' => ['Videos', 'admin/videos.php'],
-    'seasons' => ['Seasons', 'admin/seasons.php'],
-    'release-schedule' => ['Release Schedule', 'admin/release-schedule.php'],
-    'publishing' => ['Publishing', 'admin/publishing.php'],
-    'uploads' => ['Assets', 'admin/uploads.php'],
-    'members' => ['Members', 'admin/members.php'],
-    'entitlements' => ['Entitlements', 'admin/entitlements.php'],
-    'access' => ['Access', 'admin/media-access.php'],
-    'billing' => ['Billing', 'admin/billing.php'],
-    'payments' => ['Payment Gateways', 'admin/payment-gateways.php'],
-    'notifications' => ['Notifications', 'admin/notifications.php'],
-    'email-templates' => ['Email Templates', 'admin/email-templates.php'],
-    'products' => ['Merch Products', 'admin/products.php'],
-    'orders' => ['Merch Orders', 'admin/orders.php'],
-    'analytics' => ['Analytics', 'admin/analytics.php'],
-    'import' => ['Content Import', 'admin/import.php'],
-    'settings' => ['Settings', 'admin/settings.php'],
+    'business' => ['label'=>'Membership / User / Business Data','short'=>'Business Data','items'=>[
+      'index' => ['Admin Home', 'admin/index.php'],
+      'members' => ['Members', 'admin/members.php'],
+      'member-lifecycle' => ['Member Lifecycle', 'admin/member-lifecycle.php'],
+      'support' => ['Support', 'admin/support.php'],
+      'entitlements' => ['Entitlements', 'admin/entitlements.php'],
+      'access' => ['Access', 'admin/media-access.php'],
+      'billing' => ['Billing', 'admin/billing.php'],
+      'payments' => ['Payment Gateways', 'admin/payment-gateways.php'],
+      'products' => ['Merch Products', 'admin/products.php'],
+      'orders' => ['Merch Orders', 'admin/orders.php'],
+      'notifications' => ['Notifications', 'admin/notifications.php'],
+      'email-templates' => ['Email Templates', 'admin/email-templates.php'],
+      'analytics' => ['Analytics', 'admin/analytics.php'],
+      'settings' => ['Settings', 'admin/settings.php'],
+    ]],
+    'content' => ['label'=>'Content / Storyboarding / Characters','short'=>'Content + Story','items'=>[
+      'storyboards' => ['Storyboards', 'admin/storyboards.php'],
+      'characters' => ['Characters', 'admin/characters.php'],
+      'ai-settings' => ['AI Settings', 'admin/ai-settings.php'],
+      'music' => ['Media Dashboard', 'admin/music.php'],
+      'albums' => ['Albums', 'admin/music-albums.php'],
+      'songs' => ['Songs', 'admin/music-songs.php'],
+      'episodes' => ['Episodes', 'admin/episodes.php'],
+      'videos' => ['Videos', 'admin/videos.php'],
+      'seasons' => ['Seasons', 'admin/seasons.php'],
+      'release-schedule' => ['Release Schedule', 'admin/release-schedule.php'],
+      'publishing' => ['Publishing', 'admin/publishing.php'],
+      'uploads' => ['Assets', 'admin/uploads.php'],
+      'import' => ['Content Import', 'admin/import.php'],
+    ]],
   ];
 }
-function sf_admin_shell_start(string $eyebrow, string $title, string $description, string $active = ''): void { $links = sf_admin_nav_links(); echo '<section class="sf-admin-shell"><aside class="sf-admin-sidebar"><div class="sf-admin-side-brand"><span>Stonefellow</span><strong>Media Admin</strong></div><nav class="sf-admin-nav">'; foreach ($links as $key => $item) { $class = $active === $key ? 'is-active' : ''; echo '<a class="' . $class . '" href="' . sf_admin_h(sf_url($item[1])) . '">' . sf_admin_h($item[0]) . '</a>'; } echo '</nav><div class="sf-admin-side-note"><strong>Admin</strong><span>Manage content, members, commerce, media, and site settings.</span></div></aside><section class="sf-admin-main">'; echo '<section class="sf-admin-hero"><div><span class="sf-panel-eyebrow">' . sf_admin_h($eyebrow) . '</span><h1>' . sf_admin_h($title) . '</h1><p>' . sf_admin_h($description) . '</p></div>'; echo '<div class="sf-admin-db-card"><span>Database</span><strong>' . (sf_admin_db_ready() ? 'Connected' : 'Static Preview') . '</strong><small>' . (sf_admin_db_ready() ? 'Forms save to MySQL tables.' : 'Run install.php to enable saves.') . '</small></div></section>'; foreach (sf_admin_flash() as $message) echo '<div class="sf-admin-alert sf-admin-alert-' . sf_admin_h($message['type'] ?? 'info') . '">' . sf_admin_h($message['message'] ?? '') . '</div>'; if (!sf_admin_db_ready()) echo '<div class="sf-admin-alert sf-admin-alert-warning">No database connection is configured. This page is showing static/demo catalog data and save/delete forms are disabled.</div>'; }
+function sf_admin_nav_links(): array { $links = []; foreach (sf_admin_nav_groups() as $group) foreach ($group['items'] as $key => $item) $links[$key] = $item; return $links; }
+function sf_admin_shell_start(string $eyebrow, string $title, string $description, string $active = ''): void {
+  $groups = sf_admin_nav_groups();
+  if ($active === 'story-characters') $active = 'characters';
+  $activeGroup = 'business';
+  foreach ($groups as $groupKey => $group) if (isset($group['items'][$active])) $activeGroup = $groupKey;
+  echo '<section class="sf-admin-shell"><aside class="sf-admin-sidebar"><div class="sf-admin-side-brand"><span>Stonefellow</span><strong>Admin Console</strong></div><div class="sf-admin-nav-tabs" data-admin-nav-tabs>';
+  foreach ($groups as $groupKey => $group) echo '<button type="button" class="' . ($groupKey === $activeGroup ? 'is-active' : '') . '" data-admin-nav-tab="' . sf_admin_h($groupKey) . '">' . sf_admin_h($group['short']) . '</button>';
+  echo '</div><div class="sf-admin-nav-panels">';
+  foreach ($groups as $groupKey => $group) {
+    echo '<nav class="sf-admin-nav ' . ($groupKey === $activeGroup ? 'is-active' : '') . '" data-admin-nav-panel="' . sf_admin_h($groupKey) . '"><div class="sf-admin-nav-group"><span>' . sf_admin_h($group['label']) . '</span>';
+    foreach ($group['items'] as $key => $item) { $class = $active === $key ? 'is-active' : ''; echo '<a class="' . $class . '" href="' . sf_admin_h(sf_url($item[1])) . '">' . sf_admin_h($item[0]) . '</a>'; }
+    echo '</div></nav>';
+  }
+  echo '</div><div class="sf-admin-side-note"><strong>Admin</strong><span>Membership and business data live in tab 1. Content, storyboards, and characters live in tab 2.</span></div></aside><section class="sf-admin-main">';
+  echo '<section class="sf-admin-hero"><div><span class="sf-panel-eyebrow">' . sf_admin_h($eyebrow) . '</span><h1>' . sf_admin_h($title) . '</h1><p>' . sf_admin_h($description) . '</p></div>';
+  echo '<div class="sf-admin-db-card"><span>Database</span><strong>' . (sf_admin_db_ready() ? 'Connected' : 'Static Preview') . '</strong><small>' . (sf_admin_db_ready() ? 'Forms save to MySQL tables.' : 'Run install.php to enable saves.') . '</small></div></section>';
+  foreach (sf_admin_flash() as $message) echo '<div class="sf-admin-alert sf-admin-alert-' . sf_admin_h($message['type'] ?? 'info') . '">' . sf_admin_h($message['message'] ?? '') . '</div>';
+  if (!sf_admin_db_ready()) echo '<div class="sf-admin-alert sf-admin-alert-warning">No database connection is configured. This page is showing static/demo catalog data and save/delete forms are disabled.</div>';
+  echo '<script>(function(){var root=document.querySelector("[data-admin-nav-tabs]");if(!root)return;var tabs=root.querySelectorAll("[data-admin-nav-tab]");var panels=document.querySelectorAll("[data-admin-nav-panel]");tabs.forEach(function(tab){tab.addEventListener("click",function(){var key=tab.getAttribute("data-admin-nav-tab");tabs.forEach(function(t){t.classList.toggle("is-active",t===tab);});panels.forEach(function(panel){panel.classList.toggle("is-active",panel.getAttribute("data-admin-nav-panel")===key);});});});})();</script>';
+}
 function sf_admin_shell_end(): void { echo '</section></section>'; }
 function sf_admin_form_disabled_attr(): string { return sf_admin_db_ready() ? '' : ' disabled'; }
 function sf_admin_confirm_delete_button(string $label = 'Delete'): string { return '<button class="sf-admin-danger" type="submit" onclick="return confirm(\'Delete this record? This cannot be undone.\')"' . sf_admin_form_disabled_attr() . '>' . sf_admin_h($label) . '</button>'; }
