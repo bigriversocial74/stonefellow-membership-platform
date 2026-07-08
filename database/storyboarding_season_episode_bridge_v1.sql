@@ -1,24 +1,101 @@
 -- Stonefellow Storyboarding Season/Episode Bridge v1
 -- Purpose: map the existing AI storyboard rows into a real Season 1 / Episode 1 producer workflow.
 -- Import after PR deploy and after database/storyboarding_system_v1.sql has been imported.
+-- Compatibility: avoids ALTER TABLE ... ADD COLUMN IF NOT EXISTS and CREATE INDEX IF NOT EXISTS
+-- so it works on older MySQL/MariaDB versions.
 
-ALTER TABLE story_episodes
-  ADD COLUMN IF NOT EXISTS episode_outline MEDIUMTEXT NULL AFTER synopsis,
-  ADD COLUMN IF NOT EXISTS setting_label VARCHAR(190) DEFAULT '' AFTER episode_outline,
-  ADD COLUMN IF NOT EXISTS ai_outline_prompt MEDIUMTEXT NULL AFTER setting_label,
-  ADD COLUMN IF NOT EXISTS ai_outline_result_json LONGTEXT NULL AFTER ai_outline_prompt,
-  ADD COLUMN IF NOT EXISTS ai_outline_provider VARCHAR(80) DEFAULT '' AFTER ai_outline_result_json,
-  ADD COLUMN IF NOT EXISTS ai_outline_status VARCHAR(40) NOT NULL DEFAULT 'not_started' AFTER ai_outline_provider,
-  ADD COLUMN IF NOT EXISTS ai_outline_generated_at DATETIME NULL AFTER ai_outline_status;
+SET @db_name := DATABASE();
 
-ALTER TABLE storyboards
-  ADD COLUMN IF NOT EXISTS story_season_id BIGINT UNSIGNED NULL AFTER id,
-  ADD COLUMN IF NOT EXISTS story_episode_id BIGINT UNSIGNED NULL AFTER story_season_id,
-  ADD COLUMN IF NOT EXISTS producer_scene_order INT UNSIGNED NOT NULL DEFAULT 0 AFTER story_episode_id,
-  ADD COLUMN IF NOT EXISTS producer_scene_status VARCHAR(40) NOT NULL DEFAULT 'outline' AFTER producer_scene_order;
+SET @sql := IF(
+  EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = @db_name AND TABLE_NAME = 'story_episodes' AND COLUMN_NAME = 'episode_outline'),
+  'SELECT 1',
+  'ALTER TABLE story_episodes ADD COLUMN episode_outline MEDIUMTEXT NULL AFTER synopsis'
+);
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 
-CREATE INDEX IF NOT EXISTS idx_storyboards_episode_order ON storyboards (story_episode_id, producer_scene_order, id);
-CREATE INDEX IF NOT EXISTS idx_storyboards_season ON storyboards (story_season_id);
+SET @sql := IF(
+  EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = @db_name AND TABLE_NAME = 'story_episodes' AND COLUMN_NAME = 'setting_label'),
+  'SELECT 1',
+  'ALTER TABLE story_episodes ADD COLUMN setting_label VARCHAR(190) DEFAULT '''' AFTER episode_outline'
+);
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+SET @sql := IF(
+  EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = @db_name AND TABLE_NAME = 'story_episodes' AND COLUMN_NAME = 'ai_outline_prompt'),
+  'SELECT 1',
+  'ALTER TABLE story_episodes ADD COLUMN ai_outline_prompt MEDIUMTEXT NULL AFTER setting_label'
+);
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+SET @sql := IF(
+  EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = @db_name AND TABLE_NAME = 'story_episodes' AND COLUMN_NAME = 'ai_outline_result_json'),
+  'SELECT 1',
+  'ALTER TABLE story_episodes ADD COLUMN ai_outline_result_json LONGTEXT NULL AFTER ai_outline_prompt'
+);
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+SET @sql := IF(
+  EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = @db_name AND TABLE_NAME = 'story_episodes' AND COLUMN_NAME = 'ai_outline_provider'),
+  'SELECT 1',
+  'ALTER TABLE story_episodes ADD COLUMN ai_outline_provider VARCHAR(80) DEFAULT '''' AFTER ai_outline_result_json'
+);
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+SET @sql := IF(
+  EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = @db_name AND TABLE_NAME = 'story_episodes' AND COLUMN_NAME = 'ai_outline_status'),
+  'SELECT 1',
+  'ALTER TABLE story_episodes ADD COLUMN ai_outline_status VARCHAR(40) NOT NULL DEFAULT ''not_started'' AFTER ai_outline_provider'
+);
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+SET @sql := IF(
+  EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = @db_name AND TABLE_NAME = 'story_episodes' AND COLUMN_NAME = 'ai_outline_generated_at'),
+  'SELECT 1',
+  'ALTER TABLE story_episodes ADD COLUMN ai_outline_generated_at DATETIME NULL AFTER ai_outline_status'
+);
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+SET @sql := IF(
+  EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = @db_name AND TABLE_NAME = 'storyboards' AND COLUMN_NAME = 'story_season_id'),
+  'SELECT 1',
+  'ALTER TABLE storyboards ADD COLUMN story_season_id BIGINT UNSIGNED NULL AFTER id'
+);
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+SET @sql := IF(
+  EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = @db_name AND TABLE_NAME = 'storyboards' AND COLUMN_NAME = 'story_episode_id'),
+  'SELECT 1',
+  'ALTER TABLE storyboards ADD COLUMN story_episode_id BIGINT UNSIGNED NULL AFTER story_season_id'
+);
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+SET @sql := IF(
+  EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = @db_name AND TABLE_NAME = 'storyboards' AND COLUMN_NAME = 'producer_scene_order'),
+  'SELECT 1',
+  'ALTER TABLE storyboards ADD COLUMN producer_scene_order INT UNSIGNED NOT NULL DEFAULT 0 AFTER story_episode_id'
+);
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+SET @sql := IF(
+  EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = @db_name AND TABLE_NAME = 'storyboards' AND COLUMN_NAME = 'producer_scene_status'),
+  'SELECT 1',
+  'ALTER TABLE storyboards ADD COLUMN producer_scene_status VARCHAR(40) NOT NULL DEFAULT ''outline'' AFTER producer_scene_order'
+);
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+SET @sql := IF(
+  EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.STATISTICS WHERE TABLE_SCHEMA = @db_name AND TABLE_NAME = 'storyboards' AND INDEX_NAME = 'idx_storyboards_episode_order'),
+  'SELECT 1',
+  'CREATE INDEX idx_storyboards_episode_order ON storyboards (story_episode_id, producer_scene_order, id)'
+);
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+SET @sql := IF(
+  EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.STATISTICS WHERE TABLE_SCHEMA = @db_name AND TABLE_NAME = 'storyboards' AND INDEX_NAME = 'idx_storyboards_season'),
+  'SELECT 1',
+  'CREATE INDEX idx_storyboards_season ON storyboards (story_season_id)'
+);
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 
 CREATE TABLE IF NOT EXISTS story_episode_characters (
   story_episode_id BIGINT UNSIGNED NOT NULL,
