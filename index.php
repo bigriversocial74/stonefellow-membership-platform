@@ -26,6 +26,17 @@ $homeTracks = [
     </div>
     <div class="home-hero-image">
       <img src="<?= sf_asset('images/home/hero-reference-crop.png') ?>" alt="Stonefellow performing live on stage">
+      <button
+        class="home-video-trigger"
+        type="button"
+        data-home-video-open
+        data-video-src="https://www.youtube.com/embed/jMlQMre7LcA?start=14&amp;autoplay=1&amp;rel=0&amp;modestbranding=1"
+        aria-haspopup="dialog"
+        aria-controls="home-video-modal"
+      >
+        <span class="home-video-trigger-icon" aria-hidden="true"></span>
+        <span>Play Video</span>
+      </button>
     </div>
     </section>
   </div>
@@ -122,4 +133,63 @@ $homeTracks = [
     </div>
   </section>
 </section>
+
+<div class="home-video-modal" id="home-video-modal" role="dialog" aria-modal="true" aria-label="Stonefellow video preview" hidden data-home-video-modal>
+  <div class="home-video-backdrop" data-home-video-close></div>
+  <div class="home-video-dialog" role="document">
+    <button class="home-video-close" type="button" aria-label="Close video" data-home-video-close>×</button>
+    <div class="home-video-frame-wrap">
+      <iframe
+        data-home-video-frame
+        title="Stonefellow video preview"
+        src=""
+        loading="lazy"
+        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+        allowfullscreen
+      ></iframe>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  const openButton = document.querySelector('[data-home-video-open]');
+  const modal = document.querySelector('[data-home-video-modal]');
+  const frame = document.querySelector('[data-home-video-frame]');
+  const closeButtons = document.querySelectorAll('[data-home-video-close]');
+  if (!openButton || !modal || !frame) return;
+
+  let previousFocus = null;
+
+  function openVideoModal(){
+    previousFocus = document.activeElement;
+    frame.src = openButton.dataset.videoSrc || '';
+    modal.hidden = false;
+    document.body.classList.add('home-video-modal-open');
+
+    const closeButton = modal.querySelector('.home-video-close');
+    if (closeButton) closeButton.focus();
+  }
+
+  function closeVideoModal(){
+    modal.hidden = true;
+    frame.src = '';
+    document.body.classList.remove('home-video-modal-open');
+
+    if (previousFocus && typeof previousFocus.focus === 'function') {
+      previousFocus.focus();
+    }
+  }
+
+  openButton.addEventListener('click', openVideoModal);
+  closeButtons.forEach((button) => button.addEventListener('click', closeVideoModal));
+
+  document.addEventListener('keydown', (event) => {
+    if (event.key === 'Escape' && !modal.hidden) {
+      closeVideoModal();
+    }
+  });
+})();
+</script>
+
 <?php require __DIR__ . '/includes/footer.php'; ?>
