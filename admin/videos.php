@@ -37,11 +37,12 @@ if ((($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST')) {
       sf_admin_execute('UPDATE videos SET episode_id=?, title=?, slug=?, video_type=?, short_description=?, description=?, runtime_seconds=?, poster_asset_id=?, access_level=?, release_at=?, is_featured=?, status=? WHERE id=?', array_merge(array_values($payload), [$id]));
       sf_admin_audit('update_video', 'video', $id, $before, $payload);
       sf_admin_flash('success', 'Video updated.');
+      sf_admin_redirect(sf_url('admin/videos.php?edit=' . $id));
     } else {
       sf_admin_execute('INSERT INTO videos (episode_id, title, slug, video_type, short_description, description, runtime_seconds, poster_asset_id, access_level, release_at, is_featured, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', array_values($payload));
       $newId = (int)(sf_admin_db()?->lastInsertId() ?: 0);
       sf_admin_audit('create_video', 'video', $newId, null, $payload);
-      sf_admin_flash('success', 'Video created.');
+      sf_admin_flash('success', 'Video created. Add trailer, preview, or stream source next.');
       sf_admin_redirect(sf_url('admin/videos.php?edit=' . $newId));
     }
   }
@@ -51,6 +52,7 @@ if ((($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST')) {
     sf_admin_execute('DELETE FROM videos WHERE id = ?', [$id]);
     sf_admin_audit('delete_video', 'video', $id, $before, null);
     sf_admin_flash('success', 'Video deleted.');
+    sf_admin_redirect(sf_url('admin/videos.php'));
   }
 
   if ($action === 'save_video_file') {
@@ -62,13 +64,28 @@ if ((($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST')) {
     $fileId = sf_admin_int($_POST['file_id'] ?? null, 0) ?? 0;
     $filePath = trim((string)($_POST['file_path'] ?? ''));
     $videoAssetId = sf_admin_int($_POST['video_asset_id'] ?? null, 0) ?? 0;
+    $hasUpload = isset($_FILES['video_upload']) && is_array($_FILES['video_upload']) && (int)($_FILES['video_upload']['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_NO_FILE;
+    if ($hasUpload) {
+      if (!sf_admin_table_exists('media_assets')) {
+        sf_admin_flash('warning', 'Media assets table is not available. Run the base SQL first.');
+        sf_admin_redirect();
+      }
+      $videoRow = $videoId > 0 ? (sf_admin_fetch_one('SELECT title FROM videos WHERE id = ? LIMIT 1', [$videoId]) ?: []) : [];
+      $uploadTitle = trim((string)($_POST['video_upload_title'] ?? '')) ?: trim((string)($videoRow['title'] ?? 'Video source')) ?: 'Video source';
+      $upload = sf_admin_handle_upload('video_upload', 'video', 'video_source', $uploadTitle, '');
+      if (empty($upload['ok'])) {
+        sf_admin_flash('error', 'Video upload failed: ' . (string)($upload['message'] ?? 'Unknown upload error.'));
+        sf_admin_redirect();
+      }
+      $videoAssetId = (int)($upload['id'] ?? 0);
+    }
     $videoAsset = $videoAssetId > 0 ? sf_admin_asset_by_id($videoAssetId) : null;
     if ($filePath === '' && $videoAsset) {
       $filePath = trim((string)($videoAsset['file_path'] ?? ''));
     }
     $mimeType = trim((string)($_POST['mime_type'] ?? '')) ?: trim((string)($videoAsset['mime_type'] ?? '')) ?: 'video/mp4';
     if ($videoId <= 0 || $filePath === '') {
-      sf_admin_flash('error', 'Select a video and choose an uploaded video asset or enter a video file path.');
+      sf_admin_flash('error', 'Select a video and choose/upload a video asset or enter a video file path.');
       sf_admin_redirect();
     }
     $payload = [
@@ -121,36 +138,54 @@ $assets = sf_admin_assets('image');
 $videoAssets = sf_admin_assets('video');
 $editId = sf_admin_int($_GET['edit'] ?? null, 0) ?? 0;
 $edit = sf_admin_selected_row($videos, 'videos', $editId) ?: [];
+$isCreating = isset($_GET['new']) && !$edit;
+$showVideoForm = $isCreating || !empty($edit);
 $fileEditId = sf_admin_int($_GET['file_edit'] ?? null, 0) ?? 0;
 $fileEdit = $fileEditId > 0 && sf_admin_table_exists('video_files') ? sf_admin_fetch_one('SELECT * FROM video_files WHERE id = ?', [$fileEditId]) : null;
 $fileRows = sf_admin_file_rows('video_files', 'video_id', (int)($edit['id'] ?? 0));
+$videoFileMeta = [];
+if (sf_admin_table_exists('video_files')) {
+  foreach (sf_admin_fetch_all('SELECT * FROM video_files ORDER BY video_id ASC, file_type ASC, is_primary DESC, id ASC') as $row) {
+    $vid = (int)($row['video_id'] ?? 0);
+    if ($vid <= 0) continue;
+    $type = (string)($row['file_type'] ?? 'video');
+    $videoFileMeta[$vid]['count'] = (int)($videoFileMeta[$vid]['count'] ?? 0) + 1;
+    if (empty($videoFileMeta[$vid]['types'][$type])) {
+      $videoFileMeta[$vid]['types'][$type] = $row;
+    }
+  }
+}
 
 sf_admin_shell_start('Videos', 'Manage videos and streaming files', 'Attach videos to episodes, set membership access, publish trailers/clips, and map video file variants.', 'videos');
 ?>
+<?php if (!$showVideoForm): ?>
+<section class="sf-admin-panel">
+  <div class="sf-admin-panel-head"><div><span class="sf-panel-eyebrow">Video Records</span><h2><?= count($videos) ?> videos</h2></div><a href="<?= sf_url('admin/videos.php?new=1') ?>">Add Video</a></div>
+  <div class="sf-admin-table-wrap">
+    <table class="sf-admin-table">
+      <thead><tr><th>Video</th><th>Type</th><th>Episode</th><th>Video Sources</th><th>Public Playback</th><th>Access</th><th>Status</th><th></th></tr></thead>
+      <tbody>
+      <?php foreach ($videos as $video): ?>
+        <?php $meta = $videoFileMeta[(int)($video['id'] ?? 0)] ?? []; $preview = $meta['types']['preview'] ?? null; $trailer = $meta['types']['trailer'] ?? null; $stream = $meta['types']['stream'] ?? null; $hd = $meta['types']['hd'] ?? null; $mobile = $meta['types']['mobile'] ?? null; $publicClip = $preview ?: $trailer; $fullSource = $stream ?: $hd ?: $mobile; ?>
+        <tr>
+          <td><strong><?= sf_admin_h($video['title'] ?? '') ?></strong><small><?= sf_admin_h($video['slug'] ?? '') ?></small></td>
+          <td><?= sf_admin_h(ucfirst(str_replace('_', ' ', (string)($video['video_type'] ?? 'episode')))) ?></td>
+          <td><?= sf_admin_h($video['episode_title'] ?? $video['episode_slug'] ?? 'Standalone') ?></td>
+          <td><strong><?= $fullSource ? 'Stream attached' : 'No stream source' ?></strong><small><?= $publicClip ? ucfirst((string)$publicClip['file_type']) . ' clip attached' : 'No public clip' ?><?= !empty($meta['count']) ? ' · ' . (int)$meta['count'] . ' source(s)' : '' ?></small></td>
+          <td><strong><?= !empty($video['is_featured']) ? 'Featured' : 'Catalog' ?></strong><small><?= $publicClip ? 'Public clip ready' : 'Needs preview/trailer' ?></small></td>
+          <td><?= sf_admin_h(sf_access_label((string)($video['access_level'] ?? 'subscriber'))) ?></td>
+          <td><?= sf_admin_status_badge((string)($video['status'] ?? 'draft')) ?></td>
+          <td><a href="<?= sf_url('admin/videos.php?edit=' . (int)($video['id'] ?? 0)) ?>">Edit</a></td>
+        </tr>
+      <?php endforeach; ?>
+      </tbody>
+    </table>
+  </div>
+</section>
+<?php else: ?>
 <section class="sf-admin-two-col sf-admin-two-col-wide">
   <article class="sf-admin-panel">
-    <div class="sf-admin-panel-head"><div><span class="sf-panel-eyebrow">Video Records</span><h2><?= count($videos) ?> videos</h2></div><a href="<?= sf_url('admin/videos.php') ?>">New Video</a></div>
-    <div class="sf-admin-table-wrap">
-      <table class="sf-admin-table">
-        <thead><tr><th>Video</th><th>Type</th><th>Episode</th><th>Access</th><th>Status</th><th></th></tr></thead>
-        <tbody>
-        <?php foreach ($videos as $video): ?>
-          <tr>
-            <td><strong><?= sf_admin_h($video['title'] ?? '') ?></strong><small><?= sf_admin_h($video['slug'] ?? '') ?></small></td>
-            <td><?= sf_admin_h(ucfirst(str_replace('_', ' ', (string)($video['video_type'] ?? 'episode')))) ?></td>
-            <td><?= sf_admin_h($video['episode_title'] ?? $video['episode_slug'] ?? 'Standalone') ?></td>
-            <td><?= sf_admin_h(sf_access_label((string)($video['access_level'] ?? 'subscriber'))) ?></td>
-            <td><?= sf_admin_status_badge((string)($video['status'] ?? 'draft')) ?></td>
-            <td><a href="<?= sf_url('admin/videos.php?edit=' . (int)($video['id'] ?? 0)) ?>">Edit</a></td>
-          </tr>
-        <?php endforeach; ?>
-        </tbody>
-      </table>
-    </div>
-  </article>
-
-  <article class="sf-admin-panel">
-    <div class="sf-admin-panel-head"><div><span class="sf-panel-eyebrow"><?= $edit ? 'Edit' : 'Create' ?></span><h2><?= $edit ? sf_admin_h($edit['title'] ?? '') : 'New video' ?></h2></div></div>
+    <div class="sf-admin-panel-head"><div><span class="sf-panel-eyebrow"><?= $edit ? 'Edit Video' : 'Add Video' ?></span><h2><?= $edit ? sf_admin_h($edit['title'] ?? '') : 'New video' ?></h2></div><a href="<?= sf_url('admin/videos.php') ?>">Back to Videos</a></div>
     <form class="sf-admin-form" method="post">
       <?= sf_csrf_field() ?>
       <input type="hidden" name="action" value="save_video"><input type="hidden" name="id" value="<?= sf_admin_h($edit['id'] ?? '') ?>">
@@ -167,15 +202,13 @@ sf_admin_shell_start('Videos', 'Manage videos and streaming files', 'Attach vide
       <p class="sf-admin-form-note"><a href="<?= sf_url('admin/uploads.php?type=image') ?>">Upload or manage poster images</a></p>
       <div class="sf-admin-form-grid"><label>Runtime Seconds<input type="number" name="runtime_seconds" value="<?= sf_admin_h($edit['runtime_seconds'] ?? '') ?>"<?= sf_admin_form_disabled_attr() ?>></label><label>Release Date/Time<input type="datetime-local" name="release_at" value="<?= sf_admin_h(isset($edit['release_at']) ? str_replace(' ', 'T', substr((string)$edit['release_at'], 0, 16)) : '') ?>"<?= sf_admin_form_disabled_attr() ?>></label></div>
       <div class="sf-admin-form-grid"><label>Access<?= sf_admin_select('access_level', ['public'=>'Public','free_account'=>'Free Account','subscriber'=>'Subscriber','premium'=>'Premium','founding_fan'=>'Founding Fan'], $edit['access_level'] ?? 'subscriber') ?></label><label>Status<?= sf_admin_select('status', ['draft'=>'Draft','published'=>'Published','archived'=>'Archived'], $edit['status'] ?? 'draft') ?></label></div>
-      <label class="sf-admin-check"><input type="checkbox" name="is_featured" value="1" <?= !empty($edit['is_featured']) ? 'checked' : '' ?><?= sf_admin_form_disabled_attr() ?>> Featured video</label>
+      <label class="sf-admin-check"><input type="checkbox" name="is_featured" value="1" <?= !empty($edit['is_featured']) ? 'checked' : '' ?><?= sf_admin_form_disabled_attr() ?>> Feature in public/promoted video areas</label>
       <div class="sf-admin-form-actions"><button type="submit"<?= sf_admin_form_disabled_attr() ?>><?= $edit ? 'Save Video' : 'Create Video' ?></button></div>
     </form>
     <?php if ($edit): ?><form method="post" class="sf-admin-delete-form"><input type="hidden" name="action" value="delete_video"><input type="hidden" name="id" value="<?= (int)($edit['id'] ?? 0) ?>"><?= sf_admin_confirm_delete_button('Delete Video') ?></form><?php endif; ?>
   </article>
-</section>
 
-<?php if ($edit): ?>
-<section class="sf-admin-two-col sf-admin-two-col-wide">
+  <?php if ($edit): ?>
   <article class="sf-admin-panel">
     <div class="sf-admin-panel-head"><div><span class="sf-panel-eyebrow">Video Files</span><h2>Stream, trailer, preview</h2></div></div>
     <div class="sf-admin-table-wrap">
@@ -187,22 +220,28 @@ sf_admin_shell_start('Videos', 'Manage videos and streaming files', 'Attach vide
       </tbody></table>
     </div>
   </article>
-  <article class="sf-admin-panel">
-    <div class="sf-admin-panel-head"><div><span class="sf-panel-eyebrow"><?= $fileEdit ? 'Edit File' : 'Add File' ?></span><h2>Video source</h2></div></div>
-    <form class="sf-admin-form" method="post">
-      <?= sf_csrf_field() ?>
-      <input type="hidden" name="action" value="save_video_file"><input type="hidden" name="video_id" value="<?= (int)($edit['id'] ?? 0) ?>"><input type="hidden" name="file_id" value="<?= sf_admin_h($fileEdit['id'] ?? '') ?>">
-      <div class="sf-admin-form-grid"><label>File Type<?= sf_admin_select('file_type', ['preview'=>'Preview','stream'=>'Stream','download'=>'Download','trailer'=>'Trailer','mobile'=>'Mobile','hd'=>'HD','subtitle'=>'Subtitle'], $fileEdit['file_type'] ?? 'stream') ?></label><label>MIME Type<input name="mime_type" value="<?= sf_admin_h($fileEdit['mime_type'] ?? 'video/mp4') ?>"<?= sf_admin_form_disabled_attr() ?>></label></div>
-      <label>Choose Uploaded Video<?= sf_admin_asset_path_select('video_asset_id', $videoAssets, '', 'Choose video from asset library') ?></label>
-      <label>File Path<input name="file_path" value="<?= sf_admin_h($fileEdit['file_path'] ?? '') ?>" placeholder="video/episodes/first-to-fall.mp4 or choose uploaded video above"<?= sf_admin_form_disabled_attr() ?>></label>
-      <?= sf_admin_asset_preview(null, $fileEdit['file_path'] ?? '', 'video') ?>
-      <p class="sf-admin-form-note"><a href="<?= sf_url('admin/uploads.php?type=video') ?>">Upload or manage video files</a></p>
-      <div class="sf-admin-form-grid"><label>Duration Seconds<input type="number" name="file_duration_seconds" value="<?= sf_admin_h($fileEdit['duration_seconds'] ?? '') ?>"<?= sf_admin_form_disabled_attr() ?>></label><label>Resolution<input name="resolution_label" value="<?= sf_admin_h($fileEdit['resolution_label'] ?? '') ?>" placeholder="1080p"<?= sf_admin_form_disabled_attr() ?>></label><label>Bitrate kbps<input type="number" name="bitrate_kbps" value="<?= sf_admin_h($fileEdit['bitrate_kbps'] ?? '') ?>"<?= sf_admin_form_disabled_attr() ?>></label><label>Language<input name="language_code" value="<?= sf_admin_h($fileEdit['language_code'] ?? '') ?>" placeholder="en"<?= sf_admin_form_disabled_attr() ?>></label></div>
-      <label class="sf-admin-check"><input type="checkbox" name="file_is_primary" value="1" <?= !empty($fileEdit['is_primary']) ? 'checked' : '' ?><?= sf_admin_form_disabled_attr() ?>> Primary source for this type</label>
-      <div class="sf-admin-form-actions"><button type="submit"<?= sf_admin_form_disabled_attr() ?>><?= $fileEdit ? 'Save File' : 'Add File' ?></button></div>
-    </form>
-    <?php if ($fileEdit): ?><form method="post" class="sf-admin-delete-form"><input type="hidden" name="action" value="delete_video_file"><input type="hidden" name="video_id" value="<?= (int)($edit['id'] ?? 0) ?>"><input type="hidden" name="file_id" value="<?= (int)($fileEdit['id'] ?? 0) ?>"><?= sf_admin_confirm_delete_button('Delete Video File') ?></form><?php endif; ?>
-  </article>
+  <?php endif; ?>
 </section>
+
+<?php if ($edit): ?>
+<section class="sf-admin-panel">
+  <div class="sf-admin-panel-head"><div><span class="sf-panel-eyebrow"><?= $fileEdit ? 'Edit File' : 'Add File' ?></span><h2>Video source</h2></div></div>
+  <form class="sf-admin-form" method="post" enctype="multipart/form-data">
+    <?= sf_csrf_field() ?>
+    <input type="hidden" name="action" value="save_video_file"><input type="hidden" name="video_id" value="<?= (int)($edit['id'] ?? 0) ?>"><input type="hidden" name="file_id" value="<?= sf_admin_h($fileEdit['id'] ?? '') ?>">
+    <div class="sf-admin-form-grid"><label>File Type<?= sf_admin_select('file_type', ['preview'=>'Public Preview','stream'=>'Stream','download'=>'Download','trailer'=>'Trailer','mobile'=>'Mobile','hd'=>'HD','subtitle'=>'Subtitle'], $fileEdit['file_type'] ?? 'stream') ?></label><label>MIME Type<input name="mime_type" value="<?= sf_admin_h($fileEdit['mime_type'] ?? 'video/mp4') ?>"<?= sf_admin_form_disabled_attr() ?>></label></div>
+    <label>Choose Uploaded Video<?= sf_admin_asset_path_select('video_asset_id', $videoAssets, '', 'Choose video from asset library') ?></label>
+    <label>Upload Video File<input type="file" name="video_upload" accept="video/*"<?= sf_admin_form_disabled_attr() ?>></label>
+    <label>Upload Title<input name="video_upload_title" value="<?= sf_admin_h($edit['title'] ?? '') ?>" placeholder="Optional asset title"<?= sf_admin_form_disabled_attr() ?>></label>
+    <label>File Path<input name="file_path" value="<?= sf_admin_h($fileEdit['file_path'] ?? '') ?>" placeholder="video/episodes/first-to-fall.mp4, choose uploaded video, or upload a file above"<?= sf_admin_form_disabled_attr() ?>></label>
+    <?= sf_admin_asset_preview(null, $fileEdit['file_path'] ?? '', 'video') ?>
+    <p class="sf-admin-form-note">Use Public Preview or Trailer for public clips. Use Stream, HD, or Mobile for member playback. Upload a new video here, choose an existing asset, or <a href="<?= sf_url('admin/uploads.php?type=video') ?>">manage video files</a>.</p>
+    <div class="sf-admin-form-grid"><label>Duration Seconds<input type="number" name="file_duration_seconds" value="<?= sf_admin_h($fileEdit['duration_seconds'] ?? '') ?>"<?= sf_admin_form_disabled_attr() ?>></label><label>Resolution<input name="resolution_label" value="<?= sf_admin_h($fileEdit['resolution_label'] ?? '') ?>" placeholder="1080p"<?= sf_admin_form_disabled_attr() ?>></label><label>Bitrate kbps<input type="number" name="bitrate_kbps" value="<?= sf_admin_h($fileEdit['bitrate_kbps'] ?? '') ?>"<?= sf_admin_form_disabled_attr() ?>></label><label>Language<input name="language_code" value="<?= sf_admin_h($fileEdit['language_code'] ?? '') ?>" placeholder="en"<?= sf_admin_form_disabled_attr() ?>></label></div>
+    <label class="sf-admin-check"><input type="checkbox" name="file_is_primary" value="1" <?= !empty($fileEdit['is_primary']) ? 'checked' : '' ?><?= sf_admin_form_disabled_attr() ?>> Primary source for this type</label>
+    <div class="sf-admin-form-actions"><button type="submit"<?= sf_admin_form_disabled_attr() ?>><?= $fileEdit ? 'Save File' : 'Add File' ?></button></div>
+  </form>
+  <?php if ($fileEdit): ?><form method="post" class="sf-admin-delete-form"><input type="hidden" name="action" value="delete_video_file"><input type="hidden" name="video_id" value="<?= (int)($edit['id'] ?? 0) ?>"><input type="hidden" name="file_id" value="<?= (int)($fileEdit['id'] ?? 0) ?>"><?= sf_admin_confirm_delete_button('Delete Video File') ?></form><?php endif; ?>
+</section>
+<?php endif; ?>
 <?php endif; ?>
 <?php sf_admin_shell_end(); require __DIR__ . '/../includes/footer.php'; ?>
