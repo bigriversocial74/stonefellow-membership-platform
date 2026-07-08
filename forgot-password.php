@@ -5,6 +5,10 @@ $pageClass = 'auth-template';
 require __DIR__ . '/includes/data.php';
 require __DIR__ . '/includes/auth.php';
 
+if (sf_auth_user()) {
+  sf_redirect(sf_url('member.php'));
+}
+
 $resetLink = null;
 $email = '';
 if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
