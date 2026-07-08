@@ -12,34 +12,18 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
   $action = (string)($_POST['action'] ?? '');
   $themeId = (int)($_POST['theme_id'] ?? 0);
   if ($action === 'create_theme') {
-    $newId = sf_theme_create([
-      'theme_name'=>$_POST['theme_name'] ?? '', 'theme_slug'=>$_POST['theme_slug'] ?? '', 'description'=>$_POST['description'] ?? '', 'mood_prompt'=>$_POST['mood_prompt'] ?? '', 'status'=>$_POST['status'] ?? 'draft',
-      'palette'=>['background'=>$_POST['background'] ?? '#030302','panel'=>$_POST['panel'] ?? '#0b0907','accent'=>$_POST['accent'] ?? '#d6ad6c','accent_secondary'=>$_POST['accent_secondary'] ?? '#c79a52','text'=>$_POST['text'] ?? '#ead8bc','muted'=>$_POST['muted'] ?? '#b09b79','border'=>$_POST['border'] ?? 'rgba(214,173,108,.18)']
-    ]);
+    $newId = sf_theme_create(['theme_name'=>$_POST['theme_name'] ?? '', 'theme_slug'=>$_POST['theme_slug'] ?? '', 'description'=>$_POST['description'] ?? '', 'mood_prompt'=>$_POST['mood_prompt'] ?? '', 'status'=>$_POST['status'] ?? 'draft', 'palette'=>['background'=>$_POST['background'] ?? '#030302','panel'=>$_POST['panel'] ?? '#0b0907','accent'=>$_POST['accent'] ?? '#d6ad6c','accent_secondary'=>$_POST['accent_secondary'] ?? '#c79a52','text'=>$_POST['text'] ?? '#ead8bc','muted'=>$_POST['muted'] ?? '#b09b79','border'=>$_POST['border'] ?? 'rgba(214,173,108,.18)']]);
     sf_admin_flash($newId ? 'success' : 'error', $newId ? 'Theme created with default image-map slots.' : 'Theme could not be created.');
     sf_admin_redirect('theme-images.php?theme_id=' . (int)$newId);
   }
   if ($action === 'save_theme' && $themeId) {
-    $ok = sf_theme_update($themeId, [
-      'theme_name'=>$_POST['theme_name'] ?? '', 'theme_slug'=>$_POST['theme_slug'] ?? '', 'description'=>$_POST['description'] ?? '', 'mood_prompt'=>$_POST['mood_prompt'] ?? '', 'status'=>$_POST['status'] ?? 'draft',
-      'palette'=>['background'=>$_POST['background'] ?? '#030302','panel'=>$_POST['panel'] ?? '#0b0907','accent'=>$_POST['accent'] ?? '#d6ad6c','accent_secondary'=>$_POST['accent_secondary'] ?? '#c79a52','text'=>$_POST['text'] ?? '#ead8bc','muted'=>$_POST['muted'] ?? '#b09b79','border'=>$_POST['border'] ?? 'rgba(214,173,108,.18)']
-    ]);
+    $ok = sf_theme_update($themeId, ['theme_name'=>$_POST['theme_name'] ?? '', 'theme_slug'=>$_POST['theme_slug'] ?? '', 'description'=>$_POST['description'] ?? '', 'mood_prompt'=>$_POST['mood_prompt'] ?? '', 'status'=>$_POST['status'] ?? 'draft', 'palette'=>['background'=>$_POST['background'] ?? '#030302','panel'=>$_POST['panel'] ?? '#0b0907','accent'=>$_POST['accent'] ?? '#d6ad6c','accent_secondary'=>$_POST['accent_secondary'] ?? '#c79a52','text'=>$_POST['text'] ?? '#ead8bc','muted'=>$_POST['muted'] ?? '#b09b79','border'=>$_POST['border'] ?? 'rgba(214,173,108,.18)']]);
     sf_admin_flash($ok ? 'success' : 'error', $ok ? 'Theme saved.' : 'Theme could not be saved.');
     sf_admin_redirect('theme-images.php?theme_id=' . $themeId);
   }
   if ($action === 'activate_theme' && $themeId) { sf_admin_flash(sf_theme_activate($themeId) ? 'success' : 'error', 'Theme activation updated.'); sf_admin_redirect('theme-images.php?theme_id=' . $themeId); }
-  if ($action === 'save_image') {
-    $imageId = (int)($_POST['image_id'] ?? 0);
-    $ok = sf_theme_update_image($imageId, $_POST);
-    sf_admin_flash($ok ? 'success' : 'error', $ok ? 'Image slot saved.' : 'Image slot could not be saved.');
-    sf_admin_redirect('theme-images.php?theme_id=' . $themeId . '#image-' . $imageId);
-  }
-  if ($action === 'generate_image') {
-    $image = sf_theme_image_find((int)($_POST['image_id'] ?? 0)); $theme = $image ? sf_theme_find((int)$image['theme_id']) : null;
-    $result = ($theme && $image) ? sf_theme_generate_image($theme, $image) : ['ok'=>false,'message'=>'Image slot not found.'];
-    sf_admin_flash(!empty($result['ok']) ? 'success' : (!empty($result['queued']) ? 'warning' : 'error'), $result['message'] ?? 'Generation submitted.');
-    sf_admin_redirect('theme-images.php?theme_id=' . ($themeId ?: (int)($image['theme_id'] ?? 0)) . '#image-' . (int)($image['id'] ?? 0));
-  }
+  if ($action === 'save_image') { $imageId = (int)($_POST['image_id'] ?? 0); $ok = sf_theme_update_image($imageId, $_POST); sf_admin_flash($ok ? 'success' : 'error', $ok ? 'Image slot saved.' : 'Image slot could not be saved.'); sf_admin_redirect('theme-images.php?theme_id=' . $themeId . '#image-' . $imageId); }
+  if ($action === 'generate_image') { $image = sf_theme_image_find((int)($_POST['image_id'] ?? 0)); $theme = $image ? sf_theme_find((int)$image['theme_id']) : null; $result = ($theme && $image) ? sf_theme_generate_image($theme, $image) : ['ok'=>false,'message'=>'Image slot not found.']; sf_admin_flash(!empty($result['ok']) ? 'success' : (!empty($result['queued']) ? 'warning' : 'error'), $result['message'] ?? 'Generation submitted.'); sf_admin_redirect('theme-images.php?theme_id=' . ($themeId ?: (int)($image['theme_id'] ?? 0)) . '#image-' . (int)($image['id'] ?? 0)); }
   if ($action === 'generate_all' && $themeId) { $result = sf_theme_generate_all($themeId); sf_admin_flash(!empty($result['ok']) ? 'success' : 'error', !empty($result['ok']) ? 'Generation submitted for all image slots.' : ($result['message'] ?? 'Could not submit generation.')); sf_admin_redirect('theme-images.php?theme_id=' . $themeId); }
 }
 
@@ -59,55 +43,9 @@ sf_admin_shell_start('Theme Image Map', 'Show themes and image generation map', 
   <div class="sf-admin-action-card"><span>Themes</span><strong><?= count($themes) ?></strong><small>Reusable show/theme records.</small></div>
   <div class="sf-admin-action-card"><span>Image Slots</span><strong><?= count($images) ?></strong><small>Hero, character, music, episode, merch image map.</small></div>
 </section>
-
-<section class="sf-admin-panel">
-  <div class="sf-admin-panel-head"><div><span class="sf-panel-eyebrow">Create Theme</span><h2>New show/theme</h2></div><span class="sf-admin-mini-pill">Palette + image map</span></div>
-  <form class="sf-admin-form" method="post">
-    <?= sf_csrf_field() ?><input type="hidden" name="action" value="create_theme">
-    <div class="sf-admin-form-grid"><label>Theme Name<input name="theme_name" placeholder="DesertRio"></label><label>Theme Slug<input name="theme_slug" placeholder="desertrio"></label><label>Status<?= sf_admin_select('status', ['draft'=>'Draft','active'=>'Active'], 'draft') ?></label></div>
-    <label>Description<textarea name="description" rows="2" placeholder="Reality-style Arizona microdrama theme..."></textarea></label>
-    <label>Global Mood Prompt<textarea name="mood_prompt" rows="3" placeholder="Light angelic desert vibes, poolside Arizona heat, playful scripted reality comedy, cinematic warm sunlight..."></textarea></label>
-    <div class="sf-admin-form-grid"><label>Background<input name="background" value="#030302"></label><label>Panel<input name="panel" value="#0b0907"></label><label>Accent<input name="accent" value="#d6ad6c"></label></div>
-    <div class="sf-admin-form-grid"><label>Secondary Accent<input name="accent_secondary" value="#c79a52"></label><label>Text<input name="text" value="#ead8bc"></label><label>Muted<input name="muted" value="#b09b79"></label></div>
-    <label>Border<input name="border" value="rgba(214,173,108,.18)"></label>
-    <div class="sf-admin-form-actions"><button type="submit">Create Theme + Default Image Slots</button></div>
-  </form>
-</section>
-
+<section class="sf-admin-panel"><div class="sf-admin-panel-head"><div><span class="sf-panel-eyebrow">Create Theme</span><h2>New show/theme</h2></div><span class="sf-admin-mini-pill">Palette + image map</span></div><form class="sf-admin-form" method="post"><?= sf_csrf_field() ?><input type="hidden" name="action" value="create_theme"><div class="sf-admin-form-grid"><label>Theme Name<input name="theme_name" placeholder="DesertRio"></label><label>Theme Slug<input name="theme_slug" placeholder="desertrio"></label><label>Status<?= sf_admin_select('status', ['draft'=>'Draft','active'=>'Active'], 'draft') ?></label></div><label>Description<textarea name="description" rows="2" placeholder="Reality-style Arizona microdrama theme..."></textarea></label><label>Global Mood Prompt<textarea name="mood_prompt" rows="3" placeholder="Light angelic desert vibes, poolside Arizona heat, playful scripted reality comedy, cinematic warm sunlight..."></textarea></label><div class="sf-admin-form-grid"><label>Background<input name="background" value="#030302"></label><label>Panel<input name="panel" value="#0b0907"></label><label>Accent<input name="accent" value="#d6ad6c"></label></div><div class="sf-admin-form-grid"><label>Secondary Accent<input name="accent_secondary" value="#c79a52"></label><label>Text<input name="text" value="#ead8bc"></label><label>Muted<input name="muted" value="#b09b79"></label></div><label>Border<input name="border" value="rgba(214,173,108,.18)"></label><div class="sf-admin-form-actions"><button type="submit">Create Theme + Default Image Slots</button></div></form></section>
 <?php if ($theme): ?>
-<section class="sf-admin-panel">
-  <div class="sf-admin-panel-head"><div><span class="sf-panel-eyebrow">Active Workspace</span><h2><?= sf_theme_h($theme['theme_name']) ?></h2></div><form method="post"><?= sf_csrf_field() ?><input type="hidden" name="action" value="activate_theme"><input type="hidden" name="theme_id" value="<?= (int)$theme['id'] ?>"><button type="submit">Set Active Theme</button></form></div>
-  <form class="sf-admin-form" method="post">
-    <?= sf_csrf_field() ?><input type="hidden" name="action" value="save_theme"><input type="hidden" name="theme_id" value="<?= (int)$theme['id'] ?>">
-    <div class="sf-admin-form-grid"><label>Theme Name<input name="theme_name" value="<?= sf_theme_h($theme['theme_name']) ?>"></label><label>Theme Slug<input name="theme_slug" value="<?= sf_theme_h($theme['theme_slug']) ?>"></label><label>Status<?= sf_admin_select('status', ['draft'=>'Draft','active'=>'Active','archived'=>'Archived'], $theme['status'] ?? 'draft') ?></label></div>
-    <label>Description<textarea name="description" rows="2"><?= sf_theme_h($theme['description'] ?? '') ?></textarea></label>
-    <label>Global Mood Prompt<textarea name="mood_prompt" rows="4"><?= sf_theme_h($theme['mood_prompt'] ?? '') ?></textarea></label>
-    <div class="sf-admin-form-grid"><label>Background<input name="background" value="<?= sf_theme_h($palette['background']) ?>"></label><label>Panel<input name="panel" value="<?= sf_theme_h($palette['panel']) ?>"></label><label>Accent<input name="accent" value="<?= sf_theme_h($palette['accent']) ?>"></label></div>
-    <div class="sf-admin-form-grid"><label>Secondary Accent<input name="accent_secondary" value="<?= sf_theme_h($palette['accent_secondary']) ?>"></label><label>Text<input name="text" value="<?= sf_theme_h($palette['text']) ?>"></label><label>Muted<input name="muted" value="<?= sf_theme_h($palette['muted']) ?>"></label></div>
-    <label>Border<input name="border" value="<?= sf_theme_h($palette['border']) ?>"></label>
-    <div class="sf-admin-form-actions"><button type="submit">Save Theme</button></div>
-  </form>
-</section>
-
-<section class="sf-admin-panel">
-  <div class="sf-admin-panel-head"><div><span class="sf-panel-eyebrow">Image Map</span><h2>Regenerate theme images</h2></div><form method="post"><?= sf_csrf_field() ?><input type="hidden" name="action" value="generate_all"><input type="hidden" name="theme_id" value="<?= (int)$theme['id'] ?>"><button type="submit">Regenerate All</button></form></div>
-  <?php foreach ($images as $image): ?>
-    <article id="image-<?= (int)$image['id'] ?>" class="sf-admin-action-card" style="margin-bottom:16px;display:block;">
-      <form class="sf-admin-form" method="post">
-        <?= sf_csrf_field() ?><input type="hidden" name="action" value="save_image"><input type="hidden" name="theme_id" value="<?= (int)$theme['id'] ?>"><input type="hidden" name="image_id" value="<?= (int)$image['id'] ?>">
-        <div class="sf-admin-form-grid"><label>Title<input name="title" value="<?= sf_theme_h($image['title']) ?>"></label><label>Image Key<input value="<?= sf_theme_h($image['image_key']) ?>" disabled></label><label>Status><?= sf_admin_select('status', ['active'=>'Active','draft'=>'Draft','generated'=>'Generated','approved'=>'Approved','archived'=>'Archived'], $image['status'] ?? 'draft') ?></label></div>
-        <div class="sf-admin-form-grid"><label>Page Location<input name="page_location" value="<?= sf_theme_h($image['page_location'] ?? '') ?>"></label><label>Aspect Ratio<input name="aspect_ratio" value="<?= sf_theme_h($image['aspect_ratio'] ?? '') ?>"></label><label>Recommended Size<input name="recommended_size" value="<?= sf_theme_h($image['recommended_size'] ?? '') ?>"></label></div>
-        <div class="sf-admin-form-grid"><label>Current Path<input name="current_path" value="<?= sf_theme_h($image['current_path'] ?? '') ?>"></label><label>Generated Path<input name="generated_path" value="<?= sf_theme_h($image['generated_path'] ?? '') ?>"></label><label>Approved Path<input name="approved_path" value="<?= sf_theme_h($image['approved_path'] ?? '') ?>"></label></div>
-        <label>Image Prompt<textarea name="prompt" rows="4"><?= sf_theme_h($image['prompt'] ?? '') ?></textarea></label>
-        <label>Sort Order<input type="number" name="sort_order" value="<?= (int)($image['sort_order'] ?? 100) ?>"></label>
-        <div class="sf-admin-form-actions"><button type="submit">Save Slot</button></div>
-      </form>
-      <form method="post" style="margin-top:10px;">
-        <?= sf_csrf_field() ?><input type="hidden" name="action" value="generate_image"><input type="hidden" name="theme_id" value="<?= (int)$theme['id'] ?>"><input type="hidden" name="image_id" value="<?= (int)$image['id'] ?>"><button type="submit">Regenerate This Image</button>
-        <a href="<?= sf_url('admin/ai-settings.php') ?>" style="margin-left:12px;">AI settings</a>
-      </form>
-    </article>
-  <?php endforeach; ?>
-</section>
+<section class="sf-admin-panel"><div class="sf-admin-panel-head"><div><span class="sf-panel-eyebrow">Active Workspace</span><h2><?= sf_theme_h($theme['theme_name']) ?></h2></div><form method="post"><?= sf_csrf_field() ?><input type="hidden" name="action" value="activate_theme"><input type="hidden" name="theme_id" value="<?= (int)$theme['id'] ?>"><button type="submit">Set Active Theme</button></form></div><form class="sf-admin-form" method="post"><?= sf_csrf_field() ?><input type="hidden" name="action" value="save_theme"><input type="hidden" name="theme_id" value="<?= (int)$theme['id'] ?>"><div class="sf-admin-form-grid"><label>Theme Name<input name="theme_name" value="<?= sf_theme_h($theme['theme_name']) ?>"></label><label>Theme Slug<input name="theme_slug" value="<?= sf_theme_h($theme['theme_slug']) ?>"></label><label>Status<?= sf_admin_select('status', ['draft'=>'Draft','active'=>'Active','archived'=>'Archived'], $theme['status'] ?? 'draft') ?></label></div><label>Description<textarea name="description" rows="2"><?= sf_theme_h($theme['description'] ?? '') ?></textarea></label><label>Global Mood Prompt<textarea name="mood_prompt" rows="4"><?= sf_theme_h($theme['mood_prompt'] ?? '') ?></textarea></label><div class="sf-admin-form-grid"><label>Background<input name="background" value="<?= sf_theme_h($palette['background']) ?>"></label><label>Panel<input name="panel" value="<?= sf_theme_h($palette['panel']) ?>"></label><label>Accent<input name="accent" value="<?= sf_theme_h($palette['accent']) ?>"></label></div><div class="sf-admin-form-grid"><label>Secondary Accent<input name="accent_secondary" value="<?= sf_theme_h($palette['accent_secondary']) ?>"></label><label>Text<input name="text" value="<?= sf_theme_h($palette['text']) ?>"></label><label>Muted<input name="muted" value="<?= sf_theme_h($palette['muted']) ?>"></label></div><label>Border<input name="border" value="<?= sf_theme_h($palette['border']) ?>"></label><div class="sf-admin-form-actions"><button type="submit">Save Theme</button></div></form></section>
+<section class="sf-admin-panel"><div class="sf-admin-panel-head"><div><span class="sf-panel-eyebrow">Image Map</span><h2>Regenerate theme images</h2></div><form method="post"><?= sf_csrf_field() ?><input type="hidden" name="action" value="generate_all"><input type="hidden" name="theme_id" value="<?= (int)$theme['id'] ?>"><button type="submit">Regenerate All</button></form></div><?php foreach ($images as $image): ?><article id="image-<?= (int)$image['id'] ?>" class="sf-admin-action-card" style="margin-bottom:16px;display:block;"><form class="sf-admin-form" method="post"><?= sf_csrf_field() ?><input type="hidden" name="action" value="save_image"><input type="hidden" name="theme_id" value="<?= (int)$theme['id'] ?>"><input type="hidden" name="image_id" value="<?= (int)$image['id'] ?>"><div class="sf-admin-form-grid"><label>Title<input name="title" value="<?= sf_theme_h($image['title']) ?>"></label><label>Image Key<input value="<?= sf_theme_h($image['image_key']) ?>" disabled></label><label>Status<?= sf_admin_select('status', ['active'=>'Active','draft'=>'Draft','generated'=>'Generated','approved'=>'Approved','archived'=>'Archived'], $image['status'] ?? 'draft') ?></label></div><div class="sf-admin-form-grid"><label>Page Location<input name="page_location" value="<?= sf_theme_h($image['page_location'] ?? '') ?>"></label><label>Aspect Ratio<input name="aspect_ratio" value="<?= sf_theme_h($image['aspect_ratio'] ?? '') ?>"></label><label>Recommended Size<input name="recommended_size" value="<?= sf_theme_h($image['recommended_size'] ?? '') ?>"></label></div><div class="sf-admin-form-grid"><label>Current Path<input name="current_path" value="<?= sf_theme_h($image['current_path'] ?? '') ?>"></label><label>Generated Path<input name="generated_path" value="<?= sf_theme_h($image['generated_path'] ?? '') ?>"></label><label>Approved Path<input name="approved_path" value="<?= sf_theme_h($image['approved_path'] ?? '') ?>"></label></div><label>Image Prompt<textarea name="prompt" rows="4"><?= sf_theme_h($image['prompt'] ?? '') ?></textarea></label><label>Sort Order<input type="number" name="sort_order" value="<?= (int)($image['sort_order'] ?? 100) ?>"></label><div class="sf-admin-form-actions"><button type="submit">Save Slot</button></div></form><form method="post" style="margin-top:10px;"><?= sf_csrf_field() ?><input type="hidden" name="action" value="generate_image"><input type="hidden" name="theme_id" value="<?= (int)$theme['id'] ?>"><input type="hidden" name="image_id" value="<?= (int)$image['id'] ?>"><button type="submit">Regenerate This Image</button><a href="<?= sf_url('admin/ai-settings.php') ?>" style="margin-left:12px;">AI settings</a></form></article><?php endforeach; ?></section>
 <?php endif; ?>
 <?php sf_admin_shell_end(); require __DIR__ . '/../includes/footer.php'; ?>
