@@ -84,7 +84,7 @@ $featuredTrack = $trackMap[(int)($featuredSong['id'] ?? 0)] ?? ($trackPayloads[0
       <div class="sf-now-tools"><span><?= htmlspecialchars($featuredTrack['source_mode'] ?? 'preview') ?></span><span>▤</span><span>♩</span><div class="sf-volume"><i></i></div></div>
     </footer>
   </section>
-  <script>window.STONEFELLOW_TRACKS = <?= json_encode($trackPayloads, JSON_UNESCAPED_SLASHES) ?>;</script>
+  <script>window.STONEFELLOW_TRACKS = <?= json_encode($trackPayloads, JSON_UNESCAPED_SLASHES) ?>; window.STONEFELLOW_RUNTIME = {libraryApi: "<?= sf_url('api/library.php') ?>", playlistApi: "<?= sf_url('api/playlist.php') ?>"};</script>
   <script src="<?= sf_asset('js/stonefellow.js') ?>"></script>
   <script src="<?= sf_asset('js/member-runtime.js') ?>"></script>
 </body>

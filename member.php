@@ -10,22 +10,10 @@ $libraryItems = sf_library_items((int)$user['id']);
 $notificationSummary = sf_member_notification_summary((int)$user['id']);
 $commentSummary = sf_comment_summary();
 $messageUnread = count(sf_msg_member_messages((int)$user['id'], 'unread', 200));
-$memberPlaylists = $memberPlaylists ?? [];
+$memberPlaylists = sf_member_playlists((int)$user['id']);
 
 $videoQueue = array_values(array_filter($libraryItems, static fn($item) => in_array(($item['content_type'] ?? ''), ['video','episode'], true)));
 $songQueue = array_values(array_filter($libraryItems, static fn($item) => in_array(($item['content_type'] ?? ''), ['song','album'], true)));
-if (!$songQueue && !empty($catalogSongs)) {
-  foreach (array_slice($catalogSongs, 0, 4) as $song) {
-    $songQueue[] = [
-      'content_type' => 'song',
-      'title' => $song['title'] ?? 'Stonefellow Song',
-      'image_path' => $song['cover'] ?? 'images/music/soundtrack-cover.png',
-      'content_url' => sf_url('song.php?slug=' . urlencode((string)($song['slug'] ?? ''))),
-      'progress_percent' => 0,
-      'meta' => $song['episode_short'] ?? ($song['episode'] ?? 'Stonefellow'),
-    ];
-  }
-}
 
 $periodEnd = $member['period_end'] ?? null;
 $billingLabel = $periodEnd ? ('Renews ' . date('M j, Y', strtotime((string)$periodEnd))) : 'Billing date not set';
@@ -72,9 +60,13 @@ require __DIR__ . '/includes/header.php';
   <section class="sf-member-section sf-dashboard-continue">
     <div class="sf-member-section-head"><div><span class="sf-panel-eyebrow">Continue Watching</span><h2>Resume queue</h2></div><a href="<?= sf_url('watchlist.php') ?>">Watchlist</a></div>
     <div class="sf-video-card-grid">
-      <?php foreach (array_slice($videoQueue, 0, 4) as $item): ?>
-        <a class="sf-video-card" href="<?= htmlspecialchars($item['content_url'] ?? '#') ?>"><img src="<?= sf_asset($item['image_path'] ?? 'images/episodes/episode-01.png') ?>" alt="<?= htmlspecialchars($item['title'] ?? 'Video') ?> poster"><span><?= htmlspecialchars(ucfirst((string)($item['content_type'] ?? 'video'))) ?></span><strong><?= htmlspecialchars($item['title'] ?? 'Stonefellow') ?></strong><small><?= (int)($item['progress_percent'] ?? 0) ?>% watched</small></a>
-      <?php endforeach; ?>
+      <?php if ($videoQueue): ?>
+        <?php foreach (array_slice($videoQueue, 0, 4) as $item): ?>
+          <a class="sf-video-card" href="<?= htmlspecialchars($item['content_url'] ?? '#') ?>"><img src="<?= sf_asset($item['image_path'] ?? 'images/episodes/episode-01.png') ?>" alt="<?= htmlspecialchars($item['title'] ?? 'Video') ?> poster"><span><?= htmlspecialchars(ucfirst((string)($item['content_type'] ?? 'video'))) ?></span><strong><?= htmlspecialchars($item['title'] ?? 'Stonefellow') ?></strong><small><?= (int)($item['progress_percent'] ?? 0) ?>% watched</small></a>
+        <?php endforeach; ?>
+      <?php else: ?>
+        <article class="sf-dashboard-empty"><strong>No watch progress yet</strong><p>Start an episode or save a video to build your Continue Watching queue.</p><a href="<?= sf_url('episodes.php') ?>">Browse Episodes</a></article>
+      <?php endif; ?>
     </div>
   </section>
 
@@ -82,19 +74,29 @@ require __DIR__ . '/includes/header.php';
     <section class="sf-member-section sf-dashboard-panel">
       <div class="sf-member-section-head"><div><span class="sf-panel-eyebrow">Recently Played</span><h2>Music queue</h2></div><a href="<?= sf_url('player.php') ?>">Open Player</a></div>
       <div class="sf-recent-music-list">
-        <?php foreach (array_slice($songQueue, 0, 4) as $item): ?>
-          <a class="sf-recent-music-row" href="<?= htmlspecialchars($item['content_url'] ?? '#') ?>">
-            <img src="<?= sf_asset($item['image_path'] ?? 'images/music/soundtrack-cover.png') ?>" alt="<?= htmlspecialchars($item['title'] ?? 'Song') ?> cover">
-            <span><strong><?= htmlspecialchars($item['title'] ?? 'Stonefellow') ?></strong><small><?= htmlspecialchars((string)($item['meta'] ?? ucfirst((string)($item['content_type'] ?? 'song')))) ?></small></span>
-            <b>▶</b>
-          </a>
-        <?php endforeach; ?>
+        <?php if ($songQueue): ?>
+          <?php foreach (array_slice($songQueue, 0, 4) as $item): ?>
+            <a class="sf-recent-music-row" href="<?= htmlspecialchars($item['content_url'] ?? '#') ?>">
+              <img src="<?= sf_asset($item['image_path'] ?? 'images/music/soundtrack-cover.png') ?>" alt="<?= htmlspecialchars($item['title'] ?? 'Song') ?> cover">
+              <span><strong><?= htmlspecialchars($item['title'] ?? 'Stonefellow') ?></strong><small><?= htmlspecialchars((string)($item['metadata']['episode'] ?? ucfirst((string)($item['content_type'] ?? 'song')))) ?></small></span>
+              <b>▶</b>
+            </a>
+          <?php endforeach; ?>
+        <?php else: ?>
+          <article class="sf-dashboard-empty"><strong>No music activity yet</strong><p>Play a song or tap the heart in the player to start building your music history.</p><a href="<?= sf_url('player.php') ?>">Open Player</a></article>
+        <?php endif; ?>
       </div>
     </section>
 
     <section class="sf-member-section sf-dashboard-panel">
       <div class="sf-member-section-head"><div><span class="sf-panel-eyebrow">Private Playlists</span><h2>Member playlists</h2></div><a href="<?= sf_url('playlists.php') ?>">Create Playlist</a></div>
-      <div class="sf-playlist-grid"><?php foreach ($memberPlaylists as $playlist): ?><article class="sf-member-playlist-card"><img src="<?= sf_asset($playlist['cover']) ?>" alt="<?= htmlspecialchars($playlist['title']) ?> cover"><div><strong><?= htmlspecialchars($playlist['title']) ?></strong><span><?= (int)$playlist['song_count'] ?> saved items · <?= htmlspecialchars($playlist['visibility']) ?></span></div></article><?php endforeach; ?></div>
+      <div class="sf-playlist-grid">
+        <?php if ($memberPlaylists): ?>
+          <?php foreach ($memberPlaylists as $playlist): ?><article class="sf-member-playlist-card"><img src="<?= sf_asset($playlist['cover']) ?>" alt="<?= htmlspecialchars($playlist['title']) ?> cover"><div><strong><?= htmlspecialchars($playlist['title']) ?></strong><span><?= (int)$playlist['song_count'] ?> saved items · <?= htmlspecialchars($playlist['visibility']) ?></span></div></article><?php endforeach; ?>
+        <?php else: ?>
+          <article class="sf-dashboard-empty"><strong>No playlists yet</strong><p>Create a private playlist, then add songs from the playlist manager.</p><a href="<?= sf_url('playlists.php') ?>">Create Playlist</a></article>
+        <?php endif; ?>
+      </div>
     </section>
   </section>
 

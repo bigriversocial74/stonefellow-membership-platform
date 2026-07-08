@@ -1,10 +1,10 @@
 <?php
-require __DIR__ . '/includes/data.php';
-require __DIR__ . '/includes/membership.php';
+require __DIR__ . '/includes/library.php';
 
 $user = sf_require_login();
 $member = sf_member_snapshot();
 $canManagePlaylists = !empty($member['can_manage_playlists']);
+$memberPlaylists = sf_member_playlists((int)$user['id']);
 $pageTitle = 'Member Playlists';
 $pageDescription = 'Stonefellow private playlist manager for paying members.';
 $pageClass = 'member-playlists-page membership-page';
@@ -36,16 +36,20 @@ require __DIR__ . '/includes/header.php';
       <a href="<?= sf_url('player.php') ?>">Open Player</a>
     </div>
     <div class="sf-playlist-grid" data-sf-playlist-list>
-      <?php foreach ($memberPlaylists as $playlist): ?>
-        <article class="sf-member-playlist-card">
-          <img src="<?= sf_asset($playlist['cover']) ?>" alt="<?= htmlspecialchars($playlist['title']) ?> cover">
-          <div>
-            <strong><?= htmlspecialchars($playlist['title']) ?></strong>
-            <span><?= (int)$playlist['song_count'] ?> saved items · <?= htmlspecialchars($playlist['visibility']) ?></span>
-            <p><?= htmlspecialchars($playlist['description']) ?></p>
-          </div>
-        </article>
-      <?php endforeach; ?>
+      <?php if ($memberPlaylists): ?>
+        <?php foreach ($memberPlaylists as $playlist): ?>
+          <article class="sf-member-playlist-card">
+            <img src="<?= sf_asset($playlist['cover']) ?>" alt="<?= htmlspecialchars($playlist['title']) ?> cover">
+            <div>
+              <strong><?= htmlspecialchars($playlist['title']) ?></strong>
+              <span><?= (int)$playlist['song_count'] ?> saved items · <?= htmlspecialchars($playlist['visibility']) ?></span>
+              <p><?= htmlspecialchars($playlist['description'] ?? '') ?></p>
+            </div>
+          </article>
+        <?php endforeach; ?>
+      <?php else: ?>
+        <article class="sf-dashboard-empty sf-dashboard-empty-wide"><strong>No playlists yet</strong><p>Create your first private playlist, then add songs below. If you add a song before creating one, Stonefellow will create a default playlist for you.</p></article>
+      <?php endif; ?>
     </div>
   </section>
 

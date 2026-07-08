@@ -21,16 +21,20 @@ require __DIR__ . '/includes/header.php';
   </section>
   <section class="sf-member-section">
     <div class="sf-member-section-head"><div><span class="sf-panel-eyebrow">Library</span><h2>All saved content</h2></div><a href="<?= sf_url('api/library.php') ?>">API</a></div>
-    <div class="sf-video-card-grid">
-      <?php foreach ($items as $item): ?>
-        <a class="sf-video-card" href="<?= htmlspecialchars($item['content_url'] ?? '#') ?>">
-          <img src="<?= sf_asset($item['image_path'] ?? 'images/episodes/episode-01.png') ?>" alt="<?= htmlspecialchars($item['title'] ?? 'Library item') ?> artwork">
-          <span><?= htmlspecialchars(ucfirst((string)($item['content_type'] ?? 'item'))) ?> · <?= htmlspecialchars(sf_access_label((string)($item['access_level'] ?? 'public'))) ?></span>
-          <strong><?= htmlspecialchars($item['title'] ?? 'Stonefellow') ?></strong>
-          <small><?= htmlspecialchars(ucfirst((string)($item['library_status'] ?? 'saved'))) ?><?php if ((int)($item['progress_percent'] ?? 0) > 0): ?> · <?= (int)$item['progress_percent'] ?>% complete<?php endif; ?></small>
-        </a>
-      <?php endforeach; ?>
-    </div>
+    <?php if ($items): ?>
+      <div class="sf-video-card-grid">
+        <?php foreach ($items as $item): ?>
+          <a class="sf-video-card" href="<?= htmlspecialchars($item['content_url'] ?? '#') ?>">
+            <img src="<?= sf_asset($item['image_path'] ?? 'images/episodes/episode-01.png') ?>" alt="<?= htmlspecialchars($item['title'] ?? 'Library item') ?> artwork">
+            <span><?= htmlspecialchars(ucfirst((string)($item['content_type'] ?? 'item'))) ?> · <?= htmlspecialchars(sf_access_label((string)($item['access_level'] ?? 'public'))) ?></span>
+            <strong><?= htmlspecialchars($item['title'] ?? 'Stonefellow') ?></strong>
+            <small><?= htmlspecialchars(ucfirst((string)($item['library_status'] ?? 'saved'))) ?><?php if ((int)($item['progress_percent'] ?? 0) > 0): ?> · <?= (int)$item['progress_percent'] ?>% complete<?php endif; ?></small>
+          </a>
+        <?php endforeach; ?>
+      </div>
+    <?php else: ?>
+      <article class="sf-dashboard-empty sf-dashboard-empty-wide"><strong>Your library is empty</strong><p>Save a video, play a song, or tap the heart in the player to start building your member library.</p><div><a href="<?= sf_url('episodes.php') ?>">Browse Episodes</a><a href="<?= sf_url('player.php') ?>">Open Player</a></div></article>
+    <?php endif; ?>
   </section>
 </section>
 <?php require __DIR__ . '/includes/footer.php'; ?>
