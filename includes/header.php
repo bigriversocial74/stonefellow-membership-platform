@@ -6,6 +6,7 @@ $sfHeaderUser = sf_auth_user();
 $sfPageClass = (string)($pageClass ?? '');
 $sfIsAdminSurface = strpos($sfPageClass, 'admin-catalog-page') !== false || strpos(str_replace('\\', '/', dirname($_SERVER['SCRIPT_NAME'] ?? '')), '/admin') !== false;
 $sfIsAdminUser = $sfHeaderUser && (($sfHeaderUser['role'] ?? '') === 'admin');
+$sfIsCustomerSurface = $sfHeaderUser && !$sfIsAdminSurface && strpos($sfPageClass, 'membership-page') !== false;
 $sfPublicNav = [
   ['label' => 'Home', 'href' => 'index.php', 'pages' => ['index.php']],
   ['label' => 'Series', 'href' => 'series.php', 'pages' => ['series.php']],
@@ -14,11 +15,21 @@ $sfPublicNav = [
   ['label' => 'Cast', 'href' => 'cast.php', 'pages' => ['cast.php']],
   ['label' => 'Merch', 'href' => 'merch.php', 'pages' => ['merch.php', 'product.php']],
 ];
-$sfMemberNav = $sfPublicNav;
-$sfMemberNav[] = ['label' => 'Feed', 'href' => 'feed.php', 'pages' => ['feed.php']];
-$sfMemberNav[] = ['label' => 'Search', 'href' => 'search.php', 'pages' => ['search.php']];
+$sfCustomerNav = [
+  ['label' => 'Dashboard', 'href' => 'member.php', 'pages' => ['member.php']],
+  ['label' => 'Library', 'href' => 'library.php', 'pages' => ['library.php']],
+  ['label' => 'Watchlist', 'href' => 'watchlist.php', 'pages' => ['watchlist.php']],
+  ['label' => 'Playlists', 'href' => 'playlists.php', 'pages' => ['playlists.php']],
+  ['label' => 'Messages', 'href' => 'messages.php', 'pages' => ['messages.php']],
+  ['label' => 'Notifications', 'href' => 'notifications.php', 'pages' => ['notifications.php']],
+  ['label' => 'Comments', 'href' => 'comments.php', 'pages' => ['comments.php']],
+  ['label' => 'Billing', 'href' => 'account-billing.php', 'pages' => ['account-billing.php']],
+  ['label' => 'Account', 'href' => 'account.php', 'pages' => ['account.php']],
+  ['label' => 'Support', 'href' => 'support.php', 'pages' => ['support.php']],
+];
 $sfCurrentPage = sf_current_page();
-$sfMainNav = $sfHeaderUser ? $sfMemberNav : $sfPublicNav;
+$sfMainNav = $sfHeaderUser ? [] : $sfPublicNav;
+$sfBodyClass = trim($sfPageClass . ($sfHeaderUser ? ' sf-logged-in' : '') . ($sfIsCustomerSurface ? ' sf-customer-ui-page' : ''));
 ?>
 <!doctype html>
 <html lang="en">
@@ -40,20 +51,23 @@ $sfMainNav = $sfHeaderUser ? $sfMemberNav : $sfPublicNav;
   <link rel="stylesheet" href="<?= sf_asset('css/pwa-upload.css') ?>">
   <link rel="stylesheet" href="<?= sf_asset('css/nav-cleanup.css') ?>">
   <link rel="stylesheet" href="<?= sf_asset('css/light-card-text.css') ?>">
+  <link rel="stylesheet" href="<?= sf_asset('css/customer-ui.css') ?>">
   <?php if ($sfIsAdminSurface): ?><link rel="stylesheet" href="<?= sf_asset('css/admin-polish.css') ?>"><?php endif; ?>
 </head>
-<body class="<?= htmlspecialchars($pageClass ?? '') ?>">
+<body class="<?= htmlspecialchars($sfBodyClass) ?>">
   <div class="site-noise" aria-hidden="true"></div>
   <header class="home-header-full site-global-header">
     <div class="home-header">
       <a class="home-brand" href="<?= sf_url('index.php') ?>" aria-label="Stonefellow home"><img src="<?= sf_asset('images/brand/home-brand-approved.png') ?>" alt="Stonefellow" class="home-brand-image"></a>
-      <button class="nav-toggle home-nav-toggle" type="button" aria-label="Open navigation" data-nav-toggle><span></span><span></span><span></span></button>
+      <?php if ($sfMainNav): ?><button class="nav-toggle home-nav-toggle" type="button" aria-label="Open navigation" data-nav-toggle><span></span><span></span><span></span></button><?php endif; ?>
+      <?php if ($sfMainNav): ?>
       <nav class="home-nav" data-site-nav>
         <?php foreach ($sfMainNav as $item): ?>
           <?php $isActive = in_array($sfCurrentPage, $item['pages'], true) ? 'is-active' : ''; ?>
           <a class="<?= $isActive ?>" href="<?= sf_url($item['href']) ?>"><?= htmlspecialchars($item['label']) ?></a>
         <?php endforeach; ?>
       </nav>
+      <?php endif; ?>
       <div class="home-header-actions">
         <?php if ($sfHeaderUser): ?>
           <details class="home-user-menu">
@@ -96,3 +110,15 @@ $sfMainNav = $sfHeaderUser ? $sfMemberNav : $sfPublicNav;
       })); ?>
     <?php endif; ?>
     <?php if ($sfAuthFlashes): ?><div class="sf-flash-stack" role="status" aria-live="polite"><?php foreach ($sfAuthFlashes as $flash): ?><div class="sf-flash sf-flash-<?= htmlspecialchars($flash['type'] ?? 'info') ?>"><?= htmlspecialchars($flash['message'] ?? '') ?></div><?php endforeach; ?></div><?php endif; ?>
+    <?php if ($sfIsCustomerSurface): ?>
+      <aside class="sf-customer-sidebar" aria-label="Member navigation">
+        <div class="sf-customer-side-brand"><span>Member Area</span><strong><?= htmlspecialchars($sfHeaderUser['display_name'] ?: 'Stonefellow') ?></strong></div>
+        <nav class="sf-customer-nav">
+          <?php foreach ($sfCustomerNav as $item): ?>
+            <?php $isActive = in_array($sfCurrentPage, $item['pages'], true) ? 'is-active' : ''; ?>
+            <a class="<?= $isActive ?>" href="<?= sf_url($item['href']) ?>"><?= htmlspecialchars($item['label']) ?></a>
+          <?php endforeach; ?>
+        </nav>
+        <div class="sf-customer-side-actions"><a href="<?= sf_url('player.php') ?>">Open Player</a><a href="<?= sf_url('logout.php') ?>">Logout</a></div>
+      </aside>
+    <?php endif; ?>
