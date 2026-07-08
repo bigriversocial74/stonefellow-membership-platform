@@ -70,6 +70,8 @@ function sf_admin_nav_groups(): array {
     'content' => ['label'=>'Content / Storyboarding / Characters','short'=>'Content + Story','items'=>[
       'storyboards' => ['Storyboards', 'admin/storyboards.php'],
       'characters' => ['Characters', 'admin/characters.php'],
+      'series-assets' => ['Series Assets', 'admin/series-assets.php'],
+      'scene-backgrounds' => ['Scene Backgrounds', 'admin/scene-backgrounds.php'],
       'ai-settings' => ['AI Settings', 'admin/ai-settings.php'],
       'music' => ['Media Dashboard', 'admin/music.php'],
       'albums' => ['Albums', 'admin/music-albums.php'],
@@ -98,7 +100,7 @@ function sf_admin_shell_start(string $eyebrow, string $title, string $descriptio
     foreach ($group['items'] as $key => $item) { $class = $active === $key ? 'is-active' : ''; echo '<a class="' . $class . '" href="' . sf_admin_h(sf_url($item[1])) . '">' . sf_admin_h($item[0]) . '</a>'; }
     echo '</div></nav>';
   }
-  echo '</div><div class="sf-admin-side-note"><strong>Admin</strong><span>Membership and business data live in tab 1. Content, storyboards, and characters live in tab 2.</span></div></aside><section class="sf-admin-main">';
+  echo '</div><div class="sf-admin-side-note"><strong>Admin</strong><span>Membership and business data live in tab 1. Content, storyboards, characters, assets, and backgrounds live in tab 2.</span></div></aside><section class="sf-admin-main">';
   echo '<section class="sf-admin-hero"><div><span class="sf-panel-eyebrow">' . sf_admin_h($eyebrow) . '</span><h1>' . sf_admin_h($title) . '</h1><p>' . sf_admin_h($description) . '</p></div>';
   echo '<div class="sf-admin-db-card"><span>Database</span><strong>' . (sf_admin_db_ready() ? 'Connected' : 'Static Preview') . '</strong><small>' . (sf_admin_db_ready() ? 'Forms save to MySQL tables.' : 'Run install.php to enable saves.') . '</small></div></section>';
   foreach (sf_admin_flash() as $message) echo '<div class="sf-admin-alert sf-admin-alert-' . sf_admin_h($message['type'] ?? 'info') . '">' . sf_admin_h($message['message'] ?? '') . '</div>';
