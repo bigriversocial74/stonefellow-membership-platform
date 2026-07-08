@@ -1,20 +1,46 @@
 /* Mobile homepage cleanup */
+.home-mobile-account-links{
+  display:none;
+}
+
 @media (max-width: 700px){
-  .home-template .home-header-actions .home-subscribe-btn{
+  .home-template .home-header-actions .home-subscribe-btn,
+  .home-template .home-header-actions .home-user-menu-public{
     display:none!important;
   }
 
-  .home-template .home-header-actions{
+  .home-mobile-account-links{
+    display:grid;
     width:100%;
+    gap:10px;
+    margin-top:14px;
+    padding-top:16px;
+    border-top:1px solid rgba(214,173,108,.22);
   }
 
-  .home-template .home-user-menu,
-  .home-template .home-user-summary{
-    width:100%;
+  .home-mobile-account-links span{
+    display:block;
+    color:#d7b275;
+    font-size:11px;
+    font-weight:900;
+    letter-spacing:.2em;
+    text-transform:uppercase;
   }
 
-  .home-template .home-user-dropdown a[href$="signup.php"]{
-    display:flex;
+  .home-mobile-account-links a{
+    display:flex!important;
+    align-items:center;
+    min-height:42px;
+    width:100%;
+    padding:0 14px!important;
+    border:1px solid rgba(214,173,108,.28);
+    border-radius:4px;
+    background:rgba(255,255,255,.025);
+    color:#ead8bc!important;
+    font-size:12px!important;
+    font-weight:900!important;
+    letter-spacing:.12em!important;
+    text-transform:uppercase!important;
   }
 
   .home-template .home-hero-grid{
