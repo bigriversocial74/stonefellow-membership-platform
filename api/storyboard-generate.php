@@ -13,11 +13,13 @@ $data = sf_request_json();
 if (!$data && $_POST) $data = $_POST;
 $storyboardId = (int)($data['storyboard_id'] ?? $data['project_id'] ?? 0);
 $prompt = trim((string)($data['story_prompt'] ?? $data['prompt'] ?? ''));
+$sceneCount = (int)($data['scene_count'] ?? $data['scene_card_total'] ?? 0);
 $returnUrl = trim((string)($data['return_url'] ?? ''));
-$result = sf_sbgen_generate_storyboard($storyboardId, $prompt);
+$result = sf_sbgen_generate_storyboard($storyboardId, $prompt, $sceneCount > 0 ? $sceneCount : null);
 
 if ($returnUrl !== '') {
-  sf_admin_flash(!empty($result['ok']) ? 'success' : 'error', !empty($result['ok']) ? '9-scene storyboard generated.' : ('Storyboard generation failed: ' . ($result['error'] ?? 'unknown_error')));
+  $sceneLabel = !empty($result['scenes']) ? ((int)$result['scenes'] . '-scene storyboard generated.') : 'Storyboard generated.';
+  sf_admin_flash(!empty($result['ok']) ? 'success' : 'error', !empty($result['ok']) ? $sceneLabel : ('Storyboard generation failed: ' . ($result['error'] ?? 'unknown_error')));
   header('Location: ' . $returnUrl);
   exit;
 }
