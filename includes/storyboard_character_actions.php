@@ -28,6 +28,18 @@ function sf_sbc_ensure_builder_character_from_catalog(int $storyboardId, int $st
   sf_admin_execute('INSERT INTO storyboard_characters (storyboard_id, character_name, role_label, character_order, appearance_notes, personality_notes, wardrobe_notes, consistency_prompt, likeness_strength, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', [$storyboardId, $name, $fields['role_label'], $order, $fields['appearance_notes'], $fields['personality_notes'], $fields['wardrobe_notes'], $fields['consistency_prompt'], $fields['likeness_strength'], $fields['status']]);
   return (int)(sf_storyboard_db()?->lastInsertId() ?: 0);
 }
+function sf_sbc_sync_storyboard_catalog_characters(int $storyboardId, array $storyCharacterIds): array {
+  $synced = [];
+  foreach (array_unique(array_filter(array_map('intval', $storyCharacterIds))) as $storyCharacterId) {
+    $localId = sf_sbc_ensure_builder_character_from_catalog($storyboardId, $storyCharacterId);
+    if ($localId > 0) $synced[] = $localId;
+  }
+  if ($synced) {
+    sf_admin_execute('UPDATE storyboards SET updated_at = NOW() WHERE id = ?', [$storyboardId]);
+    sf_admin_audit('sync_storyboard_catalog_characters', 'storyboard', $storyboardId, null, ['story_character_ids'=>array_values(array_unique(array_filter(array_map('intval', $storyCharacterIds)))),'local_character_ids'=>$synced]);
+  }
+  return $synced;
+}
 function sf_sbc_local_character_id_from_catalog(int $storyboardId, int $storyCharacterId): int {
   $catalog = sf_sbc_catalog_character($storyCharacterId); if (!$catalog) return 0;
   $name = trim((string)($catalog['character_name'] ?? '')); if ($name === '') return 0;
