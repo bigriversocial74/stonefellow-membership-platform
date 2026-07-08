@@ -1,5 +1,17 @@
 document.addEventListener('DOMContentLoaded', function () {
-  if (!document.body.classList.contains('sf-logged-in')) return;
+  var current = (location.pathname.split('/').pop() || 'index.php').toLowerCase();
+
+  if (!document.body.classList.contains('sf-logged-in')) {
+    var publicNav = document.querySelector('.home-nav[data-site-nav]');
+    if (publicNav && !publicNav.querySelector('.home-mobile-account-links')) {
+      var accountGroup = document.createElement('div');
+      accountGroup.className = 'home-mobile-account-links';
+      accountGroup.innerHTML = '<span>Account</span><a href="signin.php">Sign In</a><a href="signup.php">Create Account</a><a href="forgot-password.php">Forgot Password</a>';
+      publicNav.appendChild(accountGroup);
+    }
+    return;
+  }
+
   var actions = document.querySelector('.home-header-actions');
   if (!actions) return;
 
@@ -24,7 +36,6 @@ document.addEventListener('DOMContentLoaded', function () {
     drawer.className = 'sf-customer-drawer';
     drawer.innerHTML = '<summary class="sf-customer-drawer-toggle"><span aria-hidden="true"><i></i><i></i><i></i></span><b>Menu</b></summary><div class="sf-customer-drawer-panel"><div class="sf-customer-drawer-head"><span>Member Area</span><strong>Stonefellow</strong></div><nav class="sf-customer-nav"></nav><div class="sf-customer-side-actions"><a href="player.php">Open Player</a><a href="member.php">Dashboard</a></div></div>';
     var nav = drawer.querySelector('.sf-customer-nav');
-    var current = (location.pathname.split('/').pop() || 'index.php').toLowerCase();
     links.forEach(function (item) {
       var a = document.createElement('a');
       a.href = item[1];
