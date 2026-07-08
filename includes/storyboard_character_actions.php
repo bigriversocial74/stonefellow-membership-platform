@@ -1,8 +1,39 @@
 <?php
 require_once __DIR__ . '/storyboard_scene_actions.php';
+require_once __DIR__ . '/storyboarding_system.php';
 
 function sf_sbc_ready(): bool { return sf_storyboard_ready() && sf_admin_table_exists('storyboard_characters') && sf_admin_table_exists('storyboard_character_references'); }
 function sf_sbc_storyboard_id_from_character(int $characterId): int { $row = sf_admin_fetch_one('SELECT storyboard_id FROM storyboard_characters WHERE id = ? LIMIT 1', [$characterId]); return (int)($row['storyboard_id'] ?? 0); }
+function sf_sbc_catalog_character(int $storyCharacterId): ?array { if ($storyCharacterId <= 0 || !sf_story_v1_ready()) return null; return sf_admin_fetch_one('SELECT * FROM story_characters WHERE id = ? LIMIT 1', [$storyCharacterId]); }
+function sf_sbc_catalog_to_consistency(array $row): string { $parts = []; foreach (['personality_notes','relationship_notes','season_arc','motivation'] as $key) { $value = trim((string)($row[$key] ?? '')); if ($value !== '') $parts[] = ucwords(str_replace('_',' ', $key)) . ': ' . $value; } return implode("\n", $parts); }
+function sf_sbc_ensure_builder_character_from_catalog(int $storyboardId, int $storyCharacterId): int {
+  if (!sf_sbc_ready() || $storyboardId <= 0 || $storyCharacterId <= 0) return 0;
+  $catalog = sf_sbc_catalog_character($storyCharacterId); if (!$catalog) return 0;
+  $name = trim((string)($catalog['character_name'] ?? '')); if ($name === '') return 0;
+  $existing = sf_admin_fetch_one('SELECT id FROM storyboard_characters WHERE storyboard_id = ? AND character_name = ? LIMIT 1', [$storyboardId, $name]);
+  $fields = [
+    'role_label' => trim((string)($catalog['role_type'] ?? 'Character')) ?: 'Character',
+    'appearance_notes' => trim((string)($catalog['short_bio'] ?? '')),
+    'personality_notes' => trim((string)($catalog['personality_notes'] ?? '')),
+    'wardrobe_notes' => trim((string)($catalog['relationship_notes'] ?? '')),
+    'consistency_prompt' => sf_sbc_catalog_to_consistency($catalog),
+    'likeness_strength' => 'medium',
+    'status' => trim((string)($catalog['status'] ?? 'active')) ?: 'active',
+  ];
+  if ($existing) {
+    sf_admin_execute('UPDATE storyboard_characters SET role_label=?, appearance_notes=?, personality_notes=?, wardrobe_notes=?, consistency_prompt=?, likeness_strength=?, status=?, updated_at=NOW() WHERE id=?', [$fields['role_label'],$fields['appearance_notes'],$fields['personality_notes'],$fields['wardrobe_notes'],$fields['consistency_prompt'],$fields['likeness_strength'],$fields['status'],(int)$existing['id']]);
+    return (int)$existing['id'];
+  }
+  $order = (int)(sf_admin_fetch_one('SELECT COALESCE(MAX(character_order),0) + 1 AS next_order FROM storyboard_characters WHERE storyboard_id = ?', [$storyboardId])['next_order'] ?? 1);
+  sf_admin_execute('INSERT INTO storyboard_characters (storyboard_id, character_name, role_label, character_order, appearance_notes, personality_notes, wardrobe_notes, consistency_prompt, likeness_strength, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', [$storyboardId, $name, $fields['role_label'], $order, $fields['appearance_notes'], $fields['personality_notes'], $fields['wardrobe_notes'], $fields['consistency_prompt'], $fields['likeness_strength'], $fields['status']]);
+  return (int)(sf_storyboard_db()?->lastInsertId() ?: 0);
+}
+function sf_sbc_local_character_id_from_catalog(int $storyboardId, int $storyCharacterId): int {
+  $catalog = sf_sbc_catalog_character($storyCharacterId); if (!$catalog) return 0;
+  $name = trim((string)($catalog['character_name'] ?? '')); if ($name === '') return 0;
+  $row = sf_admin_fetch_one('SELECT id FROM storyboard_characters WHERE storyboard_id = ? AND character_name = ? LIMIT 1', [$storyboardId, $name]);
+  return (int)($row['id'] ?? 0);
+}
 function sf_sbc_add_character(int $storyboardId, array $payload): array {
   if (!sf_sbc_ready()) return ['ok'=>false,'error'=>'character_actions_not_ready'];
   $storyboard = sf_sba_storyboard($storyboardId); if (!$storyboard) return ['ok'=>false,'error'=>'storyboard_not_found'];
@@ -37,20 +68,23 @@ function sf_sbc_upload_reference(int $characterId, string $field = 'reference_im
   sf_admin_audit('upload_storyboard_character_reference', 'storyboard_character', $characterId, null, ['asset_id'=>$assetId]);
   return ['ok'=>true,'character_id'=>$characterId,'asset_id'=>$assetId,'path'=>$upload['path'] ?? ''];
 }
-function sf_sbc_assign_scene_character(int $storyboardId, int $sceneId, int $characterId): array {
+function sf_sbc_assign_scene_character(int $storyboardId, int $sceneId, int $characterId, int $storyCharacterId = 0): array {
   if (!sf_sbc_ready()) return ['ok'=>false,'error'=>'character_actions_not_ready'];
   $scene = sf_sba_scene($sceneId); if (!$scene || (int)$scene['storyboard_id'] !== $storyboardId) return ['ok'=>false,'error'=>'scene_not_found'];
+  if ($storyCharacterId > 0) $characterId = sf_sbc_ensure_builder_character_from_catalog($storyboardId, $storyCharacterId);
   $char = sf_admin_fetch_one('SELECT id FROM storyboard_characters WHERE id = ? AND storyboard_id = ? LIMIT 1', [$characterId, $storyboardId]); if (!$char) return ['ok'=>false,'error'=>'character_not_found'];
   $ok = sf_admin_execute('INSERT IGNORE INTO storyboard_scene_characters (storyboard_id, scene_id, character_id, presence_label) VALUES (?, ?, ?, ?)', [$storyboardId, $sceneId, $characterId, 'in_scene']);
-  if ($ok) sf_admin_audit('assign_scene_character', 'storyboard_scene', $sceneId, null, ['character_id'=>$characterId]);
-  return ['ok'=>$ok,'scene_id'=>$sceneId,'character_id'=>$characterId];
+  if ($ok) sf_admin_audit('assign_scene_character', 'storyboard_scene', $sceneId, null, ['character_id'=>$characterId,'story_character_id'=>$storyCharacterId]);
+  return ['ok'=>$ok,'scene_id'=>$sceneId,'character_id'=>$characterId,'story_character_id'=>$storyCharacterId];
 }
-function sf_sbc_remove_scene_character(int $sceneId, int $characterId): array {
+function sf_sbc_remove_scene_character(int $sceneId, int $characterId, int $storyCharacterId = 0): array {
   if (!sf_sbc_ready()) return ['ok'=>false,'error'=>'character_actions_not_ready'];
   $scene = sf_sba_scene($sceneId); if (!$scene) return ['ok'=>false,'error'=>'scene_not_found'];
+  if ($characterId <= 0 && $storyCharacterId > 0) $characterId = sf_sbc_local_character_id_from_catalog((int)$scene['storyboard_id'], $storyCharacterId);
+  if ($characterId <= 0) return ['ok'=>false,'error'=>'character_not_found'];
   $ok = sf_admin_execute('DELETE FROM storyboard_scene_characters WHERE scene_id = ? AND character_id = ?', [$sceneId, $characterId]);
-  if ($ok) sf_admin_audit('remove_scene_character', 'storyboard_scene', $sceneId, null, ['character_id'=>$characterId]);
-  return ['ok'=>$ok,'scene_id'=>$sceneId,'character_id'=>$characterId];
+  if ($ok) sf_admin_audit('remove_scene_character', 'storyboard_scene', $sceneId, null, ['character_id'=>$characterId,'story_character_id'=>$storyCharacterId]);
+  return ['ok'=>$ok,'scene_id'=>$sceneId,'character_id'=>$characterId,'story_character_id'=>$storyCharacterId];
 }
 function sf_sbc_bulk_regenerate_images(int $storyboardId): array {
   if (!sf_sbc_ready()) return ['ok'=>false,'error'=>'character_actions_not_ready'];
