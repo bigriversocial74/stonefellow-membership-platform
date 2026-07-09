@@ -70,6 +70,7 @@ function sf_admin_nav_groups(): array {
     'content' => ['label'=>'Content / Storyboarding / Characters','short'=>'Content + Story','items'=>[
       'storyboards' => ['Storyboards', 'admin/storyboards.php'],
       'ai-script-assistant' => ['AI Script Producer', 'admin/ai-script-assistant.php'],
+      'ai-script-batch-scenes' => ['AI Batch Scenes', 'admin/ai-script-batch-scenes.php'],
       'characters' => ['Characters', 'admin/characters.php'],
       'series-assets' => ['Series Assets', 'admin/series-assets.php'],
       'scene-backgrounds' => ['Scene Backgrounds', 'admin/scene-backgrounds.php'],
