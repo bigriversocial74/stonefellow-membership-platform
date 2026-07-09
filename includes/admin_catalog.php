@@ -69,6 +69,7 @@ function sf_admin_nav_groups(): array {
     ]],
     'content' => ['label'=>'Content / Storyboarding / Characters','short'=>'Content + Story','items'=>[
       'storyboards' => ['Storyboards', 'admin/storyboards.php'],
+      'ai-script-assistant' => ['AI Script Producer', 'admin/ai-script-assistant.php'],
       'characters' => ['Characters', 'admin/characters.php'],
       'series-assets' => ['Series Assets', 'admin/series-assets.php'],
       'scene-backgrounds' => ['Scene Backgrounds', 'admin/scene-backgrounds.php'],
