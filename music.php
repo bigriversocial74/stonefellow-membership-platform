@@ -3,11 +3,13 @@ $pageTitle = 'Music';
 $pageDescription = 'Public Stonefellow soundtrack page powered by the database-backed song catalog.';
 $pageClass = 'music-template';
 require __DIR__ . '/includes/music_catalog.php';
-require __DIR__ . '/includes/header.php';
+require __DIR__ . '/includes/theme_public.php';
 
 $catalogSongs = sf_music_public_catalog_songs();
 $featuredSong = $catalogSongs[0] ?? null;
 $episodeSongs = array_slice($catalogSongs, 0, 5);
+$themeMusicHero = sf_theme_public_image_src('music_hero', 'images/music/music-hero-guitar.png');
+$themeAlbumCover = sf_theme_public_image_src('album_cover', 'images/music/soundtrack-cover.png');
 $liveSessions = [
   ['img'=>'music-live-01.png','title'=>'Riptide (Live)','slug'=>'riptide'],
   ['img'=>'music-live-02.png','title'=>'Long Road Home (Live)','slug'=>'long-road-home'],
@@ -15,7 +17,9 @@ $liveSessions = [
   ['img'=>'music-live-04.png','title'=>'Burn It Down (Live)','slug'=>'burn-it-down'],
   ['img'=>'music-live-05.png','title'=>'Nothing Left (Live)','slug'=>'nothing-left'],
 ];
+require __DIR__ . '/includes/header.php';
 ?>
+<?= sf_theme_css_variables_tag(null, '.music-template') ?>
 <section class="music-page streaming-page" data-music-app>
   <audio data-main-audio preload="metadata"></audio>
 
@@ -31,14 +35,14 @@ $liveSessions = [
       </div>
     </div>
     <div class="music-hero-art">
-      <img src="<?= sf_asset('images/music/music-hero-guitar.png') ?>" alt="Stonefellow guitarist under dramatic stage lights">
+      <img src="<?= htmlspecialchars($themeMusicHero) ?>" alt="Stonefellow guitarist under dramatic stage lights">
     </div>
   </section>
 
   <?php if ($featuredSong): ?>
   <section id="album" class="music-album-panel streaming-album-panel">
     <div class="music-album-cover">
-      <img data-player-cover src="<?= sf_asset($featuredSong['cover']) ?>" alt="Stonefellow soundtrack cover">
+      <img data-player-cover src="<?= sf_asset($featuredSong['cover'] ?: $themeAlbumCover) ?>" alt="Stonefellow soundtrack cover">
     </div>
     <div class="music-album-info">
       <div class="music-eyebrow">Public · Database Catalog</div>
@@ -55,7 +59,7 @@ $liveSessions = [
           data-title="<?= htmlspecialchars($featuredSong['title']) ?>"
           data-artist="<?= htmlspecialchars($featuredSong['artist']) ?>"
           data-src="<?= sf_asset($featuredSong['full_src'] ?: $featuredSong['preview_src']) ?>"
-          data-cover="<?= sf_asset($featuredSong['cover']) ?>"
+          data-cover="<?= sf_asset($featuredSong['cover'] ?: $themeAlbumCover) ?>"
           data-duration-seconds="<?= (int)$featuredSong['duration_seconds'] ?>"
           data-preview-seconds="<?= (int)$featuredSong['duration_seconds'] ?>"
           data-source-mode="full">▶</button>
@@ -87,7 +91,7 @@ $liveSessions = [
               data-title="<?= htmlspecialchars($track['title']) ?>"
               data-artist="<?= htmlspecialchars($track['artist']) ?>"
               data-src="<?= sf_asset($track['full_src'] ?: $track['preview_src']) ?>"
-              data-cover="<?= sf_asset($track['cover']) ?>"
+              data-cover="<?= sf_asset($track['cover'] ?: $themeAlbumCover) ?>"
               data-duration-seconds="<?= (int)$track['duration_seconds'] ?>"
               data-preview-seconds="<?= (int)$track['duration_seconds'] ?>"
               data-source-mode="full">▶</button>
@@ -123,12 +127,12 @@ $liveSessions = [
       <div class="episode-song-list">
         <?php foreach ($episodeSongs as $song): ?>
           <div class="episode-song-row catalog-episode-row">
-            <img src="<?= sf_asset($song['cover']) ?>" alt="<?= htmlspecialchars($song['title']) ?> episode still">
+            <img src="<?= sf_asset($song['cover'] ?: $themeAlbumCover) ?>" alt="<?= htmlspecialchars($song['title']) ?> episode still">
             <button type="button" class="mini-play" data-play-song
               data-title="<?= htmlspecialchars($song['title']) ?>"
               data-artist="<?= htmlspecialchars($song['artist']) ?>"
               data-src="<?= sf_asset($song['full_src'] ?: $song['preview_src']) ?>"
-              data-cover="<?= sf_asset($song['cover']) ?>"
+              data-cover="<?= sf_asset($song['cover'] ?: $themeAlbumCover) ?>"
               data-duration-seconds="<?= (int)$song['duration_seconds'] ?>"
               data-preview-seconds="<?= (int)$song['duration_seconds'] ?>"
               data-source-mode="full">▶</button>
