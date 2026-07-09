@@ -3,13 +3,16 @@ $pageTitle = 'Series Characters';
 $pageDescription = 'Meet the outlaws, dreamers, drifters, and voices behind the Stonefellow story.';
 $pageClass = 'series-characters-page stonefellow-character-public-page';
 require __DIR__ . '/includes/public_characters.php';
+require __DIR__ . '/includes/theme_public.php';
 $characters = sf_public_character_rows('active');
 $featuredCharacters = array_slice($characters, 0, 3);
+$seriesCharactersHero = sf_theme_public_image_src('series_characters_hero', 'images/cast/cast-template-hero.png');
 require __DIR__ . '/includes/header.php';
 ?>
 <link rel="stylesheet" href="<?= sf_asset('css/public-characters.css') ?>">
+<?= sf_theme_css_variables_tag(null, '.series-characters-page') ?>
 <section class="sf-character-directory">
-  <section class="sf-character-hero sf-character-directory-hero">
+  <section class="sf-character-hero sf-character-directory-hero" style="background:linear-gradient(90deg,rgba(4,3,2,.96),rgba(4,3,2,.68) 48%,rgba(4,3,2,.18)),url('<?= htmlspecialchars($seriesCharactersHero) ?>') center right/cover no-repeat;">
     <div class="sf-character-hero-copy">
       <div class="sf-character-eyebrow">The Story. The Soul.</div>
       <h1>Series Characters</h1>
