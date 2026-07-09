@@ -72,6 +72,7 @@ function sf_admin_nav_groups(): array {
       'ai-script-assistant' => ['AI Script Producer', 'admin/ai-script-assistant.php'],
       'ai-script-batch-scenes' => ['AI Batch Scenes', 'admin/ai-script-batch-scenes.php'],
       'ai-script-review-queue' => ['AI Review Queue', 'admin/ai-script-review-queue.php'],
+      'ai-script-production-pack' => ['AI Production Pack', 'admin/ai-script-production-pack.php'],
       'characters' => ['Characters', 'admin/characters.php'],
       'series-assets' => ['Series Assets', 'admin/series-assets.php'],
       'scene-backgrounds' => ['Scene Backgrounds', 'admin/scene-backgrounds.php'],
