@@ -3,6 +3,17 @@
   const nav = document.querySelector('[data-site-nav]');
   if (toggle && nav) toggle.addEventListener('click', () => nav.classList.toggle('is-open'));
 
+  const adminTabs = document.querySelectorAll('[data-admin-nav-tab]');
+  if (adminTabs.length) {
+    adminTabs.forEach((button) => {
+      button.addEventListener('click', () => {
+        const target = button.getAttribute('data-admin-nav-tab');
+        document.querySelectorAll('[data-admin-nav-tab]').forEach(tab => tab.classList.toggle('is-active', tab === button));
+        document.querySelectorAll('[data-admin-nav-panel]').forEach(panel => panel.classList.toggle('is-active', panel.getAttribute('data-admin-nav-panel') === target));
+      });
+    });
+  }
+
   document.querySelectorAll('[data-plan-toggle]').forEach((button) => {
     button.addEventListener('click', () => {
       document.querySelectorAll('[data-plan-toggle]').forEach(b => b.classList.remove('is-active'));
