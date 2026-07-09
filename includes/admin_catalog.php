@@ -59,6 +59,7 @@ function sf_admin_nav_groups(): array {
       'ai-autonomy-policies' => ['AI Autonomy Policies', 'admin/ai-autonomy-policies.php'],
       'ai-operations-watchtower' => ['AI Operations Watchtower', 'admin/ai-operations-watchtower.php'],
       'ai-operations-missions' => ['AI Operations Missions', 'admin/ai-operations-missions.php'],
+      'ai-mission-execution' => ['AI Mission Execution', 'admin/ai-mission-execution.php'],
       'members' => ['Members', 'admin/members.php'],
       'member-lifecycle' => ['Member Lifecycle', 'admin/member-lifecycle.php'],
       'support' => ['Support', 'admin/support.php'],
