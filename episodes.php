@@ -5,9 +5,10 @@ $pageClass = 'episodes-template';
 require __DIR__ . '/includes/data.php';
 require __DIR__ . '/includes/theme_public.php';
 
-$themeEpisodePoster = sf_theme_public_image_src('episode_poster', 'images/episodes/template-card-01.png');
+$themeEpisodePosterPath = sf_theme_public_image('episode_poster', 'images/episodes/template-card-01.png');
+$themeEpisodePoster = sf_asset($themeEpisodePosterPath);
 $episodeCards = [
-  ['num'=>'1','title'=>'First to Fall','time'=>'48 min','image'=>$themeEpisodePoster,'slug'=>'first-to-fall','video_slug'=>'first-to-fall-full-episode'],
+  ['num'=>'1','title'=>'First to Fall','time'=>'48 min','image'=>$themeEpisodePosterPath,'slug'=>'first-to-fall','video_slug'=>'first-to-fall-full-episode'],
   ['num'=>'2','title'=>'Riptide Hearts','time'=>'44 min','image'=>'images/episodes/template-card-02.png','slug'=>'riptide-hearts','video_slug'=>'riptide-hearts-full-episode'],
   ['num'=>'3','title'=>'The Long Road Home','time'=>'46 min','image'=>'images/episodes/template-card-03.png','slug'=>'the-long-road-home','video_slug'=>'the-long-road-home-full-episode'],
   ['num'=>'4','title'=>'Burn It Down','time'=>'47 min','image'=>'images/episodes/template-card-04.png','slug'=>'first-to-fall','video_slug'=>'first-to-fall-trailer'],
@@ -54,7 +55,7 @@ require __DIR__ . '/includes/header.php';
       <?php foreach ($episodeCards as $ep): ?>
         <a class="episode-tile" href="<?= sf_url('episode.php?slug=' . urlencode($ep['slug'])) ?>">
           <div class="episode-thumb">
-            <img src="<?= htmlspecialchars(str_starts_with((string)$ep['image'], 'http') ? (string)$ep['image'] : sf_asset((string)$ep['image'])) ?>" alt="<?= htmlspecialchars($ep['title']) ?> episode thumbnail">
+            <img src="<?= sf_asset($ep['image']) ?>" alt="<?= htmlspecialchars($ep['title']) ?> episode thumbnail">
             <span class="tile-play">▶</span>
           </div>
           <div class="episode-tile-body">
