@@ -1,5 +1,6 @@
 <?php
 require __DIR__ . '/includes/public_characters.php';
+require __DIR__ . '/includes/theme_public.php';
 $slug = trim((string)($_GET['slug'] ?? 'jax-mercer'));
 $character = sf_public_character_by_slug($slug) ?: (sf_public_character_rows('active')[0] ?? null);
 if (!$character) { http_response_code(404); echo 'Character not found.'; exit; }
@@ -7,6 +8,7 @@ $slug = trim((string)($character['slug'] ?? '')) ?: sf_public_character_slug((st
 $name = (string)($character['character_name'] ?? 'Character');
 $tagline = sf_public_character_tagline($character);
 $image = sf_public_character_image($character);
+$themeCharacterPortrait = sf_theme_public_image_src('character_portrait_main', $image);
 $traits = sf_public_character_traits($character);
 $episodes = sf_public_character_episodes($character);
 $related = sf_public_related_characters($character, 4);
@@ -17,6 +19,7 @@ $pageClass = 'character-profile-page stonefellow-character-public-page';
 require __DIR__ . '/includes/header.php';
 ?>
 <link rel="stylesheet" href="<?= sf_asset('css/public-characters.css') ?>">
+<?= sf_theme_css_variables_tag(null, '.character-profile-page') ?>
 <section class="sf-character-profile">
   <nav class="sf-character-breadcrumb"><a href="<?= sf_url('index.php') ?>">Home</a><span>/</span><a href="<?= sf_url('cast.php') ?>">Cast</a><span>/</span><a href="<?= sf_url('series-characters.php') ?>">Series Characters</a><span>/</span><strong><?= htmlspecialchars($name) ?></strong></nav>
 
@@ -33,7 +36,7 @@ require __DIR__ . '/includes/header.php';
         <span><b>Status</b><?= htmlspecialchars(ucfirst((string)($character['status'] ?? 'active'))) ?></span>
       </div>
     </div>
-    <div class="sf-profile-portrait" style="background-image:url('<?= htmlspecialchars(sf_asset($image)) ?>')"></div>
+    <div class="sf-profile-portrait" style="background-image:url('<?= htmlspecialchars($themeCharacterPortrait) ?>')"></div>
   </section>
 
   <section class="sf-profile-top-grid">
@@ -88,7 +91,7 @@ require __DIR__ . '/includes/header.php';
     <article class="sf-profile-panel sf-gallery-panel">
       <div class="sf-character-section-label">Gallery / Visual Moments</div>
       <div class="sf-gallery-strip">
-        <img src="<?= sf_asset($image) ?>" alt="<?= htmlspecialchars($name) ?> portrait">
+        <img src="<?= htmlspecialchars($themeCharacterPortrait) ?>" alt="<?= htmlspecialchars($name) ?> portrait">
         <img src="<?= sf_asset('images/episodes/template-card-01.png') ?>" alt="Stonefellow scene moment">
         <img src="<?= sf_asset('images/episodes/template-card-03.png') ?>" alt="Stonefellow scene moment">
         <img src="<?= sf_asset('images/music/music-live-02.png') ?>" alt="Stonefellow live moment">
@@ -102,6 +105,6 @@ require __DIR__ . '/includes/header.php';
     </article>
   </section>
 
-  <section class="sf-profile-banner"><div><h2>The songs are all we leave behind.</h2><p>Every scar, every mile, every truth — it’s all in the songs.</p></div><img src="<?= sf_asset($image) ?>" alt="<?= htmlspecialchars($name) ?> performance moment"></section>
+  <section class="sf-profile-banner"><div><h2>The songs are all we leave behind.</h2><p>Every scar, every mile, every truth — it’s all in the songs.</p></div><img src="<?= htmlspecialchars($themeCharacterPortrait) ?>" alt="<?= htmlspecialchars($name) ?> performance moment"></section>
 </section>
 <?php require __DIR__ . '/includes/footer.php'; ?>
