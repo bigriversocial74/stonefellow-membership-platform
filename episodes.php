@@ -3,16 +3,20 @@ $pageTitle = 'Episodes';
 $pageDescription = 'Browse Stonefellow episodes, previews, watch progress, and behind-the-song content.';
 $pageClass = 'episodes-template';
 require __DIR__ . '/includes/data.php';
-require __DIR__ . '/includes/header.php';
+require __DIR__ . '/includes/theme_public.php';
 
+$themeEpisodePosterPath = sf_theme_public_image('episode_poster', 'images/episodes/template-card-01.png');
+$themeEpisodePoster = sf_asset($themeEpisodePosterPath);
 $episodeCards = [
-  ['num'=>'1','title'=>'First to Fall','time'=>'48 min','image'=>'images/episodes/template-card-01.png','slug'=>'first-to-fall','video_slug'=>'first-to-fall-full-episode'],
+  ['num'=>'1','title'=>'First to Fall','time'=>'48 min','image'=>$themeEpisodePosterPath,'slug'=>'first-to-fall','video_slug'=>'first-to-fall-full-episode'],
   ['num'=>'2','title'=>'Riptide Hearts','time'=>'44 min','image'=>'images/episodes/template-card-02.png','slug'=>'riptide-hearts','video_slug'=>'riptide-hearts-full-episode'],
   ['num'=>'3','title'=>'The Long Road Home','time'=>'46 min','image'=>'images/episodes/template-card-03.png','slug'=>'the-long-road-home','video_slug'=>'the-long-road-home-full-episode'],
   ['num'=>'4','title'=>'Burn It Down','time'=>'47 min','image'=>'images/episodes/template-card-04.png','slug'=>'first-to-fall','video_slug'=>'first-to-fall-trailer'],
   ['num'=>'5','title'=>'Nothing Left','time'=>'43 min','image'=>'images/episodes/template-card-05.png','slug'=>'first-to-fall','video_slug'=>'first-to-fall-trailer'],
 ];
+require __DIR__ . '/includes/header.php';
 ?>
+<?= sf_theme_css_variables_tag(null, '.episodes-template') ?>
 <section class="episodes-page">
   <section class="episodes-hero">
     <div class="episodes-hero-copy">
@@ -24,13 +28,13 @@ $episodeCards = [
       </div>
     </div>
     <div class="episodes-hero-art">
-      <img src="<?= sf_asset('images/episodes/template-hero-band.png') ?>" alt="Stonefellow band episode hero">
+      <img src="<?= htmlspecialchars($themeEpisodePoster) ?>" alt="Stonefellow band episode hero">
     </div>
   </section>
 
   <section id="pilot" class="pilot-feature-panel">
     <div class="pilot-image-wrap">
-      <img src="<?= sf_asset('images/episodes/template-pilot-feature.png') ?>" alt="Pilot episode preview">
+      <img src="<?= htmlspecialchars($themeEpisodePoster) ?>" alt="Pilot episode preview">
       <span class="large-play">▶</span>
     </div>
     <div class="pilot-copy">

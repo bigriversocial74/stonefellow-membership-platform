@@ -3,8 +3,12 @@ $pageTitle = 'Home';
 $pageDescription = 'Watch the Stonefellow series, stream the soundtrack, and subscribe for access.';
 $pageClass = 'home-template';
 require __DIR__ . '/includes/data.php';
-require __DIR__ . '/includes/header.php';
+require __DIR__ . '/includes/theme_public.php';
 
+$homeHero = sf_theme_public_image_src('home_hero', 'images/home/hero-reference-crop.png');
+$homeEpisodePoster = sf_theme_public_image_src('episode_poster', 'images/home/pilot-reference-card.png');
+$homeMusicHero = sf_theme_public_image_src('music_hero', 'images/home/live-reference-card.png');
+$homeAlbumCover = sf_theme_public_image_src('album_cover', 'images/music/soundtrack-cover.png');
 $homeTracks = [
   ['n' => '1', 'title' => 'Born to Burn', 'time' => '3:48'],
   ['n' => '2', 'title' => 'Blackout in the Rearview', 'time' => '3:35'],
@@ -12,7 +16,9 @@ $homeTracks = [
   ['n' => '4', 'title' => 'Heart of a Loaded Gun', 'time' => '3:57'],
   ['n' => '5', 'title' => 'Saint or Sinner', 'time' => '3:41'],
 ];
+require __DIR__ . '/includes/header.php';
 ?>
+<?= sf_theme_css_variables_tag(null, '.home-template') ?>
 <section class="home-full home-hero-full">
   <div class="home-shell">
     <section class="home-hero-grid">
@@ -25,7 +31,7 @@ $homeTracks = [
       </div>
     </div>
     <div class="home-hero-image">
-      <img src="<?= sf_asset('images/home/hero-reference-crop.png') ?>" alt="Stonefellow performing live on stage">
+      <img src="<?= htmlspecialchars($homeHero) ?>" alt="Stonefellow performing live on stage">
       <button
         class="home-video-trigger"
         type="button"
@@ -47,21 +53,21 @@ $homeTracks = [
     <div class="home-section-title"><span>Featured</span></div>
     <div class="home-feature-grid">
       <a class="feature-card" href="episodes.php">
-        <div class="feature-image"><img src="<?= sf_asset('images/home/pilot-reference-card.png') ?>" alt="Pilot episode still"></div>
+        <div class="feature-image"><img src="<?= htmlspecialchars($homeEpisodePoster) ?>" alt="Pilot episode still"></div>
         <div class="feature-info">
           <h3>Pilot Episode</h3>
           <p>Watch the beginning.</p>
         </div>
       </a>
       <a class="feature-card feature-card-soundtrack" href="music.php">
-        <div class="feature-image soundtrack-art"><img src="<?= sf_asset('images/home/soundtrack-reference-card.png') ?>" alt="Official soundtrack cover"></div>
+        <div class="feature-image soundtrack-art"><img src="<?= htmlspecialchars($homeAlbumCover) ?>" alt="Official soundtrack cover"></div>
         <div class="feature-info">
           <h3>Official Soundtrack</h3>
           <p>Listen to every song.</p>
         </div>
       </a>
       <a class="feature-card" href="music.php">
-        <div class="feature-image"><img src="<?= sf_asset('images/home/live-reference-card.png') ?>" alt="Stonefellow live sessions"></div>
+        <div class="feature-image"><img src="<?= htmlspecialchars($homeMusicHero) ?>" alt="Stonefellow live sessions"></div>
         <div class="feature-info">
           <h3>Live Sessions</h3>
           <p>Acoustic &amp; live performances.</p>
@@ -73,7 +79,7 @@ $homeTracks = [
   <section class="home-player-panel">
     <div class="album-column">
       <div class="album-art-wrap">
-        <img src="<?= sf_asset('images/music/soundtrack-cover.png') ?>" alt="Born to Burn artwork">
+        <img src="<?= htmlspecialchars($homeAlbumCover) ?>" alt="Born to Burn artwork">
       </div>
     </div>
     <div class="player-column">

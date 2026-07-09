@@ -3,14 +3,17 @@ $pageTitle = 'Merch';
 $pageDescription = 'Shop official Stonefellow merch, limited drops, vinyl, posters, and launch bundles.';
 $pageClass = 'shop-page merch-page';
 require __DIR__ . '/includes/store.php';
+require __DIR__ . '/includes/theme_public.php';
 
 $categorySlug = trim((string)($_GET['category'] ?? ''));
 $products = sf_store_products($categorySlug !== '' ? ['category' => $categorySlug] : []);
 $featuredProduct = sf_store_featured_product() ?: ($products[0] ?? null);
 $categories = sf_store_categories();
 $cartCount = sf_store_cart_totals()['item_count'];
+$themeMerchHero = sf_theme_public_image_src('merch_hero', $featuredProduct['image_path'] ?? 'images/merch/merch-hero.png');
 require __DIR__ . '/includes/header.php';
 ?>
+<?= sf_theme_css_variables_tag(null, '.merch-page') ?>
 <section class="shop-hero shop-full-section">
   <div class="shop-hero-copy">
     <span class="shop-kicker">Official Store</span>
@@ -22,7 +25,7 @@ require __DIR__ . '/includes/header.php';
     </div>
   </div>
   <div class="shop-hero-art">
-    <img src="<?= sf_store_h(sf_store_image_url($featuredProduct['image_path'] ?? 'images/merch/merch-hero.png')) ?>" alt="Stonefellow official merch collection">
+    <img src="<?= sf_store_h($themeMerchHero) ?>" alt="Stonefellow official merch collection">
     <?php if ($featuredProduct): ?>
       <div class="shop-drop-card">
         <span><?= sf_store_h($featuredProduct['badge_label'] ?? 'Featured Drop') ?></span>
