@@ -50,6 +50,15 @@ if (!function_exists('sf_theme_image_path')) {
   function sf_theme_image_path(array $image, string $field): string { return trim((string)($image[$field] ?? '')); }
 }
 
+function sf_theme_public_local_image_exists(string $path): bool {
+  $path = trim($path);
+  if ($path === '') return false;
+  if (preg_match('~^(https?:)?//|^data:~i', $path)) return true;
+  $relative = ltrim($path, '/');
+  if (strpos($relative, 'assets/') === 0) $relative = substr($relative, 7);
+  return is_file(dirname(__DIR__) . '/assets/' . $relative);
+}
+
 function sf_theme_published(): ?array { return sf_theme_active(); }
 
 function sf_theme_admin_preview_allowed(): bool {
@@ -104,10 +113,13 @@ function sf_theme_public_image(string $imageKey, string $fallback = '', ?array $
   $image = sf_theme_image_by_key((int)$theme['id'], $imageKey);
   if (!$image) return $fallback;
   $isPreview = sf_theme_admin_preview_allowed() && (sf_theme_preview_from_request() !== null);
-  $path = $isPreview
-    ? (sf_theme_image_path($image, 'approved_path') ?: sf_theme_image_path($image, 'generated_path') ?: sf_theme_image_path($image, 'current_path'))
-    : (sf_theme_image_path($image, 'current_path') ?: sf_theme_image_path($image, 'approved_path'));
-  return $path !== '' ? $path : $fallback;
+  $paths = $isPreview
+    ? [sf_theme_image_path($image, 'approved_path'), sf_theme_image_path($image, 'generated_path'), sf_theme_image_path($image, 'current_path')]
+    : [sf_theme_image_path($image, 'current_path'), sf_theme_image_path($image, 'approved_path')];
+  foreach ($paths as $path) {
+    if ($path !== '' && sf_theme_public_local_image_exists($path)) return $path;
+  }
+  return $fallback;
 }
 
 function sf_theme_public_image_src(string $imageKey, string $fallback = '', ?array $theme = null): string {
