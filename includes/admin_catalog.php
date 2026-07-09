@@ -55,6 +55,7 @@ function sf_admin_nav_groups(): array {
       'index' => ['Admin Home', 'admin/index.php'],
       'ai-platform-control' => ['AI Control Center', 'admin/ai-platform-control.php'],
       'ai-execution-router' => ['AI Execution Router', 'admin/ai-execution-router.php'],
+      'ai-publishing-readiness' => ['AI Publishing Readiness', 'admin/ai-publishing-readiness.php'],
       'members' => ['Members', 'admin/members.php'],
       'member-lifecycle' => ['Member Lifecycle', 'admin/member-lifecycle.php'],
       'support' => ['Support', 'admin/support.php'],
