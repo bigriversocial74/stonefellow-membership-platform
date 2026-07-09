@@ -4,6 +4,7 @@ require_once __DIR__ . '/storyboarding_system.php';
 require_once __DIR__ . '/storyboard_character_actions.php';
 require_once __DIR__ . '/story_scene_backgrounds.php';
 require_once __DIR__ . '/ops_scheduler_messaging.php';
+require_once __DIR__ . '/ai_autonomy_policies.php';
 
 function sf_ai_exec_registry_ready(): bool { return sf_admin_table_exists('ai_platform_actions'); }
 function sf_ai_exec_log_ready(): bool { return sf_admin_table_exists('ai_platform_action_executions'); }
@@ -150,6 +151,10 @@ function sf_ai_exec_route_action(int $actionId): array {
   $routes = sf_ai_exec_routes();
   if (!isset($routes[$route])) return sf_ai_exec_fail($actionId, $route, 'blocked', 'Route is not allowlisted.');
   if (($action['risk_level'] ?? 'low') === 'critical' && $route !== 'review') return sf_ai_exec_fail($actionId, $route, 'blocked', 'Critical-risk actions require a future dedicated executor.');
+  if (function_exists('sf_ai_policy_can_execute')) {
+    $policy = sf_ai_policy_can_execute($route, $routes[$route], (string)($action['risk_level'] ?? 'medium'));
+    if (empty($policy['ok'])) return sf_ai_exec_fail($actionId, $route, 'blocked', (string)($policy['message'] ?? 'Autonomy policy blocks this route.'));
+  }
   $payload = sf_ai_exec_payload($action);
   sf_ai_exec_log($actionId, $route, 'started', 'Execution route started.', ['payload'=>$payload]);
   if ($route === 'review') return sf_ai_exec_complete($actionId, $route, 'Approved review action completed. No target platform records were changed.');
