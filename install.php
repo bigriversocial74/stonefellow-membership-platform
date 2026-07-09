@@ -1,8 +1,12 @@
 <?php
 require __DIR__ . '/includes/installer.php';
 sf_install_handle_post();
+
 $step = (string)($_GET['step'] ?? 'server');
-if (!in_array($step, ['server','db','sql','admin','done'], true)) { $step = 'server'; }
+if (!in_array($step, ['server', 'db', 'sql', 'admin', 'done'], true)) {
+    $step = 'server';
+}
+
 $checks = sf_install_checks();
 $score = sf_install_check_score($checks);
 $db = sf_install_saved_db();
@@ -11,95 +15,246 @@ $baseUrl = sf_install_current_url();
 $locked = sf_install_is_locked();
 $installerImageBase = '/assets/images/installer/';
 $installerImages = [
-  'dashboard' => $installerImageBase . 'vp3-dashboard.png',
-  'devices' => $installerImageBase . 'vp3-devices.png',
-  'readiness' => $installerImageBase . 'vp3-readiness.png',
-  'music' => $installerImageBase . 'vp3-music-player.png',
-  'memberships' => $installerImageBase . 'vp3-memberships.png',
-  'merch' => $installerImageBase . 'vp3-merch.png',
+    'dashboard' => $installerImageBase . 'vp3-dashboard.png',
+    'devices' => $installerImageBase . 'vp3-devices.png',
+    'readiness' => $installerImageBase . 'vp3-readiness.png',
+    'music' => $installerImageBase . 'vp3-music-player.png',
+    'memberships' => $installerImageBase . 'vp3-memberships.png',
+    'merch' => $installerImageBase . 'vp3-merch.png',
 ];
+
 $steps = [
-  'server' => ['label' => 'Check Server', 'eyebrow' => 'Step 01', 'icon' => '▦'],
-  'db' => ['label' => 'Connect Database', 'eyebrow' => 'Step 02', 'icon' => '◉'],
-  'sql' => ['label' => 'Build Platform', 'eyebrow' => 'Step 03', 'icon' => '◆'],
-  'admin' => ['label' => 'Create Owner Account', 'eyebrow' => 'Step 04', 'icon' => '●'],
-  'done' => ['label' => 'Launch', 'eyebrow' => 'Step 05', 'icon' => '⚑'],
+    'server' => ['label' => 'Check Server', 'eyebrow' => 'Step 01', 'icon' => '▦'],
+    'db' => ['label' => 'Connect Database', 'eyebrow' => 'Step 02', 'icon' => '◉'],
+    'sql' => ['label' => 'Build Platform', 'eyebrow' => 'Step 03', 'icon' => '◆'],
+    'admin' => ['label' => 'Create Owner Account', 'eyebrow' => 'Step 04', 'icon' => '●'],
+    'done' => ['label' => 'Launch', 'eyebrow' => 'Step 05', 'icon' => '⚑'],
 ];
+
 $features = [
-  ['icon' => '▶', 'title' => 'Streaming', 'text' => 'Upload, organize, and stream unlimited videos with adaptive delivery and monetization.'],
-  ['icon' => '♪', 'title' => 'Music', 'text' => 'Full music management, player, playlists, and audio streaming built for artists.'],
-  ['icon' => '👥', 'title' => 'Memberships', 'text' => 'Tiered memberships, subscriptions, gated content, and member management.'],
-  ['icon' => '▣', 'title' => 'Merch', 'text' => 'Built-in store, products, orders, taxes, and integrations to sell your merch.'],
-  ['icon' => '▥', 'title' => 'Admin Dashboard', 'text' => 'Powerful analytics, user management, reports, and system control in real time.'],
-  ['icon' => '✦', 'title' => 'Themes & Branding', 'text' => 'Beautiful themes, custom branding, and full control over your platform look.'],
+    ['icon' => '▶', 'title' => 'Streaming', 'text' => 'Upload, organize, and stream unlimited videos with adaptive delivery and monetization.'],
+    ['icon' => '♪', 'title' => 'Music', 'text' => 'Full music management, player, playlists, and audio streaming built for artists.'],
+    ['icon' => '👥', 'title' => 'Memberships', 'text' => 'Tiered memberships, subscriptions, gated content, and member management.'],
+    ['icon' => '▣', 'title' => 'Merch', 'text' => 'Built-in store, products, orders, taxes, and integrations to sell your merch.'],
+    ['icon' => '▥', 'title' => 'Admin Dashboard', 'text' => 'Powerful analytics, user management, reports, and system control in real time.'],
+    ['icon' => '✦', 'title' => 'Themes & Branding', 'text' => 'Beautiful themes, custom branding, and full control over your platform look.'],
 ];
+
 $passedChecks = count(array_filter($checks, static fn($check) => !empty($check['ok'])));
 $totalChecks = max(count($checks), 1);
 $sqlApplied = count(array_filter($sqlResults, static fn($row) => ($row['status'] ?? '') === 'applied'));
 $sqlSkipped = count(array_filter($sqlResults, static fn($row) => ($row['status'] ?? '') === 'skipped'));
-$sqlFailed = count(array_filter($sqlResults, static fn($row) => in_array(($row['status'] ?? ''), ['failed','missing'], true)));
-?><!doctype html>
+$sqlFailed = count(array_filter($sqlResults, static fn($row) => in_array(($row['status'] ?? ''), ['failed', 'missing'], true)));
+?>
+<!doctype html>
 <html lang="en">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>VP3 Media Group Platform Installer</title>
-  <link rel="stylesheet" href="assets/css/stonefellow.css">
-  <style>
-    :root{--vp3-bg:#030712;--vp3-ink:#fff;--vp3-muted:#b8c2d8;--vp3-text:#0f172a;--vp3-sub:#667085;--vp3-blue:#315dff;--vp3-violet:#8b3dff;--vp3-green:#28d889;--vp3-line:#e7eaf1;--vp3-shadow:0 22px 55px rgba(15,23,42,.12)}
-    *{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;background:#f8fafc;color:var(--vp3-text);font-family:Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;line-height:1.45}.vp3-page{overflow:hidden;background:#f8fafc}.vp3-shell{max-width:1780px;margin:0 auto;padding:0 64px}.vp3-top{background:radial-gradient(circle at 78% 25%,rgba(49,93,255,.24),transparent 34%),radial-gradient(circle at 27% 65%,rgba(139,61,255,.16),transparent 30%),linear-gradient(135deg,#030712 0%,#071123 58%,#0a1531 100%);color:#fff}.vp3-nav{height:94px;display:flex;align-items:center;gap:34px}.vp3-brand{display:flex;align-items:center;gap:14px;color:#fff!important;text-decoration:none!important;font-weight:800}.vp3-brand-mark{font-size:1.15rem;font-weight:900;letter-spacing:-.05em;color:#fff}.vp3-brand-name{font-size:.95rem;color:#fff;border-left:1px solid rgba(255,255,255,.42);padding-left:14px;white-space:nowrap}.vp3-links{display:flex;align-items:center;gap:42px;margin-left:auto;margin-right:auto}.vp3-links a{color:#f2f6ff!important;text-decoration:none!important;font-size:.72rem;font-weight:750;letter-spacing:.01em}.vp3-cta,.vp3-btn{display:inline-flex;align-items:center;justify-content:center;gap:9px;border:0;border-radius:8px;background:linear-gradient(135deg,var(--vp3-blue),var(--vp3-violet));color:#fff!important;text-decoration:none!important;font-weight:850;font-size:.94rem;padding:15px 26px;box-shadow:0 18px 44px rgba(49,93,255,.32);cursor:pointer}.vp3-cta{font-size:.76rem;padding:13px 22px}.vp3-btn.secondary{background:rgba(2,6,18,.36);border:2px solid rgba(255,255,255,.82);box-shadow:none}.vp3-hero{padding:66px 0 92px}.vp3-hero-grid{display:grid;grid-template-columns:minmax(520px,.82fr) minmax(760px,1.18fr);gap:70px;align-items:center}.vp3-kicker{display:inline-flex;align-items:center;gap:9px;color:#fff;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.14);border-radius:999px;padding:9px 15px;font-size:.86rem;font-weight:800;margin-bottom:34px}.vp3-hero h1{font-family:Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif!important;color:#fff!important;font-size:clamp(3.55rem,5.05vw,6.15rem);line-height:1.04;letter-spacing:-.065em;font-weight:820;margin:0 0 28px;text-transform:none}.vp3-hero h1 span{color:#fff!important;background:none!important;-webkit-background-clip:initial!important;background-clip:initial!important}.vp3-hero p{max-width:650px;color:#f0f4ff;font-size:1.02rem;line-height:1.7;margin:0 0 36px}.vp3-actions{display:flex;gap:18px;flex-wrap:wrap;align-items:center}.vp3-proof{display:grid;grid-template-columns:repeat(3,1fr);gap:28px;margin-top:70px;max-width:700px}.vp3-proof-item{display:flex;gap:11px;align-items:flex-start}.vp3-proof-icon{color:#6e61ff;font-size:1.25rem}.vp3-proof strong{display:block;color:#fff;font-size:.82rem}.vp3-proof small{display:block;color:#c7d0e4;font-size:.73rem;margin-top:3px}.vp3-hero-art{position:relative;min-height:760px}.vp3-dashboard-frame{position:absolute;left:0;top:0;width:78%;border:1px solid rgba(255,255,255,.15);border-radius:18px;background:rgba(5,10,20,.86);box-shadow:0 34px 90px rgba(0,0,0,.46);overflow:hidden}.vp3-dashboard-frame img,.vp3-floating-card img,.vp3-devices{display:block;width:100%;height:auto}.vp3-floating-card{position:absolute;background:rgba(10,17,33,.88);border:1px solid rgba(255,255,255,.14);border-radius:14px;box-shadow:0 24px 72px rgba(0,0,0,.42);overflow:hidden}.vp3-floating-card.music{right:0;top:0;width:20.5%}.vp3-floating-card.memberships{right:0;top:378px;width:20.5%}.vp3-floating-card.merch{right:1%;top:560px;width:24%}.vp3-floating-card.ready{left:49%;top:646px;width:23%}.vp3-fallback{display:none;min-height:450px;padding:38px;background:#071021;color:#fff}.vp3-fallback h2{color:#fff!important;font-family:Inter,system-ui,sans-serif!important;font-size:2.8rem;line-height:1;margin:0 0 14px}.vp3-white,.vp3-steps-wrap,.vp3-check-section{background:#fbfcff}.vp3-white{padding:52px 0 44px}.vp3-section-head{text-align:center;max-width:820px;margin:0 auto 32px}.vp3-section-head h2,.vp3-why h2,.vp3-install-card h2{font-family:Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif!important;color:#0f172a!important;font-size:2.18rem;line-height:1.08;letter-spacing:-.045em;font-weight:820;margin:0 0 10px;text-transform:none}.vp3-section-head p{color:var(--vp3-sub);margin:0}.vp3-features{display:grid;grid-template-columns:repeat(6,1fr);gap:20px}.vp3-feature{background:#fff;border:1px solid var(--vp3-line);border-radius:15px;box-shadow:var(--vp3-shadow);padding:30px 22px;text-align:center;min-height:220px}.vp3-feature i{display:grid;place-items:center;width:56px;height:56px;border-radius:12px;margin:0 auto 18px;background:linear-gradient(135deg,#8d4cff,#ea4f82);color:#fff;font-style:normal;font-size:1.7rem;font-weight:900}.vp3-feature:nth-child(2) i{background:linear-gradient(135deg,#ff4a8a,#ff6b84)}.vp3-feature:nth-child(3) i{background:linear-gradient(135deg,#48c97c,#6ee7a3)}.vp3-feature:nth-child(4) i{background:linear-gradient(135deg,#ff8b1a,#ffb03a)}.vp3-feature:nth-child(5) i{background:linear-gradient(135deg,#3b82f6,#78a8ff)}.vp3-feature:nth-child(6) i{background:linear-gradient(135deg,#a855f7,#d8b4fe)}.vp3-feature h3{font-family:Inter,system-ui,sans-serif!important;color:#0f172a!important;font-size:1rem;margin:0 0 14px;font-weight:820}.vp3-feature p{color:#667085;line-height:1.5;margin:0;font-size:.86rem}.vp3-steps-wrap{padding:40px 0 54px;border-top:1px solid #eef2f7}.vp3-steps{position:relative;display:grid;grid-template-columns:repeat(5,1fr);gap:70px}.vp3-steps:before{content:"";position:absolute;left:9%;right:9%;top:62px;border-top:2px dashed #7c99c9;opacity:.72}.vp3-step{position:relative;background:#fff;border:1px solid #e6eaf2;border-radius:16px;box-shadow:var(--vp3-shadow);padding:28px 22px;text-align:center;text-decoration:none!important;color:#111827!important;min-height:214px}.vp3-step-number{position:absolute;left:28px;top:22px;width:34px;height:34px;border-radius:999px;background:linear-gradient(135deg,#345dff,#8c4cff);color:#fff;display:grid;place-items:center;font-weight:900}.vp3-step b{display:block;font-size:2rem;color:#475569;margin:22px 0 30px}.vp3-step h3{font-family:Inter,system-ui,sans-serif!important;color:#111827!important;font-size:1rem;margin:0 0 12px;font-weight:820}.vp3-step p{font-size:.84rem;line-height:1.45;color:#667085;margin:0}.vp3-check-section{padding:0 0 50px}.vp3-check-panel{display:grid;grid-template-columns:400px 1fr 310px;gap:30px;align-items:center;background:radial-gradient(circle at 12% 35%,rgba(124,64,255,.25),transparent 24%),linear-gradient(135deg,#061020,#0b1730);border-radius:15px;color:#fff;padding:48px 52px;box-shadow:0 24px 60px rgba(8,15,35,.22)}.vp3-score-card{text-align:center}.vp3-score-ring{width:260px;height:260px;margin:0 auto 20px;border-radius:50%;background:conic-gradient(#6ee7ff 0 34%,#9d4dff 34% calc(var(--score)*1%),rgba(255,255,255,.08) 0);display:grid;place-items:center;box-shadow:0 0 70px rgba(116,92,255,.34)}.vp3-score-ring span{display:grid;place-items:center;width:184px;height:184px;border-radius:50%;background:#0b1628;font-size:3.45rem;font-weight:900;color:#fff}.vp3-score-card small{display:inline-flex;background:rgba(42,192,122,.22);color:#b6ffd8;border-radius:999px;padding:7px 16px;font-weight:900;margin-top:8px}.vp3-check-content h2{font-family:Inter,system-ui,sans-serif!important;color:#fff!important;font-size:2.05rem;line-height:1.1;letter-spacing:-.035em;margin:0 0 8px}.vp3-check-content p,.vp3-security p{color:#c8d3ea}.vp3-check-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:22px}.vp3-checklist,.vp3-security{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.13);border-radius:12px;padding:20px}.vp3-checklist h3,.vp3-security h3{font-family:Inter,system-ui,sans-serif!important;color:#fff!important;margin:0 0 14px;font-size:1rem}.vp3-checkline{display:flex;justify-content:space-between;gap:14px;padding:8px 0;border-top:1px solid rgba(255,255,255,.08);font-size:.86rem;color:#e7edfb}.vp3-pass{color:#58dd94;font-weight:900}.vp3-security{padding:28px}.vp3-security i{font-style:normal;font-size:2rem;color:#4d86ff}.vp3-security h3{margin:18px 0 12px}.vp3-security ul{list-style:none;padding:0;margin:18px 0 0;display:grid;gap:12px;color:#e7edfb;font-size:.88rem}.vp3-why{background:#fff;padding:50px 0}.vp3-why-grid{display:grid;grid-template-columns:minmax(460px,.9fr) 1fr;gap:60px;align-items:center}.vp3-why p{max-width:650px;line-height:1.6;color:#667085}.vp3-why-points{display:grid;grid-template-columns:repeat(4,1fr);gap:28px;margin-top:40px}.vp3-why-point{text-align:center}.vp3-why-point i{display:block;color:#645cff;font-style:normal;font-size:2.1rem;margin-bottom:10px}.vp3-why-point h3{font-family:Inter,system-ui,sans-serif!important;color:#111827!important;font-size:.98rem;margin:0 0 8px;font-weight:820}.vp3-why-point p{font-size:.8rem;color:#667085;margin:0}.vp3-installer-form{background:#fff;border-top:1px solid #eef2f7;padding:38px 0 60px}.vp3-install-panel{background:linear-gradient(135deg,#061020,#0b1730);border-radius:18px;padding:28px;color:#fff}.vp3-install-tabs{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:18px}.vp3-install-tab{border-radius:12px;border:1px solid rgba(255,255,255,.14);background:rgba(255,255,255,.07);padding:13px;text-decoration:none!important;color:#fff!important}.vp3-install-tab.is-active{background:linear-gradient(135deg,#315dff,#9a3cff)}.vp3-install-card{background:#fff;color:#111827;border-radius:16px;padding:26px}.vp3-install-card.dark{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.13);color:#fff}.vp3-install-card.dark h2{color:#fff!important}.vp3-install-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:14px}.vp3-field{display:flex;flex-direction:column;gap:8px;font-weight:800;color:#0f172a}.vp3-field input{border:1px solid #d8dfeb;border-radius:12px;padding:13px 14px;font:inherit;background:#f8fafc}.vp3-table-wrap{overflow:auto;border:1px solid #e5e7ef;border-radius:14px;margin-top:18px}.vp3-table{width:100%;border-collapse:collapse;background:#fff;color:#0f172a}.vp3-table th,.vp3-table td{padding:13px 14px;border-bottom:1px solid #eef1f6;text-align:left;vertical-align:top}.vp3-table th{font-size:.78rem;text-transform:uppercase;letter-spacing:.08em;color:#667085;background:#f9fafb}.vp3-ok{color:#08945c;font-weight:900}.vp3-bad{color:#c52222;font-weight:900}.vp3-warn{color:#a16a00;font-weight:900}.vp3-alert{max-width:1780px;margin:14px auto;border-radius:14px;padding:14px 18px;font-weight:800}.vp3-alert-success{background:#e8f8ef;color:#08613a}.vp3-alert-error{background:#fdecec;color:#a31313}.vp3-alert-warning{background:#fff4d5;color:#7a5200}.vp3-bottom{background:linear-gradient(135deg,#061020,#11143a);color:#fff;border-radius:15px;margin:0 0 40px;padding:54px 32px;text-align:center;position:relative;overflow:hidden}.vp3-bottom:after{content:"🚀";position:absolute;right:80px;top:48px;font-size:7rem;color:#9a3cff;opacity:.28}.vp3-bottom h2{font-family:Inter,system-ui,sans-serif!important;color:#fff!important;font-size:2.45rem;line-height:1.1;letter-spacing:-.045em;margin:0 0 12px}.vp3-footer{display:flex;align-items:flex-start;justify-content:space-between;gap:50px;margin-top:-40px;padding:34px 40px 42px;color:#d8e0f4;background:rgba(2,6,18,.92);border-radius:0 0 15px 15px}.vp3-footer-logo-text{font-weight:900;color:#fff;font-size:1.1rem;margin-bottom:12px}.vp3-foot-cols{display:grid;grid-template-columns:repeat(3,1fr);gap:80px;text-align:left}.vp3-foot-cols h4{font-family:Inter,system-ui,sans-serif!important;color:#fff!important;margin:0 0 12px;font-size:.9rem}.vp3-foot-cols a{display:block;color:#c4ccdc!important;text-decoration:none!important;margin:8px 0;font-size:.82rem}@media(max-width:1300px){.vp3-shell{padding:0 28px}.vp3-hero-grid,.vp3-check-panel,.vp3-why-grid{grid-template-columns:1fr}.vp3-hero-art{min-height:auto}.vp3-dashboard-frame{position:relative;width:100%}.vp3-floating-card{position:relative!important;display:inline-block;vertical-align:top;margin:14px 10px 0 0;width:calc(25% - 14px)!important}.vp3-steps,.vp3-features,.vp3-why-points{gap:16px}.vp3-steps:before{display:none}}@media(max-width:860px){.vp3-nav{height:auto;padding:18px 0}.vp3-links{display:none}.vp3-hero{padding:34px 0}.vp3-hero-grid,.vp3-features,.vp3-steps,.vp3-check-grid,.vp3-why-points,.vp3-install-grid,.vp3-install-tabs{grid-template-columns:1fr}.vp3-hero h1{font-size:3.25rem}.vp3-proof{grid-template-columns:1fr;margin-top:32px}.vp3-feature,.vp3-step{text-align:left}.vp3-step-number{position:static;margin-bottom:12px}.vp3-score-ring{width:210px;height:210px}.vp3-score-ring span{width:152px;height:152px}.vp3-footer{display:block}.vp3-foot-cols{grid-template-columns:1fr;gap:18px;margin-top:24px}.vp3-floating-card{width:100%!important}}
-  </style>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>VP3 Media Group Platform Installer</title>
+    <link rel="stylesheet" href="assets/css/stonefellow.css">
+    <style>
+        :root {
+            --vp3-blue: #315dff;
+            --vp3-violet: #8b3dff;
+            --vp3-text: #0f172a;
+            --vp3-sub: #667085;
+            --vp3-line: #e7eaf1;
+            --vp3-shell: 1780px;
+            --vp3-pad: clamp(22px, 3.4vw, 64px);
+            --vp3-shadow: 0 22px 55px rgba(15, 23, 42, .12);
+        }
+        * { box-sizing: border-box; }
+        html { scroll-behavior: smooth; }
+        body { margin: 0; background: #f8fafc; color: var(--vp3-text); font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif; line-height: 1.45; }
+        .vp3-page { overflow: hidden; background: #f8fafc; }
+        .vp3-shell { width: 100%; max-width: var(--vp3-shell); margin: 0 auto; padding: 0 var(--vp3-pad); }
+        .vp3-full { width: 100%; }
+        .vp3-full-inner { width: 100%; max-width: var(--vp3-shell); margin: 0 auto; padding-left: var(--vp3-pad); padding-right: var(--vp3-pad); }
+        .vp3-top { background: radial-gradient(circle at 78% 25%, rgba(49,93,255,.24), transparent 34%), radial-gradient(circle at 27% 65%, rgba(139,61,255,.16), transparent 30%), linear-gradient(135deg, #030712 0%, #071123 58%, #0a1531 100%); color: #fff; }
+        .vp3-nav { height: 94px; display: flex; align-items: center; gap: 34px; }
+        .vp3-brand { display: flex; align-items: center; gap: 14px; color: #fff !important; text-decoration: none !important; font-weight: 800; }
+        .vp3-brand-mark { font-size: 1.15rem; font-weight: 900; letter-spacing: -.05em; color: #fff; }
+        .vp3-brand-name { font-size: .95rem; color: #fff; border-left: 1px solid rgba(255,255,255,.42); padding-left: 14px; white-space: nowrap; }
+        .vp3-links { display: flex; align-items: center; gap: 42px; margin-left: auto; margin-right: auto; }
+        .vp3-links a { color: #f2f6ff !important; text-decoration: none !important; font-size: .72rem; font-weight: 750; letter-spacing: .01em; }
+        .vp3-cta, .vp3-btn { display: inline-flex; align-items: center; justify-content: center; gap: 9px; border: 0; border-radius: 8px; background: linear-gradient(135deg, var(--vp3-blue), var(--vp3-violet)); color: #fff !important; text-decoration: none !important; font-weight: 850; font-size: .94rem; padding: 15px 26px; box-shadow: 0 18px 44px rgba(49,93,255,.32); cursor: pointer; }
+        .vp3-cta { font-size: .76rem; padding: 13px 22px; }
+        .vp3-btn.secondary { background: rgba(2,6,18,.36); border: 2px solid rgba(255,255,255,.82); box-shadow: none; }
+        .vp3-hero { padding: 66px 0 92px; }
+        .vp3-hero-grid { display: grid; grid-template-columns: minmax(520px,.82fr) minmax(760px,1.18fr); gap: 70px; align-items: center; }
+        .vp3-kicker { display: inline-flex; align-items: center; gap: 9px; color: #fff; background: rgba(255,255,255,.07); border: 1px solid rgba(255,255,255,.14); border-radius: 999px; padding: 9px 15px; font-size: .86rem; font-weight: 800; margin-bottom: 34px; }
+        .vp3-hero h1 { font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif !important; color: #fff !important; font-size: clamp(3.55rem, 5.05vw, 6.15rem); line-height: 1.04; letter-spacing: -.065em; font-weight: 820; margin: 0 0 28px; text-transform: none; }
+        .vp3-hero h1 span { color: #fff !important; background: none !important; }
+        .vp3-hero p { max-width: 650px; color: #f0f4ff; font-size: 1.02rem; line-height: 1.7; margin: 0 0 36px; }
+        .vp3-actions { display: flex; gap: 18px; flex-wrap: wrap; align-items: center; }
+        .vp3-proof { display: grid; grid-template-columns: repeat(3, 1fr); gap: 28px; margin-top: 70px; max-width: 700px; }
+        .vp3-proof-item { display: flex; gap: 11px; align-items: flex-start; }
+        .vp3-proof-icon { color: #6e61ff; font-size: 1.25rem; }
+        .vp3-proof strong { display: block; color: #fff; font-size: .82rem; }
+        .vp3-proof small { display: block; color: #c7d0e4; font-size: .73rem; margin-top: 3px; }
+        .vp3-hero-art { position: relative; min-height: 760px; }
+        .vp3-dashboard-frame { position: absolute; left: 0; top: 0; width: 78%; border: 1px solid rgba(255,255,255,.15); border-radius: 18px; background: rgba(5,10,20,.86); box-shadow: 0 34px 90px rgba(0,0,0,.46); overflow: hidden; }
+        .vp3-dashboard-frame img, .vp3-floating-card img, .vp3-devices { display: block; width: 100%; height: auto; }
+        .vp3-floating-card { position: absolute; background: rgba(10,17,33,.88); border: 1px solid rgba(255,255,255,.14); border-radius: 14px; box-shadow: 0 24px 72px rgba(0,0,0,.42); overflow: hidden; }
+        .vp3-floating-card.music { right: 0; top: 0; width: 20.5%; }
+        .vp3-floating-card.memberships { right: 0; top: 378px; width: 20.5%; }
+        .vp3-floating-card.merch { right: 1%; top: 560px; width: 24%; }
+        .vp3-floating-card.ready { left: 49%; top: 646px; width: 23%; }
+        .vp3-fallback { display: none; min-height: 450px; padding: 38px; background: #071021; color: #fff; }
+        .vp3-fallback h2 { color: #fff !important; font-family: Inter, system-ui, sans-serif !important; font-size: 2.8rem; line-height: 1; margin: 0 0 14px; }
+        .vp3-white, .vp3-steps-wrap, .vp3-check-section { background: #fbfcff; }
+        .vp3-white { padding: 52px 0 44px; }
+        .vp3-section-head { text-align: center; max-width: 820px; margin: 0 auto 32px; }
+        .vp3-section-head h2, .vp3-why h2, .vp3-install-card h2 { font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif !important; color: #0f172a !important; font-size: 2.18rem; line-height: 1.08; letter-spacing: -.045em; font-weight: 820; margin: 0 0 10px; text-transform: none; }
+        .vp3-section-head p { color: var(--vp3-sub); margin: 0; }
+        .vp3-features { display: grid; grid-template-columns: repeat(6, 1fr); gap: 20px; }
+        .vp3-feature { background: #fff; border: 1px solid var(--vp3-line); border-radius: 15px; box-shadow: var(--vp3-shadow); padding: 30px 22px; text-align: center; min-height: 220px; }
+        .vp3-feature i { display: grid; place-items: center; width: 56px; height: 56px; border-radius: 12px; margin: 0 auto 18px; background: linear-gradient(135deg,#8d4cff,#ea4f82); color: #fff; font-style: normal; font-size: 1.7rem; font-weight: 900; }
+        .vp3-feature h3 { font-family: Inter, system-ui, sans-serif !important; color: #0f172a !important; font-size: 1rem; margin: 0 0 14px; font-weight: 820; }
+        .vp3-feature p { color: #667085; line-height: 1.5; margin: 0; font-size: .86rem; }
+        .vp3-steps-wrap { padding: 40px 0 54px; border-top: 1px solid #eef2f7; }
+        .vp3-steps { position: relative; display: grid; grid-template-columns: repeat(5, 1fr); gap: 70px; }
+        .vp3-steps:before { content: ""; position: absolute; left: 9%; right: 9%; top: 62px; border-top: 2px dashed #7c99c9; opacity: .72; }
+        .vp3-step { position: relative; background: #fff; border: 1px solid #e6eaf2; border-radius: 16px; box-shadow: var(--vp3-shadow); padding: 28px 22px; text-align: center; text-decoration: none !important; color: #111827 !important; min-height: 214px; }
+        .vp3-step-number { position: absolute; left: 28px; top: 22px; width: 34px; height: 34px; border-radius: 999px; background: linear-gradient(135deg,#345dff,#8c4cff); color: #fff; display: grid; place-items: center; font-weight: 900; }
+        .vp3-step b { display: block; font-size: 2rem; color: #475569; margin: 22px 0 30px; }
+        .vp3-step h3 { font-family: Inter, system-ui, sans-serif !important; color: #111827 !important; font-size: 1rem; margin: 0 0 12px; font-weight: 820; }
+        .vp3-step p { font-size: .84rem; line-height: 1.45; color: #667085; margin: 0; }
+        .vp3-check-section { padding: 0; }
+        .vp3-check-panel { display: grid; grid-template-columns: 400px 1fr 310px; gap: 30px; align-items: center; background: radial-gradient(circle at 12% 35%,rgba(124,64,255,.25),transparent 24%), linear-gradient(135deg,#061020,#0b1730); border-radius: 0; color: #fff; padding: 56px max(var(--vp3-pad), calc((100vw - var(--vp3-shell)) / 2 + var(--vp3-pad))); box-shadow: 0 24px 60px rgba(8,15,35,.22); }
+        .vp3-score-card { text-align: center; }
+        .vp3-score-ring { width: 260px; height: 260px; margin: 0 auto 20px; border-radius: 50%; background: conic-gradient(#6ee7ff 0 34%, #9d4dff 34% calc(var(--score)*1%), rgba(255,255,255,.08) 0); display: grid; place-items: center; box-shadow: 0 0 70px rgba(116,92,255,.34); }
+        .vp3-score-ring span { display: grid; place-items: center; width: 184px; height: 184px; border-radius: 50%; background: #0b1628; font-size: 3.45rem; font-weight: 900; color: #fff; }
+        .vp3-score-card small { display: inline-flex; background: rgba(42,192,122,.22); color: #b6ffd8; border-radius: 999px; padding: 7px 16px; font-weight: 900; margin-top: 8px; }
+        .vp3-check-content h2 { font-family: Inter, system-ui, sans-serif !important; color: #fff !important; font-size: 2.05rem; line-height: 1.1; letter-spacing: -.035em; margin: 0 0 8px; }
+        .vp3-check-content p, .vp3-security p { color: #c8d3ea; }
+        .vp3-check-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 22px; }
+        .vp3-checklist, .vp3-security { background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.13); border-radius: 12px; padding: 20px; }
+        .vp3-checklist h3, .vp3-security h3 { font-family: Inter, system-ui, sans-serif !important; color: #fff !important; margin: 0 0 14px; font-size: 1rem; }
+        .vp3-checkline { display: flex; justify-content: space-between; gap: 14px; padding: 8px 0; border-top: 1px solid rgba(255,255,255,.08); font-size: .86rem; color: #e7edfb; }
+        .vp3-pass { color: #58dd94; font-weight: 900; }
+        .vp3-security { padding: 28px; }
+        .vp3-security i { font-style: normal; font-size: 2rem; color: #4d86ff; }
+        .vp3-security h3 { margin: 18px 0 12px; }
+        .vp3-security ul { list-style: none; padding: 0; margin: 18px 0 0; display: grid; gap: 12px; color: #e7edfb; font-size: .88rem; }
+        .vp3-why { background: #fff; padding: 50px 0; }
+        .vp3-why-grid { display: grid; grid-template-columns: minmax(460px,.9fr) 1fr; gap: 60px; align-items: center; }
+        .vp3-why p { max-width: 650px; line-height: 1.6; color: #667085; }
+        .vp3-why-points { display: grid; grid-template-columns: repeat(4, 1fr); gap: 28px; margin-top: 40px; }
+        .vp3-why-point { text-align: center; }
+        .vp3-why-point i { display: block; color: #645cff; font-style: normal; font-size: 2.1rem; margin-bottom: 10px; }
+        .vp3-why-point h3 { font-family: Inter, system-ui, sans-serif !important; color: #111827 !important; font-size: .98rem; margin: 0 0 8px; font-weight: 820; }
+        .vp3-why-point p { font-size: .8rem; color: #667085; margin: 0; }
+        .vp3-installer-form { background: #fff; border-top: 1px solid #eef2f7; padding: 38px 0 60px; }
+        .vp3-install-panel { background: linear-gradient(135deg,#061020,#0b1730); border-radius: 18px; padding: 28px; color: #fff; }
+        .vp3-install-tabs { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; margin-bottom: 18px; }
+        .vp3-install-tab { border-radius: 12px; border: 1px solid rgba(255,255,255,.14); background: rgba(255,255,255,.07); padding: 13px; text-decoration: none !important; color: #fff !important; }
+        .vp3-install-tab.is-active { background: linear-gradient(135deg,#315dff,#9a3cff); }
+        .vp3-install-card { background: #fff; color: #111827; border-radius: 16px; padding: 26px; }
+        .vp3-install-card.dark { background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.13); color: #fff; }
+        .vp3-install-card.dark h2 { color: #fff !important; }
+        .vp3-install-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px; }
+        .vp3-field { display: flex; flex-direction: column; gap: 8px; font-weight: 800; color: #0f172a; }
+        .vp3-field input { border: 1px solid #d8dfeb; border-radius: 12px; padding: 13px 14px; font: inherit; background: #f8fafc; }
+        .vp3-table-wrap { overflow: auto; border: 1px solid #e5e7ef; border-radius: 14px; margin-top: 18px; }
+        .vp3-table { width: 100%; border-collapse: collapse; background: #fff; color: #0f172a; }
+        .vp3-table th, .vp3-table td { padding: 13px 14px; border-bottom: 1px solid #eef1f6; text-align: left; vertical-align: top; }
+        .vp3-table th { font-size: .78rem; text-transform: uppercase; letter-spacing: .08em; color: #667085; background: #f9fafb; }
+        .vp3-ok { color: #08945c; font-weight: 900; }
+        .vp3-bad { color: #c52222; font-weight: 900; }
+        .vp3-warn { color: #a16a00; font-weight: 900; }
+        .vp3-alert { max-width: var(--vp3-shell); margin: 14px auto; border-radius: 14px; padding: 14px var(--vp3-pad); font-weight: 800; }
+        .vp3-alert-success { background: #e8f8ef; color: #08613a; }
+        .vp3-alert-error { background: #fdecec; color: #a31313; }
+        .vp3-alert-warning { background: #fff4d5; color: #7a5200; }
+        .vp3-contact-full { width: 100%; background: #050a17; }
+        .vp3-bottom { width: 100%; background: linear-gradient(135deg,#061020,#11143a); color: #fff; border-radius: 0; margin: 0; padding: 56px max(var(--vp3-pad), calc((100vw - var(--vp3-shell)) / 2 + var(--vp3-pad))); text-align: center; position: relative; overflow: hidden; }
+        .vp3-bottom:after { content: "🚀"; position: absolute; right: max(80px, calc((100vw - var(--vp3-shell)) / 2 + 80px)); top: 48px; font-size: 7rem; color: #9a3cff; opacity: .28; }
+        .vp3-bottom h2 { font-family: Inter, system-ui, sans-serif !important; color: #fff !important; font-size: 2.45rem; line-height: 1.1; letter-spacing: -.045em; margin: 0 0 12px; }
+        .vp3-footer { width: 100%; display: flex; align-items: flex-start; justify-content: space-between; gap: 50px; padding: 34px max(var(--vp3-pad), calc((100vw - var(--vp3-shell)) / 2 + var(--vp3-pad))) 42px; color: #d8e0f4; background: rgba(2,6,18,.92); border-radius: 0; margin: 0; }
+        .vp3-footer-logo-text { font-weight: 900; color: #fff; font-size: 1.1rem; margin-bottom: 12px; }
+        .vp3-foot-cols { display: grid; grid-template-columns: repeat(3, 1fr); gap: 80px; text-align: left; }
+        .vp3-foot-cols h4 { font-family: Inter, system-ui, sans-serif !important; color: #fff !important; margin: 0 0 12px; font-size: .9rem; }
+        .vp3-foot-cols a { display: block; color: #c4ccdc !important; text-decoration: none !important; margin: 8px 0; font-size: .82rem; }
+        @media (max-width: 1300px) {
+            .vp3-shell { padding: 0 28px; }
+            .vp3-hero-grid, .vp3-check-panel, .vp3-why-grid { grid-template-columns: 1fr; }
+            .vp3-hero-art { min-height: auto; }
+            .vp3-dashboard-frame { position: relative; width: 100%; }
+            .vp3-floating-card { position: relative !important; display: inline-block; vertical-align: top; margin: 14px 10px 0 0; width: calc(25% - 14px) !important; }
+            .vp3-steps, .vp3-features, .vp3-why-points { gap: 16px; }
+            .vp3-steps:before { display: none; }
+            .vp3-check-panel { padding-left: 28px; padding-right: 28px; }
+            .vp3-bottom, .vp3-footer { padding-left: 28px; padding-right: 28px; }
+        }
+        @media (max-width: 860px) {
+            .vp3-nav { height: auto; padding: 18px 0; }
+            .vp3-links { display: none; }
+            .vp3-hero { padding: 34px 0; }
+            .vp3-hero-grid, .vp3-features, .vp3-steps, .vp3-check-grid, .vp3-why-points, .vp3-install-grid, .vp3-install-tabs { grid-template-columns: 1fr; }
+            .vp3-hero h1 { font-size: 3.25rem; }
+            .vp3-proof { grid-template-columns: 1fr; margin-top: 32px; }
+            .vp3-feature, .vp3-step { text-align: left; }
+            .vp3-step-number { position: static; margin-bottom: 12px; }
+            .vp3-score-ring { width: 210px; height: 210px; }
+            .vp3-score-ring span { width: 152px; height: 152px; }
+            .vp3-footer { display: block; }
+            .vp3-foot-cols { grid-template-columns: 1fr; gap: 18px; margin-top: 24px; }
+            .vp3-floating-card { width: 100% !important; }
+        }
+    </style>
 </head>
 <body>
 <main class="vp3-page">
-  <section class="vp3-top" id="top">
-    <div class="vp3-shell">
-      <nav class="vp3-nav" aria-label="Installer navigation">
-        <a class="vp3-brand" href="install.php"><span class="vp3-brand-mark">VP3</span><span class="vp3-brand-name">VP3 Media Group</span></a>
-        <div class="vp3-links"><a href="#platform">Platform</a><a href="#features">Features</a><a href="#launch-path">Launch Path</a><a href="#installer">Installer</a><a href="#contact">Contact</a></div>
-        <a class="vp3-cta" href="#installer">🚀 Start Installation</a>
-      </nav>
-      <div class="vp3-hero">
-        <div class="vp3-hero-grid">
-          <div>
-            <span class="vp3-kicker">◆ Guided platform launcher</span>
-            <h1>Launch Your<br>Media Platform<br>in <span>Minutes</span></h1>
-            <p>Everything you need to power your streaming, music, membership, merch, and admin operations — all in one powerful platform.</p>
-            <div class="vp3-actions"><a class="vp3-btn" href="#installer">🚀 Start Installation</a><a class="vp3-btn secondary" href="#features">▶ See What’s Included</a></div>
-            <div class="vp3-proof"><div class="vp3-proof-item"><span class="vp3-proof-icon">⚙</span><div><strong>Fast & Automated</strong><small>Guided installer</small></div></div><div class="vp3-proof-item"><span class="vp3-proof-icon">◇</span><div><strong>Secure & Reliable</strong><small>Built for scale</small></div></div><div class="vp3-proof-item"><span class="vp3-proof-icon">▣</span><div><strong>All-in-One Platform</strong><small>Launch with confidence</small></div></div></div>
-          </div>
-          <div class="vp3-hero-art" id="platform">
-            <div class="vp3-dashboard-frame"><img src="<?= sf_install_h($installerImages['dashboard']) ?>" alt="VP3 dashboard preview" loading="eager" onerror="this.style.display='none';this.nextElementSibling.style.display='block';"><div class="vp3-fallback"><h2>VP3 Dashboard</h2><p>Streaming, music, memberships, merch, analytics, users, and settings in one command center.</p></div></div>
-            <div class="vp3-floating-card music"><img src="<?= sf_install_h($installerImages['music']) ?>" alt="VP3 music player preview" loading="lazy"></div>
-            <div class="vp3-floating-card memberships"><img src="<?= sf_install_h($installerImages['memberships']) ?>" alt="VP3 memberships preview" loading="lazy"></div>
-            <div class="vp3-floating-card merch"><img src="<?= sf_install_h($installerImages['merch']) ?>" alt="VP3 merch store preview" loading="lazy"></div>
-            <div class="vp3-floating-card ready"><img src="<?= sf_install_h($installerImages['readiness']) ?>" alt="VP3 installer readiness preview" loading="lazy"></div>
-          </div>
+    <section class="vp3-top" id="top">
+        <div class="vp3-shell">
+            <nav class="vp3-nav" aria-label="Installer navigation">
+                <a class="vp3-brand" href="install.php"><span class="vp3-brand-mark">VP3</span><span class="vp3-brand-name">VP3 Media Group</span></a>
+                <div class="vp3-links"><a href="#platform">Platform</a><a href="#features">Features</a><a href="#launch-path">Launch Path</a><a href="#installer">Installer</a><a href="#contact">Contact</a></div>
+                <a class="vp3-cta" href="#installer">🚀 Start Installation</a>
+            </nav>
+            <div class="vp3-hero">
+                <div class="vp3-hero-grid">
+                    <div>
+                        <span class="vp3-kicker">◆ Guided platform launcher</span>
+                        <h1>Launch Your<br>Media Platform<br>in <span>Minutes</span></h1>
+                        <p>Everything you need to power your streaming, music, membership, merch, and admin operations — all in one powerful platform.</p>
+                        <div class="vp3-actions"><a class="vp3-btn" href="#installer">🚀 Start Installation</a><a class="vp3-btn secondary" href="#features">▶ See What’s Included</a></div>
+                        <div class="vp3-proof"><div class="vp3-proof-item"><span class="vp3-proof-icon">⚙</span><div><strong>Fast & Automated</strong><small>Guided installer</small></div></div><div class="vp3-proof-item"><span class="vp3-proof-icon">◇</span><div><strong>Secure & Reliable</strong><small>Built for scale</small></div></div><div class="vp3-proof-item"><span class="vp3-proof-icon">▣</span><div><strong>All-in-One Platform</strong><small>Launch with confidence</small></div></div></div>
+                    </div>
+                    <div class="vp3-hero-art" id="platform">
+                        <div class="vp3-dashboard-frame"><img src="<?= sf_install_h($installerImages['dashboard']) ?>" alt="VP3 dashboard preview" loading="eager" onerror="this.style.display='none';this.nextElementSibling.style.display='block';"><div class="vp3-fallback"><h2>VP3 Dashboard</h2><p>Streaming, music, memberships, merch, analytics, users, and settings in one command center.</p></div></div>
+                        <div class="vp3-floating-card music"><img src="<?= sf_install_h($installerImages['music']) ?>" alt="VP3 music player preview" loading="lazy"></div>
+                        <div class="vp3-floating-card memberships"><img src="<?= sf_install_h($installerImages['memberships']) ?>" alt="VP3 memberships preview" loading="lazy"></div>
+                        <div class="vp3-floating-card merch"><img src="<?= sf_install_h($installerImages['merch']) ?>" alt="VP3 merch store preview" loading="lazy"></div>
+                        <div class="vp3-floating-card ready"><img src="<?= sf_install_h($installerImages['readiness']) ?>" alt="VP3 installer readiness preview" loading="lazy"></div>
+                    </div>
+                </div>
+            </div>
         </div>
-      </div>
-    </div>
-  </section>
+    </section>
 
-  <?php foreach (sf_install_flashes() as $msg): ?><div class="vp3-alert vp3-alert-<?= sf_install_h($msg['type'] ?? 'warning') ?>"><?= sf_install_h($msg['message'] ?? '') ?></div><?php endforeach; ?>
+    <?php foreach (sf_install_flashes() as $msg): ?><div class="vp3-alert vp3-alert-<?= sf_install_h($msg['type'] ?? 'warning') ?>"><?= sf_install_h($msg['message'] ?? '') ?></div><?php endforeach; ?>
 
-  <section class="vp3-white" id="features"><div class="vp3-shell"><div class="vp3-section-head"><h2>What the Platform Includes</h2><p>Powerful modules. One seamless platform.</p></div><div class="vp3-features"><?php foreach ($features as $card): ?><article class="vp3-feature"><i><?= sf_install_h($card['icon']) ?></i><h3><?= sf_install_h($card['title']) ?></h3><p><?= sf_install_h($card['text']) ?></p></article><?php endforeach; ?></div></div></section>
+    <section class="vp3-white" id="features"><div class="vp3-shell"><div class="vp3-section-head"><h2>What the Platform Includes</h2><p>Powerful modules. One seamless platform.</p></div><div class="vp3-features"><?php foreach ($features as $card): ?><article class="vp3-feature"><i><?= sf_install_h($card['icon']) ?></i><h3><?= sf_install_h($card['title']) ?></h3><p><?= sf_install_h($card['text']) ?></p></article><?php endforeach; ?></div></div></section>
 
-  <section class="vp3-steps-wrap" id="launch-path"><div class="vp3-shell"><div class="vp3-section-head"><h2>Launch Path: 5 Simple Steps</h2><p>Our guided installer gets you from setup to launch—fast and easy.</p></div><div class="vp3-steps"><?php $n=1; foreach ($steps as $key => $meta): ?><a class="vp3-step" href="install.php?step=<?= sf_install_h($key) ?>#installer"><span class="vp3-step-number"><?= $n++ ?></span><b><?= sf_install_h($meta['icon']) ?></b><h3><?= sf_install_h($meta['label']) ?></h3><p><?= $key === 'server' ? 'We verify your server meets all requirements for optimal performance.' : ($key === 'db' ? 'Securely connect your MySQL database and validate the connection.' : ($key === 'sql' ? 'We install and configure all core components automatically.' : ($key === 'admin' ? 'Create your admin account and set up platform preferences.' : 'Your platform is ready. Log in and start building your media empire.'))) ?></p></a><?php endforeach; ?></div></div></section>
+    <section class="vp3-steps-wrap" id="launch-path"><div class="vp3-shell"><div class="vp3-section-head"><h2>Launch Path: 5 Simple Steps</h2><p>Our guided installer gets you from setup to launch—fast and easy.</p></div><div class="vp3-steps"><?php $n=1; foreach ($steps as $key => $meta): ?><a class="vp3-step" href="install.php?step=<?= sf_install_h($key) ?>#installer"><span class="vp3-step-number"><?= $n++ ?></span><b><?= sf_install_h($meta['icon']) ?></b><h3><?= sf_install_h($meta['label']) ?></h3><p><?= $key === 'server' ? 'We verify your server meets all requirements for optimal performance.' : ($key === 'db' ? 'Securely connect your MySQL database and validate the connection.' : ($key === 'sql' ? 'We install and configure all core components automatically.' : ($key === 'admin' ? 'Create your admin account and set up platform preferences.' : 'Your platform is ready. Log in and start building your media empire.'))) ?></p></a><?php endforeach; ?></div></div></section>
 
-  <section class="vp3-check-section"><div class="vp3-shell"><div class="vp3-check-panel"><aside class="vp3-score-card" style="--score:<?= (int)$score ?>"><div class="vp3-score-ring"><span><?= (int)$score ?>%</span></div><div>Readiness Score</div><small><?= $score >= 90 ? 'Excellent' : 'Review Needed' ?></small><p>Your server is <?= $locked ? 'installed and locked.' : 'ready for installation.' ?></p></aside><section class="vp3-check-content"><h2>Ready to Launch? Let’s Check.</h2><p>Our pre-flight checks ensure everything is in place.</p><div class="vp3-check-grid"><div class="vp3-checklist"><h3>⚙ Server Checklist</h3><?php foreach (array_slice($checks, 0, 6) as $check): ?><div class="vp3-checkline"><span><?= sf_install_h($check['label']) ?></span><b class="<?= !empty($check['ok']) ? 'vp3-pass' : 'vp3-bad' ?>"><?= !empty($check['ok']) ? 'Pass' : 'Review' ?></b></div><?php endforeach; ?></div><div class="vp3-checklist"><h3>▣ Database Checklist</h3><div class="vp3-checkline"><span>Database Connection</span><b class="vp3-pass">Pass</b></div><div class="vp3-checkline"><span>User Permissions</span><b class="vp3-pass">Pass</b></div><div class="vp3-checkline"><span>Character Set (utf8mb4)</span><b class="vp3-pass">Pass</b></div><div class="vp3-checkline"><span>Collation</span><b class="vp3-pass">Pass</b></div><div class="vp3-checkline"><span>Backup Capability</span><b class="vp3-pass">Pass</b></div></div></div></section><aside class="vp3-security"><i>◇</i><h3>Secure. Reliable. Proven.</h3><p>VP3 Media Group is built with security, performance, and scalability at its core.</p><ul><li>▣ Encrypted Connections</li><li>▣ Regular Updates</li><li>▣ Scalable Architecture</li><li>▣ 24/7 Community Support</li></ul></aside></div></div></section>
+    <section class="vp3-check-section"><div class="vp3-check-panel"><aside class="vp3-score-card" style="--score:<?= (int)$score ?>"><div class="vp3-score-ring"><span><?= (int)$score ?>%</span></div><div>Readiness Score</div><small><?= $score >= 90 ? 'Excellent' : 'Review Needed' ?></small><p>Your server is <?= $locked ? 'installed and locked.' : 'ready for installation.' ?></p></aside><section class="vp3-check-content"><h2>Ready to Launch? Let’s Check.</h2><p>Our pre-flight checks ensure everything is in place.</p><div class="vp3-check-grid"><div class="vp3-checklist"><h3>⚙ Server Checklist</h3><?php foreach (array_slice($checks, 0, 6) as $check): ?><div class="vp3-checkline"><span><?= sf_install_h($check['label']) ?></span><b class="<?= !empty($check['ok']) ? 'vp3-pass' : 'vp3-bad' ?>"><?= !empty($check['ok']) ? 'Pass' : 'Review' ?></b></div><?php endforeach; ?></div><div class="vp3-checklist"><h3>▣ Database Checklist</h3><div class="vp3-checkline"><span>Database Connection</span><b class="vp3-pass">Pass</b></div><div class="vp3-checkline"><span>User Permissions</span><b class="vp3-pass">Pass</b></div><div class="vp3-checkline"><span>Character Set (utf8mb4)</span><b class="vp3-pass">Pass</b></div><div class="vp3-checkline"><span>Collation</span><b class="vp3-pass">Pass</b></div><div class="vp3-checkline"><span>Backup Capability</span><b class="vp3-pass">Pass</b></div></div></div></section><aside class="vp3-security"><i>◇</i><h3>Secure. Reliable. Proven.</h3><p>VP3 Media Group is built with security, performance, and scalability at its core.</p><ul><li>▣ Encrypted Connections</li><li>▣ Regular Updates</li><li>▣ Scalable Architecture</li><li>▣ 24/7 Community Support</li></ul></aside></div></section>
 
-  <section class="vp3-why"><div class="vp3-shell"><div class="vp3-why-grid"><div><img class="vp3-devices" src="<?= sf_install_h($installerImages['devices']) ?>" alt="VP3 device previews" loading="lazy"></div><div><h2>Why VP3 Media Group?</h2><p>Built for creators, artists, labels, ministries, educators, and entrepreneurs who want full control of their media brand.</p><div class="vp3-why-points"><article class="vp3-why-point"><i>☼</i><h3>Own Your Brand</h3><p>No middlemen. No platform limits. You own everything.</p></article><article class="vp3-why-point"><i>▣</i><h3>Monetize Your Way</h3><p>Subscriptions, one-time sales, donations, ads, and more.</p></article><article class="vp3-why-point"><i>↗</i><h3>Built to Scale</h3><p>From your first fan to millions, VP3 grows with you.</p></article><article class="vp3-why-point"><i>●</i><h3>All-in-One Power</h3><p>Everything you need in one platform. No extra plugins.</p></article></div></div></div></div></section>
+    <section class="vp3-why"><div class="vp3-shell"><div class="vp3-why-grid"><div><img class="vp3-devices" src="<?= sf_install_h($installerImages['devices']) ?>" alt="VP3 device previews" loading="lazy"></div><div><h2>Why VP3 Media Group?</h2><p>Built for creators, artists, labels, ministries, educators, and entrepreneurs who want full control of their media brand.</p><div class="vp3-why-points"><article class="vp3-why-point"><i>☼</i><h3>Own Your Brand</h3><p>No middlemen. No platform limits. You own everything.</p></article><article class="vp3-why-point"><i>▣</i><h3>Monetize Your Way</h3><p>Subscriptions, one-time sales, donations, ads, and more.</p></article><article class="vp3-why-point"><i>↗</i><h3>Built to Scale</h3><p>From your first fan to millions, VP3 grows with you.</p></article><article class="vp3-why-point"><i>●</i><h3>All-in-One Power</h3><p>Everything you need in one platform. No extra plugins.</p></article></div></div></div></div></section>
 
-  <section class="vp3-installer-form" id="installer"><div class="vp3-shell"><div class="vp3-install-panel"><nav class="vp3-install-tabs"><?php foreach ($steps as $key => $meta): ?><a class="vp3-install-tab <?= $step === $key ? 'is-active' : '' ?>" href="install.php?step=<?= sf_install_h($key) ?>#installer"><small><?= sf_install_h($meta['eyebrow']) ?></small><br><strong><?= sf_install_h($meta['label']) ?></strong></a><?php endforeach; ?></nav>
-    <?php if ($locked): ?><section class="vp3-install-card dark"><h2>Installer locked for security.</h2><p>Your platform has already been installed. To run the installer again, manually remove <code>storage/install.lock</code> only after confirming you have a database backup.</p><div class="vp3-actions"><a class="vp3-btn" href="admin/index.php">Open Admin</a><a class="vp3-btn secondary" href="index.php">View Site</a></div></section>
-    <?php elseif ($step === 'server'): ?><section class="vp3-install-card"><h2>Check Server</h2><p>VP3 checks PHP, extensions, writable folders, upload storage, and required SQL files before you connect the database.</p><div class="vp3-table-wrap"><table class="vp3-table"><thead><tr><th>Check</th><th>Status</th><th>Detail</th></tr></thead><tbody><?php foreach ($checks as $check): ?><tr><td><strong><?= sf_install_h($check['label']) ?></strong></td><td><?= !empty($check['ok'])?'<span class="vp3-ok">Pass</span>':'<span class="vp3-bad">Review</span>' ?></td><td><?= sf_install_h($check['detail'] ?? '') ?></td></tr><?php endforeach; ?></tbody></table></div><div class="vp3-actions"><a class="vp3-btn" href="install.php?step=db#installer">Continue to Database</a></div></section>
-    <?php elseif ($step === 'db'): ?><section class="vp3-install-card"><h2>Connect Database</h2><p>Create an empty MySQL database and enter the credentials below.</p><form method="post"><input type="hidden" name="action" value="test_db"><div class="vp3-install-grid"><label class="vp3-field">Host<input name="db_host" value="<?= sf_install_h($db['host'] ?? 'localhost') ?>" required></label><label class="vp3-field">Port<input name="db_port" value="<?= sf_install_h($db['port'] ?? '3306') ?>"></label><label class="vp3-field">Database Name<input name="db_name" value="<?= sf_install_h($db['name'] ?? '') ?>" required></label><label class="vp3-field">Database User<input name="db_user" value="<?= sf_install_h($db['user'] ?? '') ?>" required></label><label class="vp3-field">Database Password<input type="password" name="db_pass" value="<?= sf_install_h($db['pass'] ?? '') ?>"></label></div><div class="vp3-actions"><button class="vp3-btn" type="submit">Test Connection</button><a class="vp3-btn secondary" href="install.php?step=server#installer">Back to Checks</a></div></form></section>
-    <?php elseif ($step === 'sql'): ?><section class="vp3-install-card"><h2>Build Platform Database</h2><p>This creates the base schema and applies all versioned migrations in order.</p><div class="vp3-proof" style="max-width:none;margin:18px 0"><div><strong><?= (int)$sqlApplied ?></strong><small>Applied</small></div><div><strong><?= (int)$sqlSkipped ?></strong><small>Skipped</small></div><div><strong><?= (int)$sqlFailed ?></strong><small>Needs review</small></div></div><form method="post"><input type="hidden" name="action" value="run_sql"><button class="vp3-btn" type="submit">Run SQL Installer</button></form><?php if ($sqlResults): ?><div class="vp3-table-wrap"><table class="vp3-table"><thead><tr><th>Key</th><th>Status</th><th>Detail</th></tr></thead><tbody><?php foreach ($sqlResults as $row): ?><tr><td><strong><?= sf_install_h($row['key'] ?? '') ?></strong><small> <?= sf_install_h($row['label'] ?? '') ?></small></td><td><?php $s=$row['status']??''; echo $s==='applied'?'<span class="vp3-ok">Applied</span>':($s==='skipped'?'<span class="vp3-warn">Skipped</span>':'<span class="vp3-bad">'.sf_install_h($s).'</span>'); ?></td><td><?= sf_install_h($row['detail'] ?? '') ?></td></tr><?php endforeach; ?></tbody></table></div><?php endif; ?></section>
-    <?php elseif ($step === 'admin'): ?><section class="vp3-install-card"><h2>Create Owner Account</h2><p>This account becomes the first admin and platform owner.</p><form method="post"><input type="hidden" name="action" value="finish"><div class="vp3-install-grid"><label class="vp3-field">Site Name<input name="site_name" value="VP3 Media Group" required></label><label class="vp3-field">Site Tagline<input name="site_tagline" value="Launch your media platform in minutes."></label><label class="vp3-field">Public Base URL<input name="base_url" value="<?= sf_install_h($baseUrl) ?>"></label><label class="vp3-field">Support Email<input type="email" name="support_email" value="support@vp3mediagroup.com"></label><label class="vp3-field">Admin Name<input name="name" required></label><label class="vp3-field">Admin Email<input type="email" name="email" required></label><label class="vp3-field">Admin Password<input type="password" name="password" required minlength="8"></label><label class="vp3-field">Confirm Password<input type="password" name="password_confirm" required minlength="8"></label></div><div class="vp3-actions"><button class="vp3-btn" type="submit" onclick="return confirm('Finish install and lock the installer?')">Finish Install + Launch Admin</button></div></form></section>
-    <?php else: ?><section class="vp3-install-card dark"><h2>Your VP3 platform is ready.</h2><p>Open the admin dashboard to continue setup, run QA, and begin building your media platform.</p><div class="vp3-actions"><a class="vp3-btn" href="admin/index.php">Open Admin Dashboard</a><a class="vp3-btn secondary" href="index.php">View Public Site</a><a class="vp3-btn secondary" href="admin/migration-checker.php">Run QA Check</a></div></section><?php endif; ?>
+    <section class="vp3-installer-form" id="installer"><div class="vp3-shell"><div class="vp3-install-panel"><nav class="vp3-install-tabs"><?php foreach ($steps as $key => $meta): ?><a class="vp3-install-tab <?= $step === $key ? 'is-active' : '' ?>" href="install.php?step=<?= sf_install_h($key) ?>#installer"><small><?= sf_install_h($meta['eyebrow']) ?></small><br><strong><?= sf_install_h($meta['label']) ?></strong></a><?php endforeach; ?></nav>
+        <?php if ($locked): ?><section class="vp3-install-card dark"><h2>Installer locked for security.</h2><p>Your platform has already been installed. To run the installer again, manually remove <code>storage/install.lock</code> only after confirming you have a database backup.</p><div class="vp3-actions"><a class="vp3-btn" href="admin/index.php">Open Admin</a><a class="vp3-btn secondary" href="index.php">View Site</a></div></section>
+        <?php elseif ($step === 'server'): ?><section class="vp3-install-card"><h2>Check Server</h2><p>VP3 checks PHP, extensions, writable folders, upload storage, and required SQL files before you connect the database.</p><div class="vp3-table-wrap"><table class="vp3-table"><thead><tr><th>Check</th><th>Status</th><th>Detail</th></tr></thead><tbody><?php foreach ($checks as $check): ?><tr><td><strong><?= sf_install_h($check['label']) ?></strong></td><td><?= !empty($check['ok'])?'<span class="vp3-ok">Pass</span>':'<span class="vp3-bad">Review</span>' ?></td><td><?= sf_install_h($check['detail'] ?? '') ?></td></tr><?php endforeach; ?></tbody></table></div><div class="vp3-actions"><a class="vp3-btn" href="install.php?step=db#installer">Continue to Database</a></div></section>
+        <?php elseif ($step === 'db'): ?><section class="vp3-install-card"><h2>Connect Database</h2><p>Create an empty MySQL database and enter the credentials below.</p><form method="post"><input type="hidden" name="action" value="test_db"><div class="vp3-install-grid"><label class="vp3-field">Host<input name="db_host" value="<?= sf_install_h($db['host'] ?? 'localhost') ?>" required></label><label class="vp3-field">Port<input name="db_port" value="<?= sf_install_h($db['port'] ?? '3306') ?>"></label><label class="vp3-field">Database Name<input name="db_name" value="<?= sf_install_h($db['name'] ?? '') ?>" required></label><label class="vp3-field">Database User<input name="db_user" value="<?= sf_install_h($db['user'] ?? '') ?>" required></label><label class="vp3-field">Database Password<input type="password" name="db_pass" value="<?= sf_install_h($db['pass'] ?? '') ?>"></label></div><div class="vp3-actions"><button class="vp3-btn" type="submit">Test Connection</button><a class="vp3-btn secondary" href="install.php?step=server#installer">Back to Checks</a></div></form></section>
+        <?php elseif ($step === 'sql'): ?><section class="vp3-install-card"><h2>Build Platform Database</h2><p>This creates the base schema and applies all versioned migrations in order.</p><div class="vp3-proof" style="max-width:none;margin:18px 0"><div><strong><?= (int)$sqlApplied ?></strong><small>Applied</small></div><div><strong><?= (int)$sqlSkipped ?></strong><small>Skipped</small></div><div><strong><?= (int)$sqlFailed ?></strong><small>Needs review</small></div></div><form method="post"><input type="hidden" name="action" value="run_sql"><button class="vp3-btn" type="submit">Run SQL Installer</button></form><?php if ($sqlResults): ?><div class="vp3-table-wrap"><table class="vp3-table"><thead><tr><th>Key</th><th>Status</th><th>Detail</th></tr></thead><tbody><?php foreach ($sqlResults as $row): ?><tr><td><strong><?= sf_install_h($row['key'] ?? '') ?></strong><small> <?= sf_install_h($row['label'] ?? '') ?></small></td><td><?php $s=$row['status']??''; echo $s==='applied'?'<span class="vp3-ok">Applied</span>':($s==='skipped'?'<span class="vp3-warn">Skipped</span>':'<span class="vp3-bad">'.sf_install_h($s).'</span>'); ?></td><td><?= sf_install_h($row['detail'] ?? '') ?></td></tr><?php endforeach; ?></tbody></table></div><?php endif; ?></section>
+        <?php elseif ($step === 'admin'): ?><section class="vp3-install-card"><h2>Create Owner Account</h2><p>This account becomes the first admin and platform owner.</p><form method="post"><input type="hidden" name="action" value="finish"><div class="vp3-install-grid"><label class="vp3-field">Site Name<input name="site_name" value="VP3 Media Group" required></label><label class="vp3-field">Site Tagline<input name="site_tagline" value="Launch your media platform in minutes."></label><label class="vp3-field">Public Base URL<input name="base_url" value="<?= sf_install_h($baseUrl) ?>"></label><label class="vp3-field">Support Email<input type="email" name="support_email" value="support@vp3mediagroup.com"></label><label class="vp3-field">Admin Name<input name="name" required></label><label class="vp3-field">Admin Email<input type="email" name="email" required></label><label class="vp3-field">Admin Password<input type="password" name="password" required minlength="8"></label><label class="vp3-field">Confirm Password<input type="password" name="password_confirm" required minlength="8"></label></div><div class="vp3-actions"><button class="vp3-btn" type="submit" onclick="return confirm('Finish install and lock the installer?')">Finish Install + Launch Admin</button></div></form></section>
+        <?php else: ?><section class="vp3-install-card dark"><h2>Your VP3 platform is ready.</h2><p>Open the admin dashboard to continue setup, run QA, and begin building your media platform.</p><div class="vp3-actions"><a class="vp3-btn" href="admin/index.php">Open Admin Dashboard</a><a class="vp3-btn secondary" href="index.php">View Public Site</a><a class="vp3-btn secondary" href="admin/migration-checker.php">Run QA Check</a></div></section><?php endif; ?>
     </div></div></section>
 
-  <div class="vp3-shell" id="contact"><section class="vp3-bottom"><h2>Your Platform. Your Audience. Your Future.</h2><p>Install VP3 Media Group today and launch your media platform in minutes.</p><div class="vp3-actions" style="justify-content:center"><a class="vp3-btn" href="#installer">🚀 Start Installation Now</a></div></section><footer class="vp3-footer"><div><div class="vp3-footer-logo-text">VP3</div><p>Empowering creators and brands to own their media future.</p></div><div class="vp3-foot-cols"><div><h4>Platform</h4><a href="#features">Streaming</a><a href="#features">Music</a><a href="#features">Memberships</a><a href="#features">Merch</a></div><div><h4>Company</h4><a href="#top">About Us</a><a href="#contact">Contact</a><a href="#top">Blog</a><a href="#top">Documentation</a></div><div><h4>Support</h4><a href="#installer">Help Center</a><a href="#installer">Community</a><a href="#installer">Status</a><a href="#installer">System Requirements</a></div></div></footer></div>
+    <section class="vp3-contact-full" id="contact"><section class="vp3-bottom"><h2>Your Platform. Your Audience. Your Future.</h2><p>Install VP3 Media Group today and launch your media platform in minutes.</p><div class="vp3-actions" style="justify-content:center"><a class="vp3-btn" href="#installer">🚀 Start Installation Now</a></div></section><footer class="vp3-footer"><div><div class="vp3-footer-logo-text">VP3</div><p>Empowering creators and brands to own their media future.</p></div><div class="vp3-foot-cols"><div><h4>Platform</h4><a href="#features">Streaming</a><a href="#features">Music</a><a href="#features">Memberships</a><a href="#features">Merch</a></div><div><h4>Company</h4><a href="#top">About Us</a><a href="#contact">Contact</a><a href="#top">Blog</a><a href="#top">Documentation</a></div><div><h4>Support</h4><a href="#installer">Help Center</a><a href="#installer">Community</a><a href="#installer">Status</a><a href="#installer">System Requirements</a></div></div></footer></section>
 </main>
 </body>
 </html>
