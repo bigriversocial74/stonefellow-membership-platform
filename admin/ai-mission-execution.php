@@ -15,48 +15,30 @@ function sf_aimx_missions(): array {
   if (!sf_aimx_ready()) return [];
   return sf_admin_fetch_all("SELECT m.*, COUNT(i.id) item_count, SUM(i.item_status = 'completed') completed_count, SUM(i.item_status IN ('blocked','failed')) blocked_count FROM ai_operation_missions m LEFT JOIN ai_operation_mission_items i ON i.mission_id = m.id WHERE m.mission_status IN ('approved','in_progress','blocked','completed') GROUP BY m.id ORDER BY FIELD(m.mission_status,'in_progress','approved','blocked','completed'), m.updated_at DESC, m.id DESC LIMIT 80");
 }
-function sf_aimx_items(int $missionId): array {
-  if (!sf_aimx_ready() || $missionId <= 0) return [];
-  return sf_admin_fetch_all('SELECT i.*, a.title, a.action_type, a.action_area, a.risk_level, a.approval_status, a.execution_status FROM ai_operation_mission_items i LEFT JOIN ai_platform_actions a ON a.id = i.platform_action_id WHERE i.mission_id = ? ORDER BY i.item_order ASC, i.id ASC', [$missionId]);
-}
-function sf_aimx_counts(): array {
-  return [
-    'approved'=>sf_aimx_ready() ? (int)(sf_admin_fetch_one("SELECT COUNT(*) total FROM ai_operation_missions WHERE mission_status = 'approved'")['total'] ?? 0) : 0,
-    'in_progress'=>sf_aimx_ready() ? (int)(sf_admin_fetch_one("SELECT COUNT(*) total FROM ai_operation_missions WHERE mission_status = 'in_progress'")['total'] ?? 0) : 0,
-    'completed'=>sf_aimx_ready() ? (int)(sf_admin_fetch_one("SELECT COUNT(*) total FROM ai_operation_missions WHERE mission_status = 'completed'")['total'] ?? 0) : 0,
-    'blocked'=>sf_aimx_ready() ? (int)(sf_admin_fetch_one("SELECT COUNT(*) total FROM ai_operation_missions WHERE mission_status = 'blocked'")['total'] ?? 0) : 0,
-  ];
-}
+function sf_aimx_items(int $missionId): array { return sf_aimx_ready() && $missionId > 0 ? sf_admin_fetch_all('SELECT i.*, a.title, a.action_type, a.action_area, a.risk_level, a.approval_status, a.execution_status FROM ai_operation_mission_items i LEFT JOIN ai_platform_actions a ON a.id = i.platform_action_id WHERE i.mission_id = ? ORDER BY i.item_order ASC, i.id ASC', [$missionId]) : []; }
+function sf_aimx_counts(): array { return ['approved'=>sf_aimx_ready() ? (int)(sf_admin_fetch_one("SELECT COUNT(*) total FROM ai_operation_missions WHERE mission_status = 'approved'")['total'] ?? 0) : 0,'in_progress'=>sf_aimx_ready() ? (int)(sf_admin_fetch_one("SELECT COUNT(*) total FROM ai_operation_missions WHERE mission_status = 'in_progress'")['total'] ?? 0) : 0,'completed'=>sf_aimx_ready() ? (int)(sf_admin_fetch_one("SELECT COUNT(*) total FROM ai_operation_missions WHERE mission_status = 'completed'")['total'] ?? 0) : 0,'blocked'=>sf_aimx_ready() ? (int)(sf_admin_fetch_one("SELECT COUNT(*) total FROM ai_operation_missions WHERE mission_status = 'blocked'")['total'] ?? 0) : 0]; }
 function sf_aimx_next_item(int $missionId): ?array {
   if (!sf_aimx_ready() || !sf_aimx_actions_ready() || $missionId <= 0) return null;
   return sf_admin_fetch_one("SELECT i.*, a.approval_status, a.execution_status, a.action_type, a.risk_level, a.title FROM ai_operation_mission_items i INNER JOIN ai_platform_actions a ON a.id = i.platform_action_id WHERE i.mission_id = ? AND i.item_status IN ('pending','ready') AND a.approval_status = 'ready_for_execution' AND a.execution_status = 'ready' ORDER BY i.item_order ASC, i.id ASC LIMIT 1", [$missionId]);
 }
-function sf_aimx_remaining_count(int $missionId): int {
-  if (!sf_aimx_ready() || $missionId <= 0) return 0;
-  return (int)(sf_admin_fetch_one("SELECT COUNT(*) total FROM ai_operation_mission_items WHERE mission_id = ? AND item_status NOT IN ('completed','skipped')", [$missionId])['total'] ?? 0);
-}
-function sf_aimx_mark_mission_terminal_if_done(int $missionId): void {
-  if (sf_aimx_remaining_count($missionId) === 0) sf_admin_execute("UPDATE ai_operation_missions SET mission_status = 'completed', completed_at = NOW() WHERE id = ?", [$missionId]);
-}
+function sf_aimx_remaining_count(int $missionId): int { return sf_aimx_ready() && $missionId > 0 ? (int)(sf_admin_fetch_one("SELECT COUNT(*) total FROM ai_operation_mission_items WHERE mission_id = ? AND item_status NOT IN ('completed','skipped')", [$missionId])['total'] ?? 0) : 0; }
+function sf_aimx_blocked_item_count(int $missionId): int { return sf_aimx_ready() && $missionId > 0 ? (int)(sf_admin_fetch_one("SELECT COUNT(*) total FROM ai_operation_mission_items WHERE mission_id = ? AND item_status IN ('blocked','failed','running')", [$missionId])['total'] ?? 0) : 0; }
+function sf_aimx_mark_mission_terminal_if_done(int $missionId): void { if (sf_aimx_remaining_count($missionId) === 0) sf_admin_execute("UPDATE ai_operation_missions SET mission_status = 'completed', completed_at = NOW() WHERE id = ?", [$missionId]); }
+function sf_aimx_resume_if_unblocked(int $missionId): void { if (sf_aimx_remaining_count($missionId) > 0 && sf_aimx_blocked_item_count($missionId) === 0) sf_admin_execute("UPDATE ai_operation_missions SET mission_status = 'approved' WHERE id = ? AND mission_status = 'blocked'", [$missionId]); }
 function sf_aimx_item_message(array $result): string { return sf_aimx_text($result['message'] ?? '', 'Execution route finished.'); }
 
 if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST' && ($_POST['action'] ?? '') === 'run_next_item') {
   $missionId = sf_admin_int($_POST['mission_id'] ?? null, 0) ?? 0;
-  if (!sf_aimx_ready()) {
-    sf_admin_flash('error', 'Mission SQL is not ready. Import database/ai_operation_missions.sql first.');
-  } elseif (!sf_aimx_actions_ready() || !sf_aimx_logs_ready()) {
-    sf_admin_flash('error', 'AI action registry or execution log SQL is not ready.');
-  } elseif ($missionId <= 0) {
-    sf_admin_flash('error', 'Missing mission id.');
-  } else {
+  if (!sf_aimx_ready()) sf_admin_flash('error', 'Mission SQL is not ready. Import database/ai_operation_missions.sql first.');
+  elseif (!sf_aimx_actions_ready() || !sf_aimx_logs_ready()) sf_admin_flash('error', 'AI action registry or execution log SQL is not ready.');
+  elseif ($missionId <= 0) sf_admin_flash('error', 'Missing mission id.');
+  else {
     $mission = sf_admin_fetch_one('SELECT * FROM ai_operation_missions WHERE id = ? LIMIT 1', [$missionId]);
-    if (!$mission || !in_array((string)($mission['mission_status'] ?? ''), ['approved','in_progress'], true)) {
-      sf_admin_flash('error', 'Mission must be approved or in progress before execution.');
-    } else {
+    if (!$mission || !in_array((string)($mission['mission_status'] ?? ''), ['approved','in_progress'], true)) sf_admin_flash('error', 'Mission must be approved or in progress before execution.');
+    else {
       $item = sf_aimx_next_item($missionId);
-      if (!$item) {
-        sf_admin_flash('error', 'No executable mission item is ready. Approve an action card as ready_for_execution first.');
-      } else {
+      if (!$item) sf_admin_flash('error', 'No executable mission item is ready. Approve an action card as ready_for_execution first.');
+      else {
         $beforeItem = $item;
         sf_admin_execute("UPDATE ai_operation_missions SET mission_status = 'in_progress' WHERE id = ?", [$missionId]);
         sf_admin_execute("UPDATE ai_operation_mission_items SET item_status = 'running', last_result_message = 'Execution started.' WHERE id = ?", [(int)$item['id']]);
@@ -66,13 +48,8 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST' && ($_POST['action'] ?? '')
         sf_admin_execute('UPDATE ai_operation_mission_items SET item_status = ?, last_result_message = ? WHERE id = ?', [$itemStatus, $message, (int)$item['id']]);
         $afterItem = sf_admin_fetch_one('SELECT * FROM ai_operation_mission_items WHERE id = ? LIMIT 1', [(int)$item['id']]);
         sf_admin_audit('ai_mission_item_routed_execution', 'ai_operation_mission_item', (int)$item['id'], $beforeItem, $afterItem);
-        if ($itemStatus === 'completed') {
-          sf_aimx_mark_mission_terminal_if_done($missionId);
-          sf_admin_flash('success', $message);
-        } else {
-          if (!empty($item['stop_on_failure'])) sf_admin_execute("UPDATE ai_operation_missions SET mission_status = 'blocked' WHERE id = ?", [$missionId]);
-          sf_admin_flash('error', $message);
-        }
+        if ($itemStatus === 'completed') { sf_aimx_mark_mission_terminal_if_done($missionId); sf_admin_flash('success', $message); }
+        else { if (!empty($item['stop_on_failure'])) sf_admin_execute("UPDATE ai_operation_missions SET mission_status = 'blocked' WHERE id = ?", [$missionId]); sf_admin_flash('error', $message); }
       }
     }
   }
@@ -89,8 +66,8 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST' && ($_POST['action'] ?? '')
     else {
       $ok = sf_admin_execute("UPDATE ai_operation_mission_items SET item_status = 'skipped', last_result_message = 'Skipped manually by admin.' WHERE id = ? AND item_status NOT IN ('completed','running')", [$itemId]);
       $after = sf_admin_fetch_one('SELECT * FROM ai_operation_mission_items WHERE id = ? LIMIT 1', [$itemId]);
-      if ($ok) { sf_admin_audit('ai_mission_item_skipped', 'ai_operation_mission_item', $itemId, $before, $after); sf_aimx_mark_mission_terminal_if_done((int)$before['mission_id']); }
-      sf_admin_flash($ok ? 'success' : 'error', $ok ? 'Mission item skipped.' : 'Mission item could not be skipped.');
+      if ($ok) { sf_admin_audit('ai_mission_item_skipped', 'ai_operation_mission_item', $itemId, $before, $after); sf_aimx_mark_mission_terminal_if_done((int)$before['mission_id']); sf_aimx_resume_if_unblocked((int)$before['mission_id']); }
+      sf_admin_flash($ok ? 'success' : 'error', $ok ? 'Mission item skipped. Mission was resumed if no blocked items remain.' : 'Mission item could not be skipped.');
     }
   }
   sf_admin_redirect(sf_url('admin/ai-mission-execution.php'));
