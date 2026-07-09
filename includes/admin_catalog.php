@@ -75,6 +75,7 @@ function sf_admin_nav_groups(): array {
       'ai-script-production-pack' => ['AI Production Pack', 'admin/ai-script-production-pack.php'],
       'ai-script-shot-list' => ['AI Shot List', 'admin/ai-script-shot-list.php'],
       'ai-script-media-prep' => ['AI Media Prep Queue', 'admin/ai-script-media-prep.php'],
+      'ai-media-generation-queue' => ['AI Generation Queue', 'admin/ai-media-generation-queue.php'],
       'characters' => ['Characters', 'admin/characters.php'],
       'series-assets' => ['Series Assets', 'admin/series-assets.php'],
       'scene-backgrounds' => ['Scene Backgrounds', 'admin/scene-backgrounds.php'],
