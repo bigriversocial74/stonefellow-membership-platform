@@ -10,8 +10,8 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
   if (!sf_verify_csrf($_POST['csrf_token'] ?? null)) { sf_admin_flash('error', 'Security check failed. Refresh and try again.'); sf_admin_redirect('theme-preview.php'); }
   $action = (string)($_POST['action'] ?? '');
   $postThemeId = (int)($_POST['theme_id'] ?? 0);
-  if ($action === 'publish_theme' && $postThemeId) { sf_admin_flash(sf_theme_publish($postThemeId) ? 'success' : 'error', sf_theme_publish($postThemeId) ? 'Theme published as the official public theme.' : 'Theme could not be published.'); sf_admin_redirect('theme-preview.php?theme_id=' . $postThemeId); }
-  if ($action === 'unpublish_theme' && $postThemeId) { sf_admin_flash(sf_theme_unpublish($postThemeId) ? 'success' : 'error', 'Theme publication status updated.'); sf_admin_redirect('theme-preview.php?theme_id=' . $postThemeId); }
+  if ($action === 'publish_theme' && $postThemeId) { $ok = sf_theme_publish($postThemeId); sf_admin_flash($ok ? 'success' : 'error', $ok ? 'Theme published as the official public theme.' : 'Theme could not be published.'); sf_admin_redirect('theme-preview.php?theme_id=' . $postThemeId); }
+  if ($action === 'unpublish_theme' && $postThemeId) { $ok = sf_theme_unpublish($postThemeId); sf_admin_flash($ok ? 'success' : 'error', $ok ? 'Theme moved back to preview.' : 'Theme publication status could not be updated.'); sf_admin_redirect('theme-preview.php?theme_id=' . $postThemeId); }
 }
 
 $themeId = (int)($_GET['theme_id'] ?? 0);
