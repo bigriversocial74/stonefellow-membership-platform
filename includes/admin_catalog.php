@@ -53,6 +53,7 @@ function sf_admin_nav_groups(): array {
   return [
     'business' => ['label'=>'Membership / User / Business Data','short'=>'Business Data','items'=>[
       'index' => ['Admin Home', 'admin/index.php'],
+      'ai-platform-control' => ['AI Control Center', 'admin/ai-platform-control.php'],
       'members' => ['Members', 'admin/members.php'],
       'member-lifecycle' => ['Member Lifecycle', 'admin/member-lifecycle.php'],
       'support' => ['Support', 'admin/support.php'],
