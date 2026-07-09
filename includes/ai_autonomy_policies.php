@@ -50,4 +50,18 @@ function sf_ai_policy_upsert(array $data): bool {
   }
   return sf_admin_execute('INSERT INTO ai_autonomy_policies (policy_area, route_key, autonomy_level, requires_approval, is_blocked, risk_level, notes, created_by_user_id, updated_by_user_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)', [$data['policy_area'], $routeKey, $data['autonomy_level'], (int)$data['requires_approval'], (int)$data['is_blocked'], $data['risk_level'], $data['notes'], $userId, $userId]);
 }
+function sf_ai_policy_insert_missing(array $data): bool {
+  if (!sf_ai_policy_ready()) return false;
+  $routeKey = trim((string)($data['route_key'] ?? ''));
+  if ($routeKey === '') return false;
+  $existing = sf_admin_fetch_one('SELECT id FROM ai_autonomy_policies WHERE route_key = ? LIMIT 1', [$routeKey]);
+  if ($existing) return false;
+  $userId = function_exists('sf_current_user_id') ? sf_current_user_id() : null;
+  return sf_admin_execute('INSERT INTO ai_autonomy_policies (policy_area, route_key, autonomy_level, requires_approval, is_blocked, risk_level, notes, created_by_user_id, updated_by_user_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)', [$data['policy_area'], $routeKey, $data['autonomy_level'], (int)$data['requires_approval'], (int)$data['is_blocked'], $data['risk_level'], $data['notes'], $userId, $userId]);
+}
+function sf_ai_policy_seed_missing_defaults(array $routes): int {
+  $count = 0;
+  foreach ($routes as $key => $route) if (sf_ai_policy_insert_missing(sf_ai_policy_default_for_route((string)$key, is_array($route) ? $route : []))) $count++;
+  return $count;
+}
 ?>
