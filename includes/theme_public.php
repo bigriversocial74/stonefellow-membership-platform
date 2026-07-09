@@ -1,5 +1,54 @@
 <?php
-require_once __DIR__ . '/show_theme.php';
+require_once __DIR__ . '/db.php';
+require_once __DIR__ . '/auth.php';
+
+if (!function_exists('sf_theme_h')) {
+  function sf_theme_h($value): string { return htmlspecialchars((string)$value, ENT_QUOTES, 'UTF-8'); }
+}
+
+if (!function_exists('sf_theme_slug')) {
+  function sf_theme_slug(string $name): string { $slug = strtolower(trim(preg_replace('/[^a-z0-9]+/i', '-', $name) ?: 'theme', '-')); return $slug ?: 'theme'; }
+}
+
+if (!function_exists('sf_theme_db')) {
+  function sf_theme_db(): ?PDO { return sf_db(); }
+}
+
+if (!function_exists('sf_theme_table_exists')) {
+  function sf_theme_table_exists(string $table): bool { $pdo = sf_theme_db(); if (!$pdo) return false; try { $stmt = $pdo->prepare('SHOW TABLES LIKE ?'); $stmt->execute([$table]); return (bool)$stmt->fetchColumn(); } catch (Throwable $e) { error_log('Theme table check failed: ' . $e->getMessage()); return false; } }
+}
+
+if (!function_exists('sf_theme_ready')) {
+  function sf_theme_ready(): bool { return sf_theme_table_exists('show_themes') && sf_theme_table_exists('show_theme_images'); }
+}
+
+if (!function_exists('sf_theme_default_palette')) {
+  function sf_theme_default_palette(): array { return ['background'=>'#030302','panel'=>'#0b0907','accent'=>'#d6ad6c','accent_secondary'=>'#c79a52','text'=>'#ead8bc','muted'=>'#b09b79','border'=>'rgba(214,173,108,.18)']; }
+}
+
+if (!function_exists('sf_theme_find')) {
+  function sf_theme_find(int $id): ?array { if (!sf_theme_ready() || $id <= 0) return null; try { $stmt = sf_theme_db()->prepare('SELECT * FROM show_themes WHERE id=? LIMIT 1'); $stmt->execute([$id]); $row = $stmt->fetch(); return $row ?: null; } catch (Throwable $e) { return null; } }
+}
+
+if (!function_exists('sf_theme_active')) {
+  function sf_theme_active(): ?array { if (!sf_theme_ready()) return null; try { $row = sf_theme_db()->query('SELECT * FROM show_themes WHERE is_active = 1 ORDER BY id DESC LIMIT 1')->fetch(); return $row ?: null; } catch (Throwable $e) { return null; } }
+}
+
+if (!function_exists('sf_theme_images')) {
+  function sf_theme_images(int $themeId): array { if (!sf_theme_ready() || $themeId <= 0) return []; try { $stmt = sf_theme_db()->prepare('SELECT * FROM show_theme_images WHERE theme_id=? ORDER BY sort_order ASC, id ASC'); $stmt->execute([$themeId]); return $stmt->fetchAll() ?: []; } catch (Throwable $e) { return []; } }
+}
+
+if (!function_exists('sf_theme_image_by_key')) {
+  function sf_theme_image_by_key(int $themeId, string $imageKey): ?array { if (!sf_theme_ready() || $themeId <= 0 || trim($imageKey) === '') return null; try { $stmt = sf_theme_db()->prepare('SELECT * FROM show_theme_images WHERE theme_id=? AND image_key=? LIMIT 1'); $stmt->execute([$themeId, $imageKey]); $row = $stmt->fetch(); return $row ?: null; } catch (Throwable $e) { return null; } }
+}
+
+if (!function_exists('sf_theme_palette')) {
+  function sf_theme_palette(array $theme): array { $json = $theme['palette_json'] ?? ''; $data = is_string($json) ? json_decode($json, true) : (is_array($json) ? $json : []); return array_merge(sf_theme_default_palette(), is_array($data) ? $data : []); }
+}
+
+if (!function_exists('sf_theme_image_path')) {
+  function sf_theme_image_path(array $image, string $field): string { return trim((string)($image[$field] ?? '')); }
+}
 
 function sf_theme_published(): ?array { return sf_theme_active(); }
 
