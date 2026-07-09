@@ -97,6 +97,11 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST' && ($_POST['action'] ?? '')
     if (!in_array($risk, ['low','medium','high','critical'], true)) $risk = 'medium';
     $targetTable = sf_aipr_text($_POST['target_table'] ?? '', '');
     $targetId = (int)($_POST['target_id'] ?? 0);
+    $proposalKey = $route . '|' . $targetTable . '|' . $targetId . '|' . sf_aipr_payload_key($payload);
+    if (!empty(sf_aipr_existing_action_keys()[$proposalKey])) {
+      sf_admin_flash('error', 'An active readiness proposal already exists for this route, target, and payload.');
+      sf_admin_redirect(sf_url('admin/ai-publishing-readiness.php'));
+    }
     $title = sf_aipr_text($_POST['title'] ?? '', $routes[$route]['label'] ?? 'AI readiness proposal');
     $description = sf_aipr_text($_POST['description'] ?? '', $routes[$route]['description'] ?? 'Readiness proposal created by AI Publishing Readiness Manager.');
     $payload = $payload + ['source'=>'ai_publishing_readiness','created_from'=>'readiness_finding','created_at'=>date('c')];
