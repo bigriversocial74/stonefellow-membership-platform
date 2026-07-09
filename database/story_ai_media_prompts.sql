@@ -1,0 +1,21 @@
+CREATE TABLE IF NOT EXISTS story_ai_media_prompts (
+  id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  storyboard_id INT UNSIGNED NOT NULL,
+  story_season_id INT UNSIGNED NULL,
+  story_episode_id INT UNSIGNED NULL,
+  prompt_type VARCHAR(80) NOT NULL DEFAULT 'image',
+  prompt_title VARCHAR(190) NOT NULL,
+  prompt_body MEDIUMTEXT NOT NULL,
+  provider_hint VARCHAR(80) NULL,
+  aspect_ratio VARCHAR(40) NULL,
+  status ENUM('draft','needs_revision','approved','ready_for_generation') NOT NULL DEFAULT 'draft',
+  created_by_user_id INT UNSIGNED NULL,
+  approved_by_user_id INT UNSIGNED NULL,
+  approved_at DATETIME NULL,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  KEY idx_story_ai_media_prompts_storyboard (storyboard_id),
+  KEY idx_story_ai_media_prompts_episode (story_episode_id),
+  KEY idx_story_ai_media_prompts_status (status),
+  KEY idx_story_ai_media_prompts_type (prompt_type)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
