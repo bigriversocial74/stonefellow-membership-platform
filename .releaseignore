@@ -1,0 +1,13 @@
+.git/
+.github/
+.env*
+config/local.php
+config/license-ledger.php
+storage/private/
+storage/install.lock
+vendor-tools/
+tests/
+tools/
+docs/internal/
+*.log
+*.zip

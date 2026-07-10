@@ -73,6 +73,7 @@ function sf_admin_nav_groups(): array {
       'email-templates' => ['Email Templates', 'admin/email-templates.php'],
       'analytics' => ['Analytics', 'admin/analytics.php'],
       'settings' => ['Settings', 'admin/settings.php'],
+      'license' => ['Product License', 'admin/license.php'],
       'staging-activation' => ['Staging Activation', 'admin/staging-activation.php'],
     ]],
     'content' => ['label'=>'Content / Storyboarding / Characters','short'=>'Content + Story','items'=>[

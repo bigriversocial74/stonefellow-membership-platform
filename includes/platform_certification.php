@@ -7,6 +7,7 @@ require_once __DIR__.'/media_pipeline.php';
 require_once __DIR__.'/catalog_operations.php';
 require_once __DIR__.'/staging_activation.php';
 require_once __DIR__.'/production_cutover.php';
+require_once __DIR__.'/license.php';
 if(defined('SF_PLATFORM_CERTIFICATION_LOADED'))return;
 define('SF_PLATFORM_CERTIFICATION_LOADED',true);
 function sf_pc_root():string{return realpath(__DIR__.'/..')?:dirname(__DIR__);}
@@ -15,6 +16,9 @@ function sf_pc_has(string $path,array $markers=[]):bool{$body=sf_pc_file($path);
 function sf_pc_check(string $section,string $label,bool $ok,string $detail,string $url=''):array{return['section'=>$section,'label'=>$label,'status'=>$ok?'pass':'fail','detail'=>$detail,'url'=>$url];}
 function sf_pc_static_sections():array{return[
  'Core Platform & Security'=>[['tests/security_smoke.php',['Security smoke']],['tools/code-audit.php',['Runtime & configuration','Overall:']],['.github/workflows/code-audit.yml',['PHP syntax validation','Security smoke tests','Full static code audit']]],
+ 'Licensed Installer & Product Identity'=>[
+  ['install.php',['Licensed platform launcher','Server diagnostics are not displayed publicly']],['setup/index.php',['Product License Key','Technical server details remain hidden']],['includes/license.php',['sf_license_validate_offline','sf_license_validate_remote','sf_license_write_receipt']],
+  ['tests/licensed_installer_smoke.php',['Licensed installer and offline product license smoke: PASS']],['tools/licensed-installer-audit.php',['All ten licensed installer and product license sections score 10/10']],['docs/LICENSED_INSTALLER_SETUP_V1.md',['Final source/control score: **10/10**']]],
  'AI & Agentic Governance'=>[['tests/agentic_governance_smoke.php',['PASS']],['tools/agentic-audit.php',['Agentic']],['tests/ai_staging_certification_smoke.php',['PASS']],['tools/ai-staging-certification-audit.php',['certification']]],
  'Revenue, Membership & Media'=>[
   ['tests/revenue_membership_media_access_smoke.php',['PASS']],['tools/revenue-membership-media-access-audit.php',['Revenue']],['docs/REVENUE_MEMBERSHIP_MEDIA_ACCESS_AUDIT_V1.md',['10/10']],
@@ -44,6 +48,7 @@ function sf_pc_required_tables():array{return[
  'production_cutover_runs','production_cutover_checks','production_cutover_evidence','production_cutover_events','production_cutover_decisions','production_hypercare_checkpoints','production_hypercare_metrics','production_verification_certificates'];}
 function sf_pc_operational_checks():array{
  $checks=[];$production=sf_dor_env()==='production';$tables=[];foreach(sf_pc_required_tables()as$table)if(!sf_admin_table_exists($table))$tables[]=$table;$checks[]=sf_pc_check('Deployment','Certification, commerce, media, catalog, activation, and cutover SQL installed',!$tables,$tables?'Missing tables: '.implode(', ',$tables):'All certification, commerce, protected-media, catalog, activation, and production-cutover tables are installed.');
+ $license=sf_license_status();$licenseOk=!empty($license['ok']);$checks[]=sf_pc_check('License','Product license receipt and entitlement',$licenseOk,$licenseOk?'License '.($license['receipt']['license_id']??'').' is active for product '.($license['product']['product_id']??'').'.':(string)($license['message']??'No valid product license receipt.'),'admin/license.php');
  $commerce=sf_commerce_provider_summary();$checks[]=sf_pc_check('Commerce','Stripe Connect merchant account',!empty($commerce['checkout_ready']),!empty($commerce['checkout_ready'])?'Stripe connected account can accept charges and payouts.':'Stripe platform credentials, onboarding, charges, or payouts are incomplete.','admin/payment-gateways.php');
  $media=sf_mp_provider_summary();$mediaReady=!empty($media['schema_ready'])&&!empty($media['storage_ready'])&&!empty($media['ffmpeg_ready'])&&!empty($media['ffprobe_ready']);$checks[]=sf_pc_check('Media','Protected storage and processing runtime',$mediaReady,$mediaReady?'Protected storage, FFmpeg, and FFprobe are ready.':'Import migration 023 and configure writable storage plus FFmpeg/FFprobe.','admin/media-pipeline.php');
  $health=null;if(sf_admin_table_exists('media_storage_health_runs'))$health=sf_admin_fetch_one("SELECT * FROM media_storage_health_runs WHERE status='healthy' AND completed_at>=DATE_SUB(NOW(),INTERVAL 24 HOUR) ORDER BY completed_at DESC,id DESC LIMIT 1");$checks[]=sf_pc_check('Media','Fresh storage read/write/delete health evidence',$health!==null,$health?'Healthy storage run '.$health['run_key'].' completed at '.$health['completed_at'].'.':'No healthy storage read/write/delete run from the last 24 hours.','admin/media-pipeline.php');
@@ -61,5 +66,5 @@ function sf_pc_operational_checks():array{
  $shaOk=preg_match('/^[a-f0-9]{40}$/',$releaseSha)===1;$checks[]=sf_pc_check('Production','Exact deployed commit configured',!$production||$shaOk,$shaOk?'SF_RELEASE_COMMIT_SHA is configured.':($production?'Production requires the exact 40-character deployed commit.':'Configure the release SHA before production promotion.'));return$checks;
 }
 function sf_pc_operational_status(array $checks):string{$score=sf_pc_score($checks);if($score===100)return'operationally_certified';if($score>=70)return'evidence_in_progress';return'not_certified';}
-function sf_pc_summary():array{$static=sf_pc_static_checks();$operational=sf_pc_operational_checks();return['static_score'=>sf_pc_score($static),'static_sections'=>sf_pc_section_summary($static),'static_checks'=>$static,'operational_score'=>sf_pc_score($operational),'operational_status'=>sf_pc_operational_status($operational),'operational_checks'=>$operational,'latest_certificate'=>sf_slc_latest_passed(),'latest_activation'=>sf_sa_latest_passed(),'latest_candidate'=>sf_sa_latest_frozen_candidate(),'latest_promotion'=>sf_prod_latest_verified(),'latest_cutover'=>sf_pch_latest_completed(),'latest_production_certificate'=>sf_pch_latest_certificate()];}
+function sf_pc_summary():array{$static=sf_pc_static_checks();$operational=sf_pc_operational_checks();return['static_score'=>sf_pc_score($static),'static_sections'=>sf_pc_section_summary($static),'static_checks'=>$static,'operational_score'=>sf_pc_score($operational),'operational_status'=>sf_pc_operational_status($operational),'operational_checks'=>$operational,'license'=>sf_license_status(),'latest_certificate'=>sf_slc_latest_passed(),'latest_activation'=>sf_sa_latest_passed(),'latest_candidate'=>sf_sa_latest_frozen_candidate(),'latest_promotion'=>sf_prod_latest_verified(),'latest_cutover'=>sf_pch_latest_completed(),'latest_production_certificate'=>sf_pch_latest_certificate()];}
 ?>

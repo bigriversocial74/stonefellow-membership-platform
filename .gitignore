@@ -3,7 +3,10 @@
 .env.*
 !.env.example
 /config/local.php
+/config/license-ledger.php
 /storage/install.lock
+/storage/private/*
+!/storage/private/README.md
 
 # PHP dependencies / local tooling
 /vendor/
@@ -40,7 +43,7 @@ Thumbs.db
 *.bak
 *.sql.gz
 
-# Do not commit real secrets or production exports
+# Do not commit real secrets, licenses, or production exports
 *.pem
 *.key
 production-dump.sql

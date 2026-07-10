@@ -8,14 +8,14 @@ putenv('SF_HASH_SALT='.str_repeat('b',40));
 require_once __DIR__.'/../includes/platform_certification.php';
 $fail=[];$assert=static function(bool $ok,string $message)use(&$fail):void{if(!$ok)$fail[]=$message;};
 $sections=sf_pc_static_sections();$checks=sf_pc_static_checks();
-$assert(count($sections)===10,'Whole-platform source certification must contain ten cumulative sections.');
+$assert(count($sections)===11,'Whole-platform source certification must contain eleven cumulative sections, including licensed installation.');
 $assert(count($checks)>=30,'Whole-platform certification should verify all prior phase artifacts.');
 $assert(sf_pc_score($checks)===100,'All committed source certification artifacts must score 100%.');
 $summary=sf_pc_section_summary($checks);foreach($summary as $section)$assert((int)$section['score']===100,$section['section'].' must score 100%.');
-$operational=sf_pc_operational_checks();$assert(count($operational)>=8,'Operational certification should cover SQL, AI, staging, scenarios, production, backup, release, and commit.');
+$operational=sf_pc_operational_checks();$assert(count($operational)>=8,'Operational certification should cover license, SQL, AI, staging, scenarios, production, backup, release, and commit.');
 $assert(in_array(sf_pc_operational_status($operational),['operationally_certified','evidence_in_progress','not_certified'],true),'Operational status must be bounded.');
 $root=dirname(__DIR__);$markers=[
- 'includes/platform_certification.php'=>['sf_pc_static_sections','sf_pc_operational_checks','operationally_certified','sf_prod_latest_verified'],
+ 'includes/platform_certification.php'=>['sf_pc_static_sections','sf_pc_operational_checks','operationally_certified','sf_prod_latest_verified','Product license receipt and entitlement'],
  'admin/platform-certification.php'=>['Source / CI Score','Operational Score','Certification Boundary','Run Preflight'],
  'admin/operations-recovery.php'=>['admin/platform-certification.php','Certification'],
  'deploy/preflight.php'=>['Whole Platform Source Certification Score','Source certification is 10/10'],
