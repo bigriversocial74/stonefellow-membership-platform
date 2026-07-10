@@ -19,9 +19,13 @@ jobs:
         run: php tests/agentic_governance_smoke.php
       - name: AI staging certification smoke tests
         run: php tests/ai_staging_certification_smoke.php
+      - name: Revenue membership media access smoke tests
+        run: php tests/revenue_membership_media_access_smoke.php
       - name: Full static code audit
         run: php tools/code-audit.php
       - name: Agentic integration audit
         run: php tools/agentic-audit.php
       - name: AI staging certification audit
         run: php tools/ai-staging-certification-audit.php
+      - name: Revenue membership media access audit
+        run: php tools/revenue-membership-media-access-audit.php
