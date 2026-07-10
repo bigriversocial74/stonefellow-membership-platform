@@ -1,18 +1,2 @@
 <?php
-require __DIR__ . '/includes/media_delivery.php';
-
-$result = sf_media_resolve_request($_GET);
-if (!$result['ok']) {
-  $code = ($result['error'] ?? '') === 'access_denied' ? 403 : 404;
-  if (in_array(($result['error'] ?? ''), ['invalid_or_expired_token','invalid_signature'], true)) {
-    $code = 401;
-  }
-  http_response_code($code);
-  header('Content-Type: text/plain; charset=utf-8');
-  echo 'Stonefellow media unavailable: ' . ($result['error'] ?? 'unknown_error');
-  exit;
-}
-
-$payload = $result['payload'];
-$file = $result['file'];
-sf_media_serve_file($result['path'], (string)($file['mime_type'] ?? 'application/octet-stream'), ($payload['d'] ?? 'stream') === 'download' ? 'download' : 'inline');
+require __DIR__.'/includes/media_delivery.php';require_once __DIR__.'/includes/revenue_access_governance.php';if(!sf_revenue_media_signing_ready()){http_response_code(503);header('Content-Type: text/plain; charset=utf-8');echo'Stonefellow media signing is not configured.';exit;}$validation=sf_media_validate_token($_GET);if(empty($validation['ok'])){$error=(string)($validation['error']??'invalid_token');http_response_code(in_array($error,['invalid_or_expired_token','invalid_signature'],true)?401:404);echo'Stonefellow media unavailable: '.$error;exit;}$tokenUser=(int)($validation['payload']['uid']??0);$current=sf_current_user_id();if($tokenUser>0&&$tokenUser!==$current){http_response_code(401);echo'Stonefellow media unavailable: token_user_mismatch';exit;}$result=sf_media_resolve_request($_GET);if(empty($result['ok'])){$error=(string)($result['error']??'unknown_error');http_response_code($error==='access_denied'?403:404);echo'Stonefellow media unavailable: '.$error;exit;}$file=$result['file'];sf_media_serve_file($result['path'],(string)($file['mime_type']??'application/octet-stream'),($result['payload']['d']??'stream')==='download'?'download':'inline');
