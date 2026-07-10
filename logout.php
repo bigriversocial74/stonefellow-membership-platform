@@ -1,3 +1,3 @@
 <?php
-require __DIR__ . '/includes/auth.php';
-sf_auth_logout(true);
+require __DIR__ . '/includes/auth_logout_hardening.php';
+sf_auth_secure_logout();
