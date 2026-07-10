@@ -11,14 +11,21 @@ jobs:
       - uses: shivammathur/setup-php@v2
         with:
           php-version: '8.2'
-      - name: PHP syntax validation
+      - name: PHP syntax - launch certification
+        run: php -l includes/staging_launch_certification.php && php -l admin/staging-launch-certification.php && php -l deploy/preflight.php && php -l tests/staging_launch_certification_smoke.php && php -l tools/staging-launch-certification-audit.php
+      - name: PHP syntax - delivery phase
+        run: php -l includes/delivery_integrity.php && php -l includes/notifications.php && php -l includes/ops_scheduler_messaging.php && php -l admin/email-templates.php && php -l admin/member-messaging.php && php -l admin/notifications.php && php -l admin/ops-scheduler.php && php -l api/member-notices.php && php -l api/notification-webhook.php && php -l api/ops-scheduler.php && php -l tests/delivery_integrity_smoke.php && php -l tools/delivery-integrity-audit.php
+      - name: PHP syntax - remaining repository
         shell: bash
         run: |
           set -euo pipefail
           while IFS= read -r -d '' file; do
+            case "$file" in
+              ./includes/staging_launch_certification.php|./admin/staging-launch-certification.php|./deploy/preflight.php|./tests/staging_launch_certification_smoke.php|./tools/staging-launch-certification-audit.php|./includes/delivery_integrity.php|./includes/notifications.php|./includes/ops_scheduler_messaging.php|./admin/email-templates.php|./admin/member-messaging.php|./admin/notifications.php|./admin/ops-scheduler.php|./api/member-notices.php|./api/notification-webhook.php|./api/ops-scheduler.php|./tests/delivery_integrity_smoke.php|./tools/delivery-integrity-audit.php) continue ;;
+            esac
             php -l "$file" >/dev/null || { php -l "$file"; exit 1; }
           done < <(find . -type f -name '*.php' -not -path './vendor/*' -print0)
-          echo "All PHP files passed syntax validation."
+          echo "Remaining PHP files passed syntax validation."
       - name: Security smoke tests
         run: php tests/security_smoke.php
       - name: Agentic governance smoke tests
