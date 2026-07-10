@@ -20,8 +20,9 @@ function sf_frontend_canonical_url(): string
     $path = parse_url($uri, PHP_URL_PATH) ?: '/';
     $allowed = [];
     foreach ($_GET as $key => $value) {
-        if (in_array((string)$key, ['page', 'season', 'album', 'song', 'episode', 'product', 'q'], true) && is_scalar($value)) {
-            $allowed[(string)$key] = mb_substr((string)$value, 0, 120);
+        if (in_array((string)$key, ['page', 'season', 'album', 'song', 'episode', 'product', 'slug', 'q'], true) && is_scalar($value)) {
+            $raw = (string)$value;
+            $allowed[(string)$key] = function_exists('mb_substr') ? mb_substr($raw, 0, 120) : substr($raw, 0, 120);
         }
     }
     return sf_frontend_absolute_url(ltrim($path, '/')) . ($allowed ? '?' . http_build_query($allowed) : '');
