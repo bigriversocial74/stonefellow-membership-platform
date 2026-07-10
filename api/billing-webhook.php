@@ -27,14 +27,14 @@ if($secret==='') {
     if(!preg_match('/^[a-f0-9]{64}$/i',$provided) || !hash_equals($expected,$provided)) sf_json_response(['ok'=>false,'error'=>'invalid_signature'],401);
 }
 
-$provider=substr(strtolower(trim((string)($payload['provider] ?? sf_billing_provider())),0,80);
+$provider=substr(strtolower(trim((string)($payload['provider'] ?? sf_billing_provider()))),0,80);
 $eventId=substr(trim((string)($payload['id'] ?? $payload['event_id'] ?? '')),0,190);
 $eventType=substr(trim((string)($payload['type'] ?? $payload['event_type'] ?? 'unknown')),0,120);
 if($eventId==='') $eventId=hash('sha256',$provider.'|'.$eventType.'|'.$raw);
 $status='received';$error=null;$processedAt=null;
 
 try {
-    $stmt=$pdo->prepare("INSERT IGNORE INTO billing_webhook_events (provider,provider_event_id,event_type,status,payload_json) VALUES (?,?,?,'received',?)");
+    $stmt=$pdo->prepare("INSERT IGNORE INTO billing_webhook_events (provider, provider_event_id, event_type, status, payload_json) VALUES (?, ?, ?, 'received', ?)");
     $stmt->execute([$provider,$eventId,$eventType,json_encode($payload,JSON_UNESCAPED_SLASHES)]);
     if($stmt->rowCount()===0) sf_json_response(['ok'=>true,'status'=>'duplicate','event_type'=>$eventType]);
 
@@ -55,9 +55,7 @@ try {
         $subscriptionRef=(string)($payload['subscription_id'] ?? $payload['data']['subscription_id'] ?? $payload['data']['object']['id'] ?? '');
         if($subscriptionRef!=='' && sf_billing_table_exists('user_subscriptions')) {
             $subscriptionRow=null;
-            try{$lookup=$pdo->prepare('SELECT * FROM user_subscriptions WHERE external_subscription_id=? OR provider_subscription_id=? LIMIT 1');
-lookup->execute([$subscriptionRef,$subscriptionRef]);
-$subscriptionRow=$lookup->fetch() ?: null;}catch(Throwable $ignore){}
+            try{$lookup=$pdo->prepare('SELECT * FROM user_subscriptions WHERE external_subscription_id=? OR provider_subscription_id=? LIMIT 1');$lookup->execute([$subscriptionRef,$subscriptionRef]);$subscriptionRow=$lookup->fetch() ?: null;}catch(Throwable $ignore){}
             $pdo->prepare("UPDATE user_subscriptions SET status='canceled', canceled_at=NOW(), updated_at=NOW() WHERE external_subscription_id=? OR provider_subscription_id=?")->execute([$subscriptionRef,$subscriptionRef]);
             if($subscriptionRow && !empty($subscriptionRow['user_id'])){$recipient=sf_notify_user_recipient((int)$subscriptionRow['user_id']);if($recipient)sf_notify_send_template('subscription_canceled',$recipient,['subscription_status'=>'canceled','period_end'=>(string)($subscriptionRow['current_period_end'] ?? '')],['notification_type'=>'billing','metadata'=>['event'=>'webhook_subscription_canceled','subscription_ref'=>$subscriptionRef],'dispatch'=>true]);}
             $status='processed';

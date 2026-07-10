@@ -110,7 +110,7 @@ function sf_runtime_guard_public_auth(): void
     }
     if ($page === 'signin.php') {
         $email=strtolower(trim((string)($_POST['email'] ?? '')));
-        $limit=sf_security_session_rate_limit('signin|'.$email.'|'.($_SERVER['REMOTE_ADDS'] ?? ''),20,900);
+        $limit=sf_security_session_rate_limit('signin|'.$email.'|'.($_SERVER['REMOTE_ADDR'] ?? ''),20,900);
         if (!$limit['allowed']) { header('Retry-After: '.(int)$limit['retry_after']); sf_runtime_guard_abort(429,'Too many sign-in attempts. Try again later.'); }
         $pdo=sf_runtime_guard_pdo();
         if ($pdo) {
