@@ -7,6 +7,11 @@ $sfHeaderUser = sf_auth_user();
 $sfPageClass = (string)($pageClass ?? '');
 $sfIsAdminSurface = strpos($sfPageClass, 'admin-catalog-page') !== false || strpos(str_replace('\\', '/', dirname($_SERVER['SCRIPT_NAME'] ?? '')), '/admin') !== false;
 $sfIsAdminUser = $sfHeaderUser && (($sfHeaderUser['role'] ?? '') === 'admin');
+if ($sfIsAdminSurface && sf_db() instanceof PDO) {
+  if (!$sfIsAdminUser) sf_require_admin();
+  require_once __DIR__ . '/admin_security.php';
+  sf_sec_route_guard();
+}
 $sfIsCustomerSurface = $sfHeaderUser && !$sfIsAdminSurface && strpos($sfPageClass, 'membership-page') !== false;
 $sfPublicNav = [
   ['label' => 'Home', 'href' => 'index.php', 'pages' => ['index.php']],

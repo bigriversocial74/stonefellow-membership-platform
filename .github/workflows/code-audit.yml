@@ -25,6 +25,8 @@ jobs:
         run: php tests/data_ops_recovery_smoke.php
       - name: Frontend accessibility performance smoke tests
         run: php tests/frontend_quality_smoke.php
+      - name: Authentication privacy abuse smoke tests
+        run: php tests/auth_privacy_abuse_smoke.php
       - name: Full static code audit
         run: php tools/code-audit.php
       - name: Agentic integration audit
@@ -37,3 +39,5 @@ jobs:
         run: php tools/data-ops-recovery-audit.php
       - name: Frontend accessibility performance audit
         run: php tools/frontend-quality-audit.php
+      - name: Authentication privacy abuse audit
+        run: php tools/auth-privacy-abuse-audit.php
