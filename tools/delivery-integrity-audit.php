@@ -10,7 +10,7 @@ $sections=[
  ],
  'Queue idempotency'=>[
   ['includes/delivery_integrity.php',['sf_delivery_idempotency_key','idempotency_key']],
-  ['includes/notifications.php',['JSON_EXTRACT(metadata_json','sf_notify_log','status<>'canceled'']],
+  ['includes/notifications.php',['JSON_EXTRACT(metadata_json','sf_notify_log',"status<>'canceled'"]],
   ['includes/ops_scheduler_messaging.php',['campaign-','recipient-','sf_msg_create_member_message']],
  ],
  'Queue locking and leases'=>[
@@ -29,7 +29,7 @@ $sections=[
   ['includes/ops_scheduler_messaging.php',['honors_preferences','preferenceKey','preference-skipped']],
  ],
  'Scheduler correctness'=>[
-  ['includes/ops_scheduler_messaging.php',['frequency<>'manual'','sf_sched_next_run','Job is already running','run lease']],
+  ['includes/ops_scheduler_messaging.php',["frequency<>'manual'",'sf_sched_next_run','Job is already running','run lease']],
   ['admin/ops-scheduler.php',['Manual-frequency jobs are never automatically due','exclusive lease']],
   ['api/ops-scheduler.php',['SF_OPS_SCHEDULER_SECRET','hash_equals','run_due']],
  ],
@@ -44,7 +44,7 @@ $sections=[
   ['.env.example',['SF_NOTIFICATION_WEBHOOK_MAX_BYTES=262144','SF_NOTIFICATION_WEBHOOK_SECRET=']],
  ],
  'Admin/operator safeguards'=>[
-  ['admin/notifications.php',['confirm(','masked','Dispatch complete','Test notification failed']],
+  ['admin/notifications.php',['confirm(','sf_delivery_mask_email','Dispatch complete','Test notification failed']],
   ['admin/member-messaging.php',['confirm(','Sent or archived campaigns cannot be sent again']],
   ['admin/ops-scheduler.php',['confirm(','Job was rejected','Due jobs:']],
  ],
