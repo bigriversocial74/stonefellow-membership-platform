@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 require_once __DIR__ . '/production_launch.php';
+require_once __DIR__ . '/live_commerce.php';
 
 if (defined('SF_PLATFORM_CERTIFICATION_LOADED')) return;
 define('SF_PLATFORM_CERTIFICATION_LOADED', true);
@@ -29,6 +30,9 @@ function sf_pc_static_sections(): array {
         ['tests/revenue_membership_media_access_smoke.php',['PASS']],
         ['tools/revenue-membership-media-access-audit.php',['Revenue']],
         ['docs/REVENUE_MEMBERSHIP_MEDIA_ACCESS_AUDIT_V1.md',['10/10']],
+        ['tests/live_commerce_stripe_connect_smoke.php',['Live commerce']],
+        ['tools/live-commerce-stripe-connect-audit.php',['Stripe Connect','all ten sections score 10/10']],
+        ['docs/LIVE_COMMERCE_STRIPE_CONNECT_V1.md',['Final static score: 10/10']],
       ],
       'Data, Operations & Recovery'=>[
         ['tests/data_ops_recovery_smoke.php',['PASS']],
@@ -77,10 +81,11 @@ function sf_pc_score(array $checks): int { if(!$checks)return 0;$passed=count(ar
 function sf_pc_section_summary(array $checks): array { $out=[];foreach($checks as $check){$section=$check['section'];$out[$section]['section']=$section;$out[$section]['checks'][]=$check;}foreach($out as &$section){$section['total']=count($section['checks']);$section['passed']=count(array_filter($section['checks'],static fn($c)=>$c['status']==='pass'));$section['failed']=$section['total']-$section['passed'];$section['score']=$section['total']?(int)round($section['passed']/$section['total']*100):0;}unset($section);return array_values($out); }
 
 function sf_pc_required_tables(): array {
-    return ['ai_staging_certification_runs','staging_launch_certification_runs','staging_launch_certification_checks','staging_launch_certification_evidence','staging_integration_executions','staging_integration_assertions','staging_integration_events','production_launch_promotions','production_launch_approvals','production_launch_checks','production_launch_events'];
+    return ['ai_staging_certification_runs','staging_launch_certification_runs','staging_launch_certification_checks','staging_launch_certification_evidence','staging_integration_executions','staging_integration_assertions','staging_integration_events','production_launch_promotions','production_launch_approvals','production_launch_checks','production_launch_events','commerce_merchants','merchant_payment_accounts','merch_checkouts','inventory_reservations'];
 }
 function sf_pc_operational_checks(): array {
-    $checks=[];$production=sf_dor_env()==='production';$tables=[];foreach(sf_pc_required_tables() as $table)if(!sf_admin_table_exists($table))$tables[]=$table;$checks[]=sf_pc_check('Deployment','Certification SQL installed',!$tables,$tables?'Missing tables: '.implode(', ',$tables):'All certification and promotion tables are installed.');
+    $checks=[];$production=sf_dor_env()==='production';$tables=[];foreach(sf_pc_required_tables() as $table)if(!sf_admin_table_exists($table))$tables[]=$table;$checks[]=sf_pc_check('Deployment','Certification and commerce SQL installed',!$tables,$tables?'Missing tables: '.implode(', ',$tables):'All certification, promotion, and commerce tables are installed.');
+    $commerce=sf_commerce_provider_summary();$checks[]=sf_pc_check('Commerce','Stripe Connect merchant account',!empty($commerce['checkout_ready']),!empty($commerce['checkout_ready'])?'Stripe connected account can accept charges and payouts.':'Stripe platform credentials, onboarding, charges, or payouts are incomplete.','admin/payment-gateways.php');
     $ai=null;if(sf_admin_table_exists('ai_staging_certification_runs'))$ai=sf_admin_fetch_one("SELECT * FROM ai_staging_certification_runs WHERE run_status='passed' AND overall_score=100 ORDER BY completed_at DESC,id DESC LIMIT 1");$checks[]=sf_pc_check('AI','AI staging certification',$ai!==null,$ai?'100% AI staging certificate is available.':'No 100% AI staging certificate exists.','admin/ai-staging-certification.php');
     $slc=sf_slc_latest_passed();$checks[]=sf_pc_check('Staging','Launch certification',$slc!==null,$slc?'Passed launch certificate for '.$slc['target_commit_sha'].'.':'No 100% staging launch certificate exists.','admin/staging-launch-certification.php');
     $coverage=$slc?sf_prod_scenario_coverage((int)$slc['id']):['ok'=>false,'missing'=>array_keys(sf_sim_catalog()),'passed'=>[],'required'=>array_keys(sf_sim_catalog())];$checks[]=sf_pc_check('Staging','Integration scenario matrix',!empty($coverage['ok']),!empty($coverage['ok'])?count($coverage['passed']).' required scenarios passed.':'Missing passed scenarios: '.implode(', ',array_slice($coverage['missing'],0,6)).'.','admin/staging-integration-matrix.php');
