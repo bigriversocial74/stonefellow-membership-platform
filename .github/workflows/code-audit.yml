@@ -1,0 +1,19 @@
+name: Stonefellow Code Audit
+on:
+  pull_request:
+  push:
+    branches: [main]
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+      - name: PHP syntax validation
+        run: find . -type f -name '*.php' -not -path './vendor/*' -print0 | xargs -0 -n1 php -l
+      - name: Security smoke tests
+        run: php tests/security_smoke.php
+      - name: Full static code audit
+        run: php tools/code-audit.php
