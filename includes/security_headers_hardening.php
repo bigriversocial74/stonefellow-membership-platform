@@ -19,8 +19,8 @@ function sf_security_content_policy(): string
         "frame-src 'self' https://www.youtube.com https://youtube.com https://www.youtube-nocookie.com",
         "manifest-src 'self'",
         "worker-src 'self' blob:",
-        "upgrade-insecure-requests",
     ];
+    if (function_exists('sf_is_production') && sf_is_production()) $directives[] = 'upgrade-insecure-requests';
     return implode('; ', $directives);
 }
 
@@ -32,5 +32,4 @@ function sf_security_send_hardened_headers(): void
     header(($reportOnly ? 'Content-Security-Policy-Report-Only: ' : 'Content-Security-Policy: ') . $policy);
     header('Cross-Origin-Resource-Policy: same-site');
     header('Origin-Agent-Cluster: ?1');
-    header('Cache-Control: no-store, private', false);
 }
