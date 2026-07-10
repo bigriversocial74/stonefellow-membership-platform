@@ -27,6 +27,8 @@ jobs:
         run: php tests/frontend_quality_smoke.php
       - name: Authentication privacy abuse smoke tests
         run: php tests/auth_privacy_abuse_smoke.php
+      - name: Content publishing search moderation smoke tests
+        run: php tests/content_integrity_smoke.php
       - name: Full static code audit
         run: php tools/code-audit.php
       - name: Agentic integration audit
@@ -41,3 +43,5 @@ jobs:
         run: php tools/frontend-quality-audit.php
       - name: Authentication privacy abuse audit
         run: php tools/auth-privacy-abuse-audit.php
+      - name: Content publishing search moderation audit
+        run: php tools/content-integrity-audit.php

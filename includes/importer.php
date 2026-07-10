@@ -1,115 +1,68 @@
 <?php
 require_once __DIR__ . '/admin_catalog.php';
+require_once __DIR__ . '/content_integrity.php';
 
-function sf_importer_tables_ready(): bool {
-  return sf_admin_db_ready() && sf_admin_table_exists('content_import_batches') && sf_admin_table_exists('content_import_rows');
-}
-
-function sf_importer_configs(): array {
-  return [
-    'media_asset'=>['label'=>'Media Assets','table'=>'media_assets','unique'=>['file_path'],'required'=>['title','file_path','file_type'],'defaults'=>['file_type'=>'image']],
-    'product_category'=>['label'=>'Product Categories','table'=>'product_categories','unique'=>['slug'],'required'=>['name','slug'],'defaults'=>['status'=>'active','sort_order'=>0]],
-    'album'=>['label'=>'Albums','table'=>'albums','unique'=>['slug'],'required'=>['title','slug'],'defaults'=>['artist'=>'Stonefellow','status'=>'published']],
-    'episode'=>['label'=>'Episodes','table'=>'episodes','unique'=>['slug'],'required'=>['title','slug','episode_number'],'defaults'=>['season_number'=>1,'status'=>'published']],
-    'song'=>['label'=>'Songs','table'=>'songs','unique'=>['slug'],'required'=>['title','slug'],'defaults'=>['artist'=>'Stonefellow','access_level'=>'subscriber','status'=>'published'],'relations'=>['album_slug'=>['albums','slug','album_id']]],
-    'song_file'=>['label'=>'Song Files','table'=>'song_files','unique'=>['song_id','file_type','file_path'],'required'=>['song_id','file_type','file_path'],'defaults'=>['file_type'=>'preview','mime_type'=>'audio/wav','is_primary'=>1],'relations'=>['song_slug'=>['songs','slug','song_id']]],
-    'video'=>['label'=>'Videos','table'=>'videos','unique'=>['slug'],'required'=>['title','slug'],'defaults'=>['video_type'=>'episode','access_level'=>'subscriber','status'=>'published'],'relations'=>['episode_slug'=>['episodes','slug','episode_id']]],
-    'video_file'=>['label'=>'Video Files','table'=>'video_files','unique'=>['video_id','file_type','file_path'],'required'=>['video_id','file_type','file_path'],'defaults'=>['file_type'=>'stream','mime_type'=>'video/mp4','is_primary'=>1],'relations'=>['video_slug'=>['videos','slug','video_id']]],
-    'subscription_plan'=>['label'=>'Subscription Plans','table'=>'subscription_plans','unique'=>['slug'],'required'=>['name','slug','price_cents','billing_interval'],'defaults'=>['billing_interval'=>'month','status'=>'active'],'money'=>['price'=>'price_cents']],
-    'product'=>['label'=>'Merch Products','table'=>'products','unique'=>['slug'],'required'=>['name','slug','price_cents'],'defaults'=>['product_type'=>'physical','access_level'=>'public','status'=>'active','inventory_quantity'=>0],'money'=>['price'=>'price_cents','compare_at_price'=>'compare_at_price_cents'],'relations'=>['category_slug'=>['product_categories','slug','category_id'],'category_name'=>['product_categories','name','category_id']]],
-    'product_variant'=>['label'=>'Product Variants','table'=>'product_variants','unique'=>['product_id','variant_name'],'required'=>['product_id','variant_name'],'defaults'=>['status'=>'active','inventory_quantity'=>0],'money'=>['price'=>'price_cents'],'relations'=>['product_slug'=>['products','slug','product_id']]],
-  ];
-}
-
-function sf_importer_types(): array { return array_map(fn($c)=>$c['label'], sf_importer_configs()); }
-function sf_importer_config(string $type): ?array { $c=sf_importer_configs(); return $c[$type]??null; }
-function sf_importer_key(string $key): string { return strtolower(trim(preg_replace('/[^a-zA-Z0-9_]+/','_',$key),'_')); }
-function sf_importer_price($value): int { $v=preg_replace('/[^0-9.\-]/','',(string)$value); return (int)round(((float)$v)*100); }
+function sf_importer_tables_ready(): bool { return sf_admin_db_ready()&&sf_admin_table_exists('content_import_batches')&&sf_admin_table_exists('content_import_rows'); }
+function sf_importer_configs(): array { return [
+  'media_asset'=>['label'=>'Media Assets','table'=>'media_assets','unique'=>['file_path'],'required'=>['title','file_path','file_type'],'defaults'=>['file_type'=>'image']],
+  'product_category'=>['label'=>'Product Categories','table'=>'product_categories','unique'=>['slug'],'required'=>['name','slug'],'defaults'=>['status'=>'inactive','sort_order'=>0]],
+  'album'=>['label'=>'Albums','table'=>'albums','unique'=>['slug'],'required'=>['title','slug'],'defaults'=>['artist'=>'Stonefellow','status'=>'draft']],
+  'episode'=>['label'=>'Episodes','table'=>'episodes','unique'=>['slug'],'required'=>['title','slug','episode_number'],'defaults'=>['season_number'=>1,'status'=>'draft']],
+  'song'=>['label'=>'Songs','table'=>'songs','unique'=>['slug'],'required'=>['title','slug'],'defaults'=>['artist'=>'Stonefellow','access_level'=>'subscriber','status'=>'draft'],'relations'=>['album_slug'=>['albums','slug','album_id']]],
+  'song_file'=>['label'=>'Song Files','table'=>'song_files','unique'=>['song_id','file_type','file_path'],'required'=>['song_id','file_type','file_path'],'defaults'=>['file_type'=>'preview','mime_type'=>'audio/mpeg','is_primary'=>0],'relations'=>['song_slug'=>['songs','slug','song_id']]],
+  'video'=>['label'=>'Videos','table'=>'videos','unique'=>['slug'],'required'=>['title','slug'],'defaults'=>['video_type'=>'episode','access_level'=>'subscriber','status'=>'draft'],'relations'=>['episode_slug'=>['episodes','slug','episode_id']]],
+  'video_file'=>['label'=>'Video Files','table'=>'video_files','unique'=>['video_id','file_type','file_path'],'required'=>['video_id','file_type','file_path'],'defaults'=>['file_type'=>'stream','mime_type'=>'video/mp4','is_primary'=>0],'relations'=>['video_slug'=>['videos','slug','video_id']]],
+  'subscription_plan'=>['label'=>'Subscription Plans','table'=>'subscription_plans','unique'=>['slug'],'required'=>['name','slug','price_cents','billing_interval'],'defaults'=>['billing_interval'=>'month','status'=>'inactive'],'money'=>['price'=>'price_cents']],
+  'product'=>['label'=>'Merch Products','table'=>'products','unique'=>['slug'],'required'=>['name','slug','price_cents'],'defaults'=>['product_type'=>'physical','access_level'=>'public','status'=>'draft','inventory_quantity'=>0],'money'=>['price'=>'price_cents','compare_at_price'=>'compare_at_price_cents'],'relations'=>['category_slug'=>['product_categories','slug','category_id'],'category_name'=>['product_categories','name','category_id']]],
+  'product_variant'=>['label'=>'Product Variants','table'=>'product_variants','unique'=>['product_id','variant_name'],'required'=>['product_id','variant_name'],'defaults'=>['status'=>'inactive','inventory_quantity'=>0],'money'=>['price'=>'price_cents'],'relations'=>['product_slug'=>['products','slug','product_id']]],
+]; }
+function sf_importer_types(): array { return array_map(fn($c)=>$c['label'],sf_importer_configs()); }
+function sf_importer_config(string $type): ?array { $c=sf_importer_configs();return $c[$type]??null; }
+function sf_importer_key(string $key): string { return strtolower(trim(preg_replace('/[^a-zA-Z0-9_]+/','_',$key)??'','_')); }
+function sf_importer_price($value): int { $v=preg_replace('/[^0-9.\-]/','',(string)$value);$amount=(float)$v;if(!is_finite($amount)||$amount<0||$amount>1000000)throw new InvalidArgumentException('Money value is outside the allowed range.');return (int)round($amount*100); }
 function sf_importer_bool($value): int { return in_array(strtolower(trim((string)$value)),['1','yes','true','on','active','published','featured'],true)?1:0; }
-
-function sf_importer_find_id(string $table,string $column,$value): ?int {
-  if (!sf_admin_table_exists($table) || trim((string)$value)==='') return null;
-  $row=sf_admin_fetch_one('SELECT id FROM `'.str_replace('`','',$table).'` WHERE `'.str_replace('`','',$column).'`=? LIMIT 1',[$value]);
-  return $row?(int)$row['id']:null;
-}
-
+function sf_importer_find_id(string $table,string $column,$value): ?int { if(!sf_admin_table_exists($table)||trim((string)$value)==='')return null;$row=sf_admin_fetch_one('SELECT id FROM `'.sf_content_identifier($table).'` WHERE `'.sf_content_identifier($column).'`=? LIMIT 1',[$value]);return $row?(int)$row['id']:null; }
+function sf_importer_value($value,string $key){ if(is_array($value)||is_object($value))return json_encode($value,JSON_UNESCAPED_SLASHES|JSON_UNESCAPED_UNICODE);if(is_string($value)){ $max=preg_match('/(body|description|excerpt|metadata_json|_json)$/',$key)?20000:1000;return sf_content_clean_text($value,$max);}return $value; }
 function sf_importer_normalize(string $type,array $row,int $num=1): array {
-  $config=sf_importer_config($type); if(!$config) return ['ok'=>false,'errors'=>['Unsupported type'],'payload'=>[],'source'=>$row,'row_number'=>$num,'unique_key'=>''];
-  $clean=[]; foreach($row as $k=>$v){$clean[sf_importer_key((string)$k)]=is_string($v)?trim($v):$v;}
-  $payload=array_merge($config['defaults']??[],$clean);
-  foreach(($config['money']??[]) as $from=>$to){ if(isset($payload[$from]) && !isset($payload[$to])) $payload[$to]=sf_importer_price($payload[$from]); }
-  if(empty($payload['slug']) && !empty($payload['title'])) $payload['slug']=sf_admin_slugify((string)$payload['title']);
-  if(empty($payload['slug']) && !empty($payload['name'])) $payload['slug']=sf_admin_slugify((string)$payload['name']);
-  foreach(($config['relations']??[]) as $from=>$rel){ if(!empty($payload[$from]) && empty($payload[$rel[2]])){ $id=sf_importer_find_id($rel[0],$rel[1],$payload[$from]); if($id) $payload[$rel[2]]=$id; } }
-  foreach(['is_featured','is_primary','is_limited_drop','allows_full_music','allows_video_streaming','allows_episode_tracking','allows_playlists','allows_offline_downloads'] as $b){ if(isset($payload[$b])) $payload[$b]=sf_importer_bool($payload[$b]); }
-  foreach($payload as $k=>$v){ if(preg_match('/(_id|_seconds|_minutes|_number|_count|_quantity|_cents|sort_order)$/',$k) && $v!=='' && $v!==null && is_numeric($v)) $payload[$k]=(int)$v; }
-  $errors=[]; if(!sf_admin_table_exists($config['table'])) $errors[]='Missing table: '.$config['table'];
-  foreach($config['required'] as $field){ if(!isset($payload[$field]) || $payload[$field]==='') $errors[]='Missing required field: '.$field; }
-  $payload=sf_admin_table_exists($config['table'])?sf_admin_column_filtered_payload($config['table'],$payload):$payload;
-  unset($payload['id'],$payload['created_at'],$payload['updated_at']);
-  $parts=[]; foreach($config['unique'] as $field){ $parts[]=$field.'='.($payload[$field]??''); }
-  return ['ok'=>!$errors,'errors'=>$errors,'payload'=>$payload,'source'=>$row,'row_number'=>$num,'unique_key'=>implode('|',$parts)];
+  $config=sf_importer_config($type);if(!$config)return ['ok'=>false,'errors'=>['Unsupported type'],'payload'=>[],'source'=>[],'row_number'=>$num,'unique_key'=>''];
+  $clean=[];foreach(array_slice($row,0,100,true) as $k=>$v){$key=sf_importer_key((string)$k);if($key!=='')$clean[$key]=sf_importer_value($v,$key);}$payload=array_merge($config['defaults']??[],$clean);
+  foreach(($config['money']??[]) as $from=>$to)if(isset($payload[$from])&&!isset($payload[$to]))$payload[$to]=sf_importer_price($payload[$from]);
+  if(empty($payload['slug'])&&!empty($payload['title']))$payload['slug']=sf_content_safe_slug((string)$payload['title']);if(empty($payload['slug'])&&!empty($payload['name']))$payload['slug']=sf_content_safe_slug((string)$payload['name']);if(isset($payload['slug']))$payload['slug']=sf_content_safe_slug((string)$payload['slug']);
+  foreach(($config['relations']??[]) as $from=>$rel)if(!empty($payload[$from])&&empty($payload[$rel[2]])){ $rid=sf_importer_find_id($rel[0],$rel[1],$payload[$from]);if($rid)$payload[$rel[2]]=$rid; }
+  foreach(['is_featured','is_primary','is_limited_drop','allows_full_music','allows_video_streaming','allows_episode_tracking','allows_playlists','allows_offline_downloads'] as $b)if(isset($payload[$b]))$payload[$b]=sf_importer_bool($payload[$b]);
+  foreach($payload as $k=>$v)if(preg_match('/(_id|_seconds|_minutes|_number|_count|_quantity|_cents|sort_order)$/',$k)&&$v!==''&&$v!==null){if(!is_numeric($v))$payload[$k]=null;else $payload[$k]=max(0,(int)$v);}
+  $errors=[];$pdo=sf_admin_db();if(!sf_admin_table_exists($config['table']))$errors[]='Missing table: '.$config['table'];foreach($config['required'] as $field)if(!isset($payload[$field])||$payload[$field]===''||$payload[$field]===null)$errors[]='Missing required field: '.$field;
+  if(isset($payload['access_level'])&&!in_array((string)$payload['access_level'],sf_content_access_levels(),true))$errors[]='Invalid access_level.';
+  if(isset($payload['status'])&&$pdo instanceof PDO&&!sf_content_enum_allows($pdo,$config['table'],'status',(string)$payload['status']))$errors[]='Invalid status for target table.';
+  foreach(['file_path','image_path','media_path'] as $pathKey)if(isset($payload[$pathKey])&&preg_match('~(^|/)\.\.(?:/|$)~',(string)$payload[$pathKey]))$errors[]='Unsafe path in '.$pathKey.'.';
+  $payload=sf_admin_table_exists($config['table'])?sf_admin_column_filtered_payload($config['table'],$payload):$payload;unset($payload['id'],$payload['created_at'],$payload['updated_at']);$parts=[];foreach($config['unique'] as $field)$parts[]=$field.'='.($payload[$field]??'');
+  return ['ok'=>!$errors,'errors'=>$errors,'payload'=>$payload,'source'=>$clean,'row_number'=>$num,'unique_key'=>implode('|',$parts)];
 }
-
 function sf_importer_parse_csv(string $path): array {
-  $h=fopen($path,'rb'); if(!$h) throw new RuntimeException('Could not open CSV.');
-  $head=fgetcsv($h); if(!$head){fclose($h); return [];} $head=array_map('sf_importer_key',$head); $rows=[];
-  while(($line=fgetcsv($h))!==false){ if(!array_filter($line,fn($v)=>trim((string)$v)!=='')) continue; $rows[]=array_combine(array_slice($head,0,count($line)),$line)?:[]; }
-  fclose($h); return $rows;
+  $h=fopen($path,'rb');if(!$h)throw new RuntimeException('Could not open CSV.');$head=fgetcsv($h);if(!$head){fclose($h);return [];}$head=array_map(fn($v)=>sf_importer_key(ltrim((string)$v,"\xEF\xBB\xBF")),$head);if(count($head)>100||count(array_unique($head))!==count($head)||in_array('',$head,true)){fclose($h);throw new RuntimeException('CSV headers are invalid, duplicated, or exceed 100 columns.');}$rows=[];$max=sf_content_env_int('SF_IMPORT_MAX_ROWS',500,1,5000);
+  while(($line=fgetcsv($h))!==false){if(!array_filter($line,fn($v)=>trim((string)$v)!==''))continue;if(count($line)!==count($head)){fclose($h);throw new RuntimeException('CSV row width does not match its header.');}$rows[]=array_combine($head,$line)?:[];if(count($rows)>$max){fclose($h);throw new RuntimeException('Import exceeds the allowed row limit.');}}fclose($h);return $rows;
 }
-
 function sf_importer_parse_payload(?array $file,string $pasted): array {
-  if($file && (int)($file['error']??UPLOAD_ERR_NO_FILE)===UPLOAD_ERR_OK){ $ext=strtolower(pathinfo((string)$file['name'],PATHINFO_EXTENSION)); if($ext==='csv') return sf_importer_parse_csv((string)$file['tmp_name']); $pasted=(string)file_get_contents((string)$file['tmp_name']); }
-  $pasted=trim($pasted); if($pasted==='') return [];
-  $data=json_decode($pasted,true); if(!is_array($data)) throw new RuntimeException('JSON could not be decoded.');
-  return array_values(isset($data['rows'])&&is_array($data['rows'])?$data['rows']:$data);
+  $maxBytes=sf_content_env_int('SF_IMPORT_MAX_BYTES',2097152,1024,10485760);$maxRows=sf_content_env_int('SF_IMPORT_MAX_ROWS',500,1,5000);
+  if($file&&(int)($file['error']??UPLOAD_ERR_NO_FILE)!==UPLOAD_ERR_NO_FILE){if((int)($file['error']??UPLOAD_ERR_OK)!==UPLOAD_ERR_OK)throw new RuntimeException('Import upload failed.');if((int)($file['size']??0)<1||(int)$file['size']>$maxBytes)throw new RuntimeException('Import file size is outside the allowed range.');$name=basename((string)($file['name']??''));$ext=strtolower(pathinfo($name,PATHINFO_EXTENSION));if(!in_array($ext,['csv','json'],true))throw new RuntimeException('Only CSV and JSON imports are allowed.');$tmp=(string)($file['tmp_name']??'');$mime=(new finfo(FILEINFO_MIME_TYPE))->file($tmp)?:'';$allowed=['text/plain','text/csv','application/csv','application/json','application/octet-stream'];if(!in_array($mime,$allowed,true))throw new RuntimeException('Import MIME type is not allowed.');if($ext==='csv')return sf_importer_parse_csv($tmp);$pasted=(string)file_get_contents($tmp);}
+  if(strlen($pasted)>$maxBytes)throw new RuntimeException('Pasted JSON exceeds the allowed size.');$pasted=trim($pasted);if($pasted==='')return [];$data=json_decode($pasted,true,32,JSON_THROW_ON_ERROR);if(!is_array($data))throw new RuntimeException('JSON must contain an array.');$rows=array_values(isset($data['rows'])&&is_array($data['rows'])?$data['rows']:$data);if(count($rows)>$maxRows)throw new RuntimeException('Import exceeds the allowed row limit.');return $rows;
 }
-
-function sf_importer_preview(string $type,array $rows): array { $out=[];$errors=0; foreach($rows as $i=>$row){$r=sf_importer_normalize($type,is_array($row)?$row:[],$i+1); if(!$r['ok'])$errors++; $out[]=$r;} return ['ok'=>$errors===0,'rows'=>$out,'total'=>count($out),'errors'=>$errors]; }
-
-function sf_importer_existing(array $config,array $payload): ?array {
-  $where=[];$params=[]; foreach($config['unique'] as $f){ if(!isset($payload[$f])||$payload[$f]==='') return null; $where[]='`'.str_replace('`','',$f).'`=?'; $params[]=$payload[$f]; }
-  return sf_admin_fetch_one('SELECT * FROM `'.str_replace('`','',$config['table']).'` WHERE '.implode(' AND ',$where).' LIMIT 1',$params);
-}
-
-function sf_importer_insert(string $table,array $payload): int {
-  $cols=array_keys($payload); $safe=array_map(fn($c)=>'`'.str_replace('`','',$c).'`',$cols);
-  if(!sf_admin_execute('INSERT INTO `'.str_replace('`','',$table).'` ('.implode(',',$safe).') VALUES ('.implode(',',array_fill(0,count($cols),'?')).')',array_values($payload))) return 0;
-  return (int)(sf_admin_db()?->lastInsertId()?:0);
-}
-
-function sf_importer_update(string $table,int $id,array $payload): bool {
-  unset($payload['id'],$payload['created_at']); if(sf_admin_column_exists($table,'updated_at')) $payload['updated_at']=date('Y-m-d H:i:s');
-  $sets=array_map(fn($c)=>'`'.str_replace('`','',$c).'`=?',array_keys($payload));
-  return $payload?sf_admin_execute('UPDATE `'.str_replace('`','',$table).'` SET '.implode(',',$sets).' WHERE id=?',array_merge(array_values($payload),[$id])):true;
-}
-
-function sf_importer_log(int $batch,int $row,string $table,?int $id,string $action,string $status,string $key,array $src,?array $before,?array $after,string $error=''): void {
-  sf_admin_execute('INSERT INTO content_import_rows (batch_id,row_number,entity_table,entity_id,import_action,import_status,unique_key_value,source_json,before_json,after_json,error_message) VALUES (?,?,?,?,?,?,?,?,?,?,?)',[$batch,$row,$table,$id,$action,$status,$key,json_encode($src),$before?json_encode($before):null,$after?json_encode($after):null,$error?:null]);
-}
-
+function sf_importer_preview(string $type,array $rows): array { $out=[];$errors=0;foreach($rows as $i=>$row){$r=sf_importer_normalize($type,is_array($row)?$row:[],$i+1);if(!$r['ok'])$errors++;$out[]=$r;}return ['ok'=>$errors===0&&count($out)>0,'rows'=>$out,'total'=>count($out),'errors'=>$errors,'digest'=>hash('sha256',json_encode($out,JSON_UNESCAPED_SLASHES|JSON_UNESCAPED_UNICODE))]; }
+function sf_importer_existing(array $config,array $payload): ?array { $where=[];$params=[];foreach($config['unique'] as $f){if(!isset($payload[$f])||$payload[$f]==='')return null;$where[]='`'.sf_content_identifier($f).'`=?';$params[]=$payload[$f];}return sf_admin_fetch_one('SELECT * FROM `'.sf_content_identifier($config['table']).'` WHERE '.implode(' AND ',$where).' LIMIT 1',$params); }
+function sf_importer_insert(string $table,array $payload): int { $table=sf_content_identifier($table);$cols=array_keys($payload);if($table===''||!$cols)return 0;$safe=array_map(fn($c)=>'`'.sf_content_identifier($c).'`',$cols);$s=sf_admin_db()->prepare('INSERT INTO `'.$table.'` ('.implode(',',$safe).') VALUES ('.implode(',',array_fill(0,count($cols),'?')).')');$s->execute(array_values($payload));return (int)sf_admin_db()->lastInsertId(); }
+function sf_importer_update(string $table,int $id,array $payload): bool { $table=sf_content_identifier($table);unset($payload['id'],$payload['created_at']);if(sf_admin_column_exists($table,'updated_at'))$payload['updated_at']=date('Y-m-d H:i:s');if($table===''||!$payload)return $table!=='';$sets=array_map(fn($c)=>'`'.sf_content_identifier($c).'`=?',array_keys($payload));$s=sf_admin_db()->prepare('UPDATE `'.$table.'` SET '.implode(',',$sets).' WHERE id=?');return $s->execute(array_merge(array_values($payload),[$id])); }
+function sf_importer_log(int $batch,int $row,string $table,?int $id,string $action,string $status,string $key,array $src,?array $before,?array $after,string $error=''): void { $s=sf_admin_db()->prepare('INSERT INTO content_import_rows (batch_id,row_number,entity_table,entity_id,import_action,import_status,unique_key_value,source_json,before_json,after_json,error_message) VALUES (?,?,?,?,?,?,?,?,?,?,?)');$s->execute([$batch,$row,$table,$id,$action,$status,$key,json_encode($src,JSON_UNESCAPED_UNICODE),$before?json_encode($before):null,$after?json_encode($after):null,$error?:null]); }
 function sf_importer_run(string $type,array $rows,string $source='manual'): array {
-  $config=sf_importer_config($type); if(!$config) return ['ok'=>false,'message'=>'Unsupported import type.'];
-  if(!sf_importer_tables_ready()) return ['ok'=>false,'message'=>'Run migration 011 before importing.'];
-  $preview=sf_importer_preview($type,$rows); if(!$preview['ok']) return ['ok'=>false,'message'=>'Preview has validation errors.','preview'=>$preview];
-  sf_admin_execute('INSERT INTO content_import_batches (import_key,import_type,source_name,status,total_rows,created_by_user_id) VALUES (?,?,?,?,?,?)',['import_'.date('Ymd_His').'_'.substr(bin2hex(random_bytes(3)),0,6),$type,$source,'processing',count($rows),sf_current_user_id()]);
-  $batch=(int)(sf_admin_db()?->lastInsertId()?:0); if(!$batch) return ['ok'=>false,'message'=>'Could not create import batch.'];
-  $counts=['inserted'=>0,'updated'=>0,'skipped'=>0,'errors'=>0];
-  foreach($preview['rows'] as $item){ $payload=$item['payload']; $existing=sf_importer_existing($config,$payload); $table=$config['table'];
-    if($existing){ $id=(int)$existing['id']; $diff=array_diff_assoc($payload,array_intersect_key($existing,$payload)); if($diff){ sf_importer_update($table,$id,$payload); $after=sf_admin_fetch_one('SELECT * FROM `'.str_replace('`','',$table).'` WHERE id=?',[$id])?:$payload; sf_importer_log($batch,$item['row_number'],$table,$id,'update','success',$item['unique_key'],$item['source'],$existing,$after); $counts['updated']++; } else { sf_importer_log($batch,$item['row_number'],$table,$id,'skip','skipped',$item['unique_key'],$item['source'],$existing,$existing); $counts['skipped']++; } }
-    else { $id=sf_importer_insert($table,$payload); $after=$id?(sf_admin_fetch_one('SELECT * FROM `'.str_replace('`','',$table).'` WHERE id=?',[$id])?:$payload):$payload; sf_importer_log($batch,$item['row_number'],$table,$id?:null,'insert',$id?'success':'failed',$item['unique_key'],$item['source'],null,$after,$id?'':'Insert failed'); $id?$counts['inserted']++:$counts['errors']++; }
-  }
-  sf_admin_execute('UPDATE content_import_batches SET status=?, inserted_count=?, updated_count=?, skipped_count=?, error_count=?, completed_at=NOW(), summary_json=? WHERE id=?',[$counts['errors']?'failed':'completed',$counts['inserted'],$counts['updated'],$counts['skipped'],$counts['errors'],json_encode($counts),$batch]);
-  return ['ok'=>$counts['errors']===0,'message'=>'Import completed.','batch_id'=>$batch,'counts'=>$counts];
+  $config=sf_importer_config($type);if(!$config)return ['ok'=>false,'message'=>'Unsupported import type.'];if(!sf_importer_tables_ready())return ['ok'=>false,'message'=>'Run migration 011 before importing.'];$preview=sf_importer_preview($type,$rows);if(!$preview['ok'])return ['ok'=>false,'message'=>'Preview has validation errors.','preview'=>$preview];$pdo=sf_admin_db();if(!$pdo instanceof PDO)return ['ok'=>false,'message'=>'Database unavailable.'];if(!sf_content_advisory_lock($pdo,'content-import',3))return ['ok'=>false,'message'=>'Another import is active.'];$counts=['inserted'=>0,'updated'=>0,'skipped'=>0,'errors'=>0];$batch=0;$source=substr(basename(sf_content_clean_text($source,190)),0,190)?:'manual';
+  try{$pdo->beginTransaction();$s=$pdo->prepare('INSERT INTO content_import_batches (import_key,import_type,source_name,status,total_rows,created_by_user_id,summary_json) VALUES (?,?,?,?,?,?,?)');$s->execute(['import_'.date('Ymd_His').'_'.substr(bin2hex(random_bytes(3)),0,6),$type,$source,'processing',count($rows),sf_current_user_id()?:null,json_encode(['preview_digest'=>$preview['digest']])]);$batch=(int)$pdo->lastInsertId();foreach($preview['rows'] as $item){$payload=$item['payload'];$existing=sf_importer_existing($config,$payload);$table=$config['table'];if($existing){$id=(int)$existing['id'];$diff=array_diff_assoc($payload,array_intersect_key($existing,$payload));if($diff){if(!sf_importer_update($table,$id,$payload))throw new RuntimeException('Update failed.');$after=sf_admin_fetch_one('SELECT * FROM `'.sf_content_identifier($table).'` WHERE id=?',[$id])?:$payload;sf_importer_log($batch,$item['row_number'],$table,$id,'update','success',$item['unique_key'],$item['source'],$existing,$after);$counts['updated']++;}else{sf_importer_log($batch,$item['row_number'],$table,$id,'skip','skipped',$item['unique_key'],$item['source'],$existing,$existing);$counts['skipped']++;}}else{$id=sf_importer_insert($table,$payload);if(!$id)throw new RuntimeException('Insert failed.');$after=sf_admin_fetch_one('SELECT * FROM `'.sf_content_identifier($table).'` WHERE id=?',[$id])?:$payload;sf_importer_log($batch,$item['row_number'],$table,$id,'insert','success',$item['unique_key'],$item['source'],null,$after);$counts['inserted']++;}}$pdo->prepare('UPDATE content_import_batches SET status="completed",inserted_count=?,updated_count=?,skipped_count=?,error_count=0,completed_at=NOW(),summary_json=? WHERE id=?')->execute([$counts['inserted'],$counts['updated'],$counts['skipped'],json_encode(['counts'=>$counts,'preview_digest'=>$preview['digest']]),$batch]);$pdo->commit();return ['ok'=>true,'message'=>'Import completed atomically.','batch_id'=>$batch,'counts'=>$counts];}catch(Throwable $e){if($pdo->inTransaction())$pdo->rollBack();error_log('Stonefellow atomic import failed: '.$e->getMessage());return ['ok'=>false,'message'=>'Import failed and no content changes were committed.','batch_id'=>0,'counts'=>$counts];}finally{sf_content_advisory_unlock($pdo,'content-import');}
 }
-
 function sf_importer_batches(int $limit=30): array { return sf_importer_tables_ready()?sf_admin_fetch_all('SELECT * FROM content_import_batches ORDER BY created_at DESC,id DESC LIMIT '.max(1,min(100,$limit))):[]; }
 function sf_importer_batch_rows(int $id): array { return sf_importer_tables_ready()?sf_admin_fetch_all('SELECT * FROM content_import_rows WHERE batch_id=? ORDER BY row_number,id',[$id]):[]; }
 function sf_importer_safe_table(string $table): bool { return in_array($table,array_map(fn($c)=>$c['table'],sf_importer_configs()),true); }
-function sf_importer_rollback_batch(int $id): array { $batch=sf_admin_fetch_one('SELECT * FROM content_import_batches WHERE id=?',[$id]); if(!$batch)return ['ok'=>false,'message'=>'Batch not found.']; if(($batch['status']??'')==='rolled_back')return ['ok'=>false,'message'=>'Batch already rolled back.']; $rows=sf_admin_fetch_all('SELECT * FROM content_import_rows WHERE batch_id=? ORDER BY id DESC',[$id]); $n=['deleted'=>0,'restored'=>0,'skipped'=>0]; foreach($rows as $r){$t=(string)$r['entity_table'];$rid=(int)$r['entity_id']; if(!$rid||!sf_importer_safe_table($t)){$n['skipped']++;continue;} if($r['import_action']==='insert'){sf_admin_execute('DELETE FROM `'.str_replace('`','',$t).'` WHERE id=?',[$rid]);$n['deleted']++;} elseif($r['import_action']==='update'&&!empty($r['before_json'])){$before=json_decode($r['before_json'],true); if(is_array($before)){sf_importer_update($t,$rid,sf_admin_column_filtered_payload($t,$before));$n['restored']++;}} else $n['skipped']++; } sf_admin_execute('UPDATE content_import_batches SET status=\'rolled_back\',rolled_back_at=NOW(),summary_json=? WHERE id=?',[json_encode(['rollback'=>$n]),$id]); return ['ok'=>true,'message'=>'Import batch rolled back.','counts'=>$n]; }
-
-function sf_importer_starter_seed(): array { $file=__DIR__.'/../database/seeds/starter_catalog.json'; if(!is_file($file))return []; $json=json_decode((string)file_get_contents($file),true); return is_array($json)?$json:[]; }
-function sf_importer_sample_rows(string $type): array { $seed=sf_importer_starter_seed(); return array_slice($seed['rows'][$type]??[],0,1); }
-function sf_importer_seed_groups(): array { return ['starter_catalog'=>['label'=>'Starter Catalog','description'=>'Core album, episodes, songs, videos, plans, merch, and variants.']]; }
-function sf_importer_run_seed_group(string $group): array { $seed=sf_importer_starter_seed(); if($group!=='starter_catalog'||!$seed)return ['ok'=>false,'message'=>'Seed payload not found.','results'=>[]]; $results=[];$ok=true; foreach(($seed['import_order']??array_keys($seed['rows']??[])) as $type){ if(empty($seed['rows'][$type]))continue; $res=sf_importer_run($type,$seed['rows'][$type],'seed:'.$group.':'.$type); $results[$type]=$res; if(empty($res['ok'])){$ok=false;break;} } return ['ok'=>$ok,'message'=>$ok?'Seed group completed.':'Seed group stopped with an error.','results'=>$results]; }
+function sf_importer_rollback_batch(int $id): array {
+  $pdo=sf_admin_db();if(!$pdo instanceof PDO||$id<=0)return ['ok'=>false,'message'=>'Batch not found.'];if(!sf_content_advisory_lock($pdo,'content-import',3))return ['ok'=>false,'message'=>'Another import or rollback is active.'];
+  try{$pdo->beginTransaction();$s=$pdo->prepare('SELECT * FROM content_import_batches WHERE id=? FOR UPDATE');$s->execute([$id]);$batch=$s->fetch();if(!$batch)throw new RuntimeException('Batch not found.');if(($batch['status']??'')==='rolled_back')throw new RuntimeException('Batch already rolled back.');$rows=sf_admin_fetch_all('SELECT * FROM content_import_rows WHERE batch_id=? ORDER BY id DESC',[$id]);$n=['deleted'=>0,'restored'=>0,'skipped'=>0];foreach($rows as $r){$t=(string)$r['entity_table'];$rid=(int)$r['entity_id'];if(!$rid||!sf_importer_safe_table($t)){$n['skipped']++;continue;}if($r['import_action']==='insert'){$pdo->prepare('DELETE FROM `'.sf_content_identifier($t).'` WHERE id=?')->execute([$rid]);$n['deleted']++;}elseif($r['import_action']==='update'&&!empty($r['before_json'])){$before=json_decode((string)$r['before_json'],true,32,JSON_THROW_ON_ERROR);if(is_array($before)){sf_importer_update($t,$rid,sf_admin_column_filtered_payload($t,$before));$n['restored']++;}}else $n['skipped']++;}$pdo->prepare('UPDATE content_import_batches SET status="rolled_back",rolled_back_at=NOW(),summary_json=? WHERE id=?')->execute([json_encode(['rollback'=>$n]),$id]);$pdo->commit();return ['ok'=>true,'message'=>'Import batch rolled back atomically.','counts'=>$n];}catch(Throwable $e){if($pdo->inTransaction())$pdo->rollBack();return ['ok'=>false,'message'=>$e->getMessage()];}finally{sf_content_advisory_unlock($pdo,'content-import');}
+}
+function sf_importer_starter_seed(): array { $file=__DIR__.'/../database/seeds/starter_catalog.json';if(!is_file($file))return [];$json=json_decode((string)file_get_contents($file),true,32,JSON_THROW_ON_ERROR);return is_array($json)?$json:[]; }
+function sf_importer_sample_rows(string $type): array { $seed=sf_importer_starter_seed();foreach($seed as $group=>$rows)if(is_array($rows))foreach($rows as $row)if(is_array($row)&&($row['import_type']??'')===$type)return [$row];return []; }
 ?>
