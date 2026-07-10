@@ -29,6 +29,8 @@ jobs:
         run: php tests/revenue_membership_media_access_smoke.php
       - name: Protected media storage CDN transcoding smoke tests
         run: php tests/protected_media_pipeline_smoke.php
+      - name: Launch content catalog operations smoke tests
+        run: php tests/launch_catalog_operations_smoke.php
       - name: Live commerce Stripe Connect smoke tests
         run: php tests/live_commerce_stripe_connect_smoke.php
       - name: Data integrity operations recovery smoke tests
@@ -59,6 +61,8 @@ jobs:
         run: php tools/revenue-membership-media-access-audit.php
       - name: Protected media storage CDN transcoding audit
         run: php tools/protected-media-pipeline-audit.php
+      - name: Launch content catalog operations audit
+        run: php tools/launch-catalog-operations-audit.php
       - name: Live commerce Stripe Connect audit
         run: php tools/live-commerce-stripe-connect-audit.php
       - name: Data integrity operations recovery audit
