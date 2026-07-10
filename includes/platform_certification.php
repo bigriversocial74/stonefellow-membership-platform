@@ -16,7 +16,7 @@ function sf_pc_static_sections(): array {
     return [
       'Core Platform & Security'=>[
         ['tests/security_smoke.php',['Security smoke']],
-        ['tools/code-audit.php',['Stonefellow']],
+        ['tools/code-audit.php',['Runtime & configuration','Overall:']],
         ['.github/workflows/code-audit.yml',['PHP syntax validation','Security smoke tests','Full static code audit']],
       ],
       'AI & Agentic Governance'=>[
