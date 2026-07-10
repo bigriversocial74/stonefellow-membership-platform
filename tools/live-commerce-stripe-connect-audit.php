@@ -58,7 +58,7 @@ $sections = [
     ],
     'Migration, Configuration, Documentation & CI' => [
         ['database/migrations/022_live_commerce_stripe_connect.sql', ['merch_checkouts', 'commerce_discount_codes', 'payment_gateway_webhook_events']],
-        ['.env.example', ['SF_STRIPE_PLATFORM_FEE_BPS', 'SF_COMMERCE_MAINTENANCE_SECRET', 'SF_COMMERCE_TAX_RATE_BPS']],
+        ['.env.commerce.example', ['SF_STRIPE_PLATFORM_FEE_BPS', 'SF_COMMERCE_MAINTENANCE_SECRET', 'SF_COMMERCE_TAX_RATE_BPS']],
         ['docs/LIVE_COMMERCE_STRIPE_CONNECT_V1.md', ['Initial static score', 'Final static score', '10/10']],
         ['.github/workflows/code-audit.yml', ['live_commerce_stripe_connect_smoke.php', 'live-commerce-stripe-connect-audit.php']],
     ],
