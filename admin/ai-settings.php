@@ -27,6 +27,7 @@ sf_admin_shell_start('AI Settings', 'Admin AI provider settings', 'Manage Claude
   <div class="sf-admin-action-card"><span>Providers</span><strong><?= count($providers) ?></strong><small>Claude and ChatGPT provider records.</small></div>
   <div class="sf-admin-action-card"><span>Security</span><strong><?= sf_ai_crypto_ready() ? 'Encryption Ready' : 'Needs OpenSSL' ?></strong><small>API keys require AES-256-GCM support before saving.</small></div>
   <div class="sf-admin-action-card"><span>This Month</span><strong><?= (int)$usage['events'] ?></strong><small><?= (int)$usage['tokens'] ?> tokens · <?= (int)$usage['images'] ?> images · <?= sf_ai_format_cents($usage['cost_cents']) ?> est.</small></div>
+  <a class="sf-admin-action-card" href="<?= sf_url('admin/ai-staging-certification.php') ?>"><span>Staging Gate</span><strong>Certification</strong><small>Test providers, limits, locks, rollback, permissions, and costs.</small></a>
   <a class="sf-admin-action-card" href="<?= sf_url('admin/storyboards.php') ?>"><span>Storyboards</span><strong>Workspace</strong><small>Creator-facing module stays free of API key fields.</small></a>
 </section>
 
@@ -34,7 +35,7 @@ sf_admin_shell_start('AI Settings', 'Admin AI provider settings', 'Manage Claude
   <div class="sf-admin-alert sf-admin-alert-warning">Migration 021 is required before AI provider settings can be saved. The page is displaying static provider defaults.</div>
 <?php endif; ?>
 <?php if (!sf_ai_crypto_ready()): ?>
-  <div class="sf-admin-alert sf-admin-alert-error">OpenSSL with AES-256-GCM support is required before API keys can be saved securely.</div>
+  <div class="sf-admin-alert sf-admin-alert-error">OpenSSL with AES-256-GCM support and a dedicated 32+ character <code>SF_AI_SETTINGS_SECRET</code> are required before API keys can be saved securely.</div>
 <?php endif; ?>
 
 <section class="sf-admin-panel">
@@ -47,6 +48,7 @@ sf_admin_shell_start('AI Settings', 'Admin AI provider settings', 'Manage Claude
         <small>Key: <?= sf_ai_h(sf_ai_mask_key($provider['api_key_last4'] ?? '', $provider['api_key_hint'] ?? '')) ?></small>
         <small>Status: <?= sf_ai_status_badge((string)($provider['key_status'] ?? 'missing')) ?> <?= sf_ai_status_badge((string)($provider['status'] ?? 'inactive')) ?></small>
         <small>Model: <?= sf_ai_h($provider['default_model'] ?? '—') ?><?= !empty($provider['image_model']) ? ' · Image: ' . sf_ai_h($provider['image_model']) : '' ?></small>
+        <small>Last test: <?= sf_ai_h($provider['test_status'] ?? 'not tested') ?><?= !empty($provider['tested_at']) ? ' · ' . sf_ai_h($provider['tested_at']) : '' ?></small>
       </article>
     <?php endforeach; ?>
   </div>
@@ -83,7 +85,7 @@ sf_admin_shell_start('AI Settings', 'Admin AI provider settings', 'Manage Claude
       </div>
       <label class="sf-admin-check"><input type="checkbox" name="is_default_text" value="1" <?= !empty($provider['is_default_text']) ? 'checked' : '' ?><?= sf_admin_form_disabled_attr() ?>> Default text/story provider</label>
       <label class="sf-admin-check"><input type="checkbox" name="is_default_image" value="1" <?= !empty($provider['is_default_image']) ? 'checked' : '' ?><?= sf_admin_form_disabled_attr() ?>> Default image provider</label>
-      <div class="sf-admin-form-actions"><button type="submit"<?= sf_admin_form_disabled_attr() ?>>Save <?= sf_ai_h($provider['provider_label'] ?? 'Provider') ?></button></div>
+      <div class="sf-admin-form-actions"><button type="submit"<?= sf_admin_form_disabled_attr() ?>>Save <?= sf_ai_h($provider['provider_label'] ?? 'Provider') ?></button><a href="<?= sf_url('admin/ai-staging-certification.php') ?>">Open staging certification</a></div>
     </form>
   </section>
 <?php endforeach; ?>
@@ -93,8 +95,8 @@ sf_admin_shell_start('AI Settings', 'Admin AI provider settings', 'Manage Claude
   <div class="sf-admin-roadmap">
     <div><span>Admin</span><strong>Keys stay here</strong><p>Claude and ChatGPT API keys are managed only in this admin screen.</p></div>
     <div><span>Creator</span><strong>No credentials</strong><p>The storyboard builder only shows “AI Provider: Admin Managed”.</p></div>
-    <div><span>Jobs</span><strong>Queue ready</strong><p>Storyboard, rewrite, image generation, and upload jobs have persistence tables.</p></div>
-    <div><span>Usage</span><strong>Cost tracking</strong><p>Usage events can track tokens, images, request status, and estimated cost.</p></div>
+    <div><span>Certification</span><strong>Staging first</strong><p>Provider connections, locks, rollback, and cost controls must pass staging certification.</p></div>
+    <div><span>Usage</span><strong>Cost tracking</strong><p>Usage events track tokens, images, request status, and conservative cost reservations.</p></div>
   </div>
 </section>
 <?php sf_admin_shell_end(); require __DIR__ . '/../includes/footer.php'; ?>
