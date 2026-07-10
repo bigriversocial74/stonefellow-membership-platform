@@ -10,7 +10,7 @@ $sections=[
  ],
  'Queue idempotency'=>[
   ['includes/delivery_integrity.php',['sf_delivery_idempotency_key','idempotency_key']],
-  ['includes/notifications.php',['JSON_EXTRACT(metadata_json','sf_notify_log','status<>'canceled'']],
+  ['includes/notifications.php',['JSON_EXTRACT(metadata_json','sf_notify_log',"status<>'canceled'"]],
   ['includes/ops_scheduler_messaging.php',['campaign-','recipient-','sf_msg_create_member_message']],
  ],
  'Queue locking and leases'=>[
@@ -26,25 +26,25 @@ $sections=[
  'Preference enforcement'=>[
   ['includes/delivery_integrity.php',['sf_delivery_preference_enabled','all_marketing','sf_delivery_transactional_type']],
   ['includes/notifications.php',['honors_preferences','Recipient preference disabled']],
-  ['includes/ops_scheduler_messaging.php',['honors_preferences','preferenceKey','preference-skipped']],
+  ['includes/ops_scheduler_messaging.php',['honors_preferences','preferenceKey','skippedChannels']],
  ],
  'Scheduler correctness'=>[
-  ['includes/ops_scheduler_messaging.php',['frequency<>'manual'','sf_sched_next_run','Job is already running','run lease']],
+  ['includes/ops_scheduler_messaging.php',["frequency<>'manual'",'sf_sched_next_run','Job is already running','run lease']],
   ['admin/ops-scheduler.php',['Manual-frequency jobs are never automatically due','exclusive lease']],
   ['api/ops-scheduler.php',['SF_OPS_SCHEDULER_SECRET','hash_equals','run_due']],
  ],
  'Campaign channel integrity'=>[
-  ['includes/ops_scheduler_messaging.php',['sf_msg_log_status','delivery_status','email_log_id','member_message_id','preference']],
+  ['includes/ops_scheduler_messaging.php',['sf_msg_log_status','delivery_status','email_log_id','member_message_id','skippedChannels']],
   ['admin/member-messaging.php',['preference-skipped','audience snapshot','immutable']],
   ['api/member-notices.php',['admin.members.manage','csrf_failed','method_not_allowed']],
  ],
  'Webhook authenticity and privacy'=>[
   ['api/notification-webhook.php',['sf_delivery_webhook_signature_valid','provider_event_id','duplicate','[redacted]','beginTransaction']],
-  ['includes/delivery_integrity.php',['SF_NOTIFICATION_WEBHOOK_SECRET','hash_hmac','hash_equals']],
+  ['includes/delivery_integrity.php',['SF_NOTIFICATION_WEBHOOK_SECRET','hash_hmac','hash_equals','sf_delivery_mask_email']],
   ['.env.example',['SF_NOTIFICATION_WEBHOOK_MAX_BYTES=262144','SF_NOTIFICATION_WEBHOOK_SECRET=']],
  ],
  'Admin/operator safeguards'=>[
-  ['admin/notifications.php',['confirm(','masked','Dispatch complete','Test notification failed']],
+  ['admin/notifications.php',['confirm(','privacy-reduced logs','Dispatch complete','Test notification failed']],
   ['admin/member-messaging.php',['confirm(','Sent or archived campaigns cannot be sent again']],
   ['admin/ops-scheduler.php',['confirm(','Job was rejected','Due jobs:']],
  ],

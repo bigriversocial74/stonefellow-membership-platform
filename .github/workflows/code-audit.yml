@@ -12,7 +12,13 @@ jobs:
         with:
           php-version: '8.2'
       - name: PHP syntax validation
-        run: find . -type f -name '*.php' -not -path './vendor/*' -print0 | xargs -0 -n1 php -l
+        shell: bash
+        run: |
+          set -euo pipefail
+          while IFS= read -r -d '' file; do
+            php -l "$file" >/dev/null || { php -l "$file"; exit 1; }
+          done < <(find . -type f -name '*.php' -not -path './vendor/*' -print0)
+          echo "All PHP files passed syntax validation."
       - name: Security smoke tests
         run: php tests/security_smoke.php
       - name: Agentic governance smoke tests
@@ -29,6 +35,10 @@ jobs:
         run: php tests/auth_privacy_abuse_smoke.php
       - name: Content publishing search moderation smoke tests
         run: php tests/content_integrity_smoke.php
+      - name: Delivery scheduler notification smoke tests
+        run: php tests/delivery_integrity_smoke.php
+      - name: Staging launch certification smoke tests
+        run: php tests/staging_launch_certification_smoke.php
       - name: Full static code audit
         run: php tools/code-audit.php
       - name: Agentic integration audit
@@ -45,3 +55,7 @@ jobs:
         run: php tools/auth-privacy-abuse-audit.php
       - name: Content publishing search moderation audit
         run: php tools/content-integrity-audit.php
+      - name: Delivery scheduler notification audit
+        run: php tools/delivery-integrity-audit.php
+      - name: Staging operations launch certification audit
+        run: php tools/staging-launch-certification-audit.php
