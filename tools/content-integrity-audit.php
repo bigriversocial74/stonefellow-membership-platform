@@ -9,7 +9,7 @@ $sections=[
   ['admin/publishing.php',['Publishing settings were rejected','sf_publish_apply']],
  ],
  'Scheduled publishing execution'=>[
-  ['includes/publishing.php',['sf_publish_run_due','sf_content_advisory_lock','publish_due_run','RELEASE_LOCK']],
+  ['includes/publishing.php',['sf_publish_run_due','sf_content_advisory_lock','publish_due_run','sf_content_advisory_unlock']],
   ['api/publishing-run.php',['REQUEST_METHOD','SF_PUBLISHING_RUN_SECRET','hash_equals','rate_limited']],
   ['admin/publishing.php',['action" value="run_due"','never run during a page view']],
  ],
@@ -31,7 +31,7 @@ $sections=[
  'Atomic import and rollback'=>[
   ['includes/importer.php',['sf_content_advisory_lock','beginTransaction','Import completed atomically','no content changes were committed']],
   ['includes/importer.php',['sf_importer_rollback_batch','FOR UPDATE','rolled back atomically']],
-  ['admin/import.php',['Type IMPORT','one transaction','preview_digest']],
+  ['admin/import.php',['Type IMPORT','one transaction',"preview['digest']"]],
  ],
  'Search query safety'=>[
   ['includes/search.php',['sf_content_like_escape','ESCAPE','sf_search_query','100']],
