@@ -41,7 +41,7 @@ $sections=[
   ],
   'Privileged session and role safety'=>[
     ['includes/admin_security.php',['revoked_admin_session_rejected','last_super_admin_removal_blocked','is_system']],
-    ['includes/admin_security.php',['sf_sec_owner_admin_id','status=\'revoked\'']],
+    ['includes/admin_security.php',['sf_sec_owner_admin_id',"['revoked','expired']"]],
     ['includes/auth_hardening.php',['admin_security_sessions','status=\'revoked\'']],
   ],
   'Privacy and data rights'=>[
