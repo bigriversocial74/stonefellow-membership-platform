@@ -32,14 +32,14 @@ $sections = [
     ],
     'Activation receipt and revalidation' => [
         ['includes/license.php', ['sf_license_write_receipt', 'sf_license_revalidate_receipt', 'installation_id']],
-        ['admin/license.php', ['Product License', 'Key Fingerprint', 'Revalidate Local License']],
+        ['admin/license.php', ['Product License', 'Key Fingerprint', 'Revalidate Local License', 'Activate Existing Installation', 'activate_existing']],
     ],
     'Release packaging boundaries' => [
         ['.releaseignore', ['config/license-ledger.php', 'storage/private/', 'vendor-tools/']],
         ['.gitignore', ['config/license-ledger.php', 'storage/private/']],
     ],
     'Permanent verification' => [
-        ['tests/licensed_installer_smoke.php', ['Licensed installer and offline product license smoke: PASS']],
+        ['tests/licensed_installer_smoke.php', ['Licensed installer and offline product license smoke: PASS', 'Activate Existing Installation']],
         ['.github/workflows/code-audit.yml', ['Licensed installer product license smoke tests', 'Licensed installer product license audit']],
         ['docs/LICENSED_INSTALLER_SETUP_V1.md', ['Final source/control score: **10/10**']],
     ],

@@ -64,11 +64,13 @@ sf_li_assert(!empty($revalidated['ok']), 'receipt should revalidate against ledg
 $landing = (string)file_get_contents($root . '/install.php');
 $setup = (string)file_get_contents($root . '/setup/index.php');
 $installer = (string)file_get_contents($root . '/includes/installer.php');
+$adminLicense = (string)file_get_contents($root . '/admin/license.php');
 sf_li_assert(strpos($landing, 'sf_install_checks') === false, 'public installer landing must not run technical checks');
 sf_li_assert(strpos($landing, 'PDO MySQL') === false, 'public installer landing must not expose extension diagnostics');
 sf_li_assert(strpos($setup, 'Product License Key') !== false, 'setup must begin with a product license key');
 sf_li_assert(strpos($setup, 'X-Robots-Tag') !== false, 'setup must be excluded from indexing');
 sf_li_assert(strpos($installer, 'installer-hardening.php') === false, 'installer must not depend on output-buffer HTML patching');
+sf_li_assert(strpos($adminLicense, 'activate_existing') !== false && strpos($adminLicense, 'Activate Existing Installation') !== false, 'existing installations must have a protected activation path');
 
 @unlink($ledgerPath);
 @unlink($receiptPath);
