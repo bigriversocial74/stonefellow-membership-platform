@@ -1,27 +1,4 @@
 <?php
 require_once __DIR__ . '/../includes/audio_player.php';
-
-$userId = sf_current_user_id();
-if (!$userId) {
-  sf_json_response(['ok' => false, 'error' => 'login_required'], 401);
-}
-
-if ($_SERVER['REQUEST_METHOD'] === 'GET') {
-  sf_json_response(['ok' => true, 'state' => sf_audio_player_state($userId), 'member' => sf_entitlement_snapshot($userId)]);
-}
-
-if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-  sf_json_response(['ok' => false, 'error' => 'method_not_allowed'], 405);
-}
-
-$data = sf_request_json();
-$state = [
-  'queue' => $data['queue'] ?? [],
-  'current_song_id' => $data['current_song_id'] ?? null,
-  'position_seconds' => $data['position_seconds'] ?? 0,
-  'shuffle' => !empty($data['shuffle']),
-  'repeat_mode' => $data['repeat_mode'] ?? 'off',
-];
-
-$ok = sf_audio_save_player_state($userId, $state);
-sf_json_response(['ok' => $ok, 'state' => sf_audio_player_state($userId)]);
+require_once __DIR__ . '/../includes/revenue_access_governance.php';
+$userId=sf_current_user_id();if(!$userId)sf_json_response(['ok'=>false,'error'=>'login_required'],401);$member=sf_entitlement_snapshot($userId);if(empty($member['can_stream_full_music']))sf_json_response(['ok'=>false,'error'=>'subscription_required'],403);if(($_SERVER['REQUEST_METHOD']??'GET')==='GET')sf_json_response(['ok'=>true,'state'=>sf_audio_player_state($userId),'member'=>$member]);sf_revenue_guard_json_write('player_state',120,900);$data=sf_request_json();$queue=[];foreach(array_slice((array)($data['queue']??[]),0,200)as$id){$id=(int)$id;if($id<=0||isset($queue[$id]))continue;$song=sf_media_song_record($id);if($song&&sf_media_user_can_access('song',$song,'full'))$queue[$id]=$id;}$current=isset($data['current_song_id'])?(int)$data['current_song_id']:null;if($current&&!isset($queue[$current])){$song=sf_media_song_record($current);if(!$song||!sf_media_user_can_access('song',$song,'full'))$current=null;}$state=['queue'=>array_values($queue),'current_song_id'=>$current,'position_seconds'=>max(0,min(43200,(int)($data['position_seconds']??0))),'shuffle'=>!empty($data['shuffle']),'repeat_mode'=>$data['repeat_mode']??'off'];$ok=sf_audio_save_player_state($userId,$state);sf_json_response(['ok'=>$ok,'state'=>sf_audio_player_state($userId)]);

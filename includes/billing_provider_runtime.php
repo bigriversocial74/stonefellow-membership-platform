@@ -1,50 +1,5 @@
 <?php
 require_once __DIR__ . '/billing.php';
-
-function sf_billing_complete_provider_checkout(string $checkoutToken, array $providerPayment = []): array {
-  $pdo = sf_db();
-  if (!$pdo || !sf_billing_is_ready()) {
-    return ['ok' => false, 'message' => 'Billing database is not ready.'];
-  }
-  $checkout = sf_billing_checkout_by_token($checkoutToken);
-  if (!$checkout) {
-    return ['ok' => false, 'message' => 'Checkout was not found.'];
-  }
-  if (($checkout['status'] ?? '') === 'completed') {
-    return ['ok' => true, 'message' => 'Checkout already completed.'];
-  }
-  $plan = sf_billing_plan((int)$checkout['plan_id']);
-  if (!$plan) {
-    return ['ok' => false, 'message' => 'Plan is no longer active.'];
-  }
-  $periodEnd = sf_billing_period_end($plan);
-  $provider = (string)($providerPayment['provider'] ?? $checkout['provider'] ?? sf_billing_provider());
-  $paymentId = (string)($providerPayment['provider_payment_id'] ?? ($provider . '_pay_' . substr(hash('sha256', $checkoutToken . microtime(true)), 0, 18)));
-  $subscriptionRef = (string)($providerPayment['provider_subscription_id'] ?? ($provider . '_sub_' . substr(hash('sha256', $checkoutToken . 'sub'), 0, 18)));
-  $customerRef = (string)($providerPayment['provider_customer_id'] ?? '');
-  $amount = (int)($checkout['amount_cents'] ?? $plan['price_cents'] ?? 0);
-  $currency = (string)($checkout['currency'] ?? 'USD');
-  $userId = (int)$checkout['user_id'];
-  try {
-    $pdo->beginTransaction();
-    $pdo->prepare("UPDATE user_subscriptions SET status='canceled', updated_at=NOW() WHERE user_id=? AND status IN ('active','trialing','past_due')")->execute([$userId]);
-    $stmt = $pdo->prepare("INSERT INTO user_subscriptions (user_id, plan_id, status, current_period_start, current_period_end, external_subscription_id, payment_provider, provider_customer_id, provider_subscription_id) VALUES (?, ?, 'active', NOW(), ?, ?, ?, ?, ?)");
-    $stmt->execute([$userId, (int)$plan['id'], $periodEnd, $subscriptionRef, $provider, $customerRef, $subscriptionRef]);
-    $subscriptionId = (int)$pdo->lastInsertId();
-    $pdo->prepare("UPDATE subscription_checkouts SET status='completed', provider_payment_id=?, completed_at=NOW(), updated_at=NOW() WHERE id=?")->execute([$paymentId, (int)$checkout['id']]);
-    $invoiceNumber = 'SF-' . strtoupper(substr(hash('sha256', (string)$subscriptionId . $checkoutToken), 0, 10));
-    $invoice = $pdo->prepare("INSERT INTO invoices (user_id, subscription_id, invoice_number, status, subtotal_cents, tax_cents, total_cents, currency, provider_invoice_id, due_at, paid_at, metadata_json) VALUES (?, ?, ?, 'paid', ?, 0, ?, ?, ?, NOW(), NOW(), ?)");
-    $invoice->execute([$userId, $subscriptionId, $invoiceNumber, $amount, $amount, $currency, $provider . '_invoice_' . $invoiceNumber, json_encode(['provider_event' => $providerPayment], JSON_UNESCAPED_SLASHES)]);
-    $invoiceId = (int)$pdo->lastInsertId();
-    $transaction = $pdo->prepare("INSERT INTO payment_transactions (user_id, subscription_id, invoice_id, checkout_id, provider, provider_payment_id, transaction_type, status, amount_cents, currency, raw_payload_json) VALUES (?, ?, ?, ?, ?, ?, 'subscription', 'paid', ?, ?, ?)");
-    $transaction->execute([$userId, $subscriptionId, $invoiceId, (int)$checkout['id'], $provider, $paymentId, $amount, $currency, json_encode($providerPayment, JSON_UNESCAPED_SLASHES)]);
-    sf_billing_create_entitlement_grants($pdo, $userId, $plan, $subscriptionId);
-    $pdo->commit();
-    return ['ok' => true, 'message' => 'Provider checkout activated.', 'subscription_id' => $subscriptionId, 'invoice_id' => $invoiceId];
-  } catch (Throwable $e) {
-    if ($pdo->inTransaction()) $pdo->rollBack();
-    error_log('Stonefellow provider checkout activation failed: ' . $e->getMessage());
-    return ['ok' => false, 'message' => $e->getMessage()];
-  }
-}
+require_once __DIR__ . '/revenue_access_governance.php';
+function sf_billing_complete_provider_checkout(string $token,array $payment=[]): array{$pdo=sf_db();if(!$pdo||!sf_billing_is_ready())return['ok'=>false,'message'=>'Billing database is not ready.'];if(!preg_match('/^[a-f0-9]{48}$/i',$token))return['ok'=>false,'message'=>'Checkout token is invalid.'];try{$pdo->beginTransaction();$q=$pdo->prepare("SELECT sc.*,sp.name AS plan_name,sp.slug AS plan_slug,sp.price_cents,sp.billing_interval,sp.plan_tier,sp.allows_full_music,sp.allows_video_streaming,sp.allows_episode_tracking,sp.allows_playlists,sp.allows_offline_downloads FROM subscription_checkouts sc INNER JOIN subscription_plans sp ON sp.id=sc.plan_id WHERE sc.checkout_token=? FOR UPDATE");$q->execute([$token]);$c=$q->fetch();if(!$c){$pdo->rollBack();return['ok'=>false,'message'=>'Checkout was not found.'];}if(($c['status']??'')==='completed'){$pdo->commit();return['ok'=>true,'message'=>'Checkout already completed.','duplicate'=>true];}if(($c['status']??'')!=='pending'){$pdo->rollBack();return['ok'=>false,'message'=>'Checkout is not pending.'];}if(!empty($c['expires_at'])&&strtotime((string)$c['expires_at'])<time()){$pdo->prepare("UPDATE subscription_checkouts SET status='expired',updated_at=NOW() WHERE id=? AND status='pending'")->execute([(int)$c['id']]);$pdo->commit();return['ok'=>false,'message'=>'Checkout expired.'];}$verified=sf_revenue_provider_payment_verified($c,$payment);if(empty($verified['ok'])){$pdo->prepare("UPDATE subscription_checkouts SET status='failed',updated_at=NOW() WHERE id=? AND status='pending'")->execute([(int)$c['id']]);$pdo->commit();return['ok'=>false,'message'=>'Provider payment verification failed: '.($verified['error']??'unknown')];}$provider=(string)$verified['provider'];$paymentId=substr(trim((string)($payment['provider_payment_id']??'')),0,190);if($provider==='sandbox'&&$paymentId==='')$paymentId='sandbox_pay_'.substr(hash('sha256',$token),0,24);if(sf_revenue_provider_payment_duplicate($pdo,$provider,$paymentId)){$pdo->rollBack();return['ok'=>false,'message'=>'Provider payment has already been applied.'];}$subRef=substr(trim((string)($payment['provider_subscription_id']??'')),0,190);if($subRef==='')$subRef=$provider.'_sub_'.substr(hash('sha256',$token.'|sub'),0,24);$customerRef=substr(trim((string)($payment['provider_customer_id']??'')),0,190);$userId=(int)$c['user_id'];$amount=(int)$c['amount_cents'];$currency=sf_revenue_normalize_currency($c['currency']??'USD');$periodEnd=sf_billing_period_end($c);sf_revenue_expire_subscription_grants($pdo,$userId);$pdo->prepare("UPDATE user_subscriptions SET status='canceled',canceled_at=COALESCE(canceled_at,NOW()),updated_at=NOW() WHERE user_id=? AND status IN ('active','trialing','past_due')")->execute([$userId]);$stmt=$pdo->prepare("INSERT INTO user_subscriptions (user_id,plan_id,status,current_period_start,current_period_end,external_subscription_id,payment_provider,provider_customer_id,provider_subscription_id) VALUES (?,?,'active',NOW(),?,?,?,?,?)");$stmt->execute([$userId,(int)$c['plan_id'],$periodEnd,$subRef,$provider,$customerRef?:null,$subRef]);$subscriptionId=(int)$pdo->lastInsertId();$evidence=['provider'=>$provider,'verified'=>true,'payment_status'=>$payment['payment_status']??($provider==='sandbox'?'paid':''),'amount_cents'=>$amount,'currency'=>$currency,'verification_hash'=>hash('sha256',json_encode(sf_revenue_redact_payload($payment),JSON_UNESCAPED_SLASHES))];$claim=$pdo->prepare("UPDATE subscription_checkouts SET status='completed',provider_payment_id=?,completed_at=NOW(),updated_at=NOW(),metadata_json=? WHERE id=? AND status='pending'");$claim->execute([$paymentId,json_encode($evidence,JSON_UNESCAPED_SLASHES),(int)$c['id']]);if($claim->rowCount()!==1)throw new RuntimeException('Checkout activation race was detected.');$invoiceNo='SF-'.strtoupper(substr(hash('sha256',(string)$subscriptionId.$token),0,10));$invoice=$pdo->prepare("INSERT INTO invoices (user_id,subscription_id,invoice_number,status,subtotal_cents,tax_cents,total_cents,currency,provider_invoice_id,due_at,paid_at,metadata_json) VALUES (?,?,?,'paid',?,0,?,?,?,?,NOW(),?)");$invoice->execute([$userId,$subscriptionId,$invoiceNo,$amount,$amount,$currency,$provider.'_invoice_'.$invoiceNo,date('Y-m-d H:i:s'),json_encode($evidence,JSON_UNESCAPED_SLASHES)]);$invoiceId=(int)$pdo->lastInsertId();$tx=$pdo->prepare("INSERT INTO payment_transactions (user_id,subscription_id,invoice_id,checkout_id,provider,provider_payment_id,transaction_type,status,amount_cents,currency,raw_payload_json) VALUES (?,?,?,?,?,?,'subscription','paid',?,?,?)");$tx->execute([$userId,$subscriptionId,$invoiceId,(int)$c['id'],$provider,$paymentId,$amount,$currency,json_encode(sf_revenue_redact_payload($payment),JSON_UNESCAPED_SLASHES)]);sf_billing_create_entitlement_grants($pdo,$userId,$c,$subscriptionId);$pdo->commit();return['ok'=>true,'message'=>'Provider checkout activated.','subscription_id'=>$subscriptionId,'invoice_id'=>$invoiceId];}catch(Throwable$e){if($pdo->inTransaction())$pdo->rollBack();error_log('Stonefellow provider checkout activation failed: '.$e->getMessage());return['ok'=>false,'message'=>'Provider checkout activation failed.'];}}
 ?>
