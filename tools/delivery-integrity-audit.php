@@ -26,7 +26,7 @@ $sections=[
  'Preference enforcement'=>[
   ['includes/delivery_integrity.php',['sf_delivery_preference_enabled','all_marketing','sf_delivery_transactional_type']],
   ['includes/notifications.php',['honors_preferences','Recipient preference disabled']],
-  ['includes/ops_scheduler_messaging.php',['honors_preferences','preferenceKey','preference-skipped']],
+  ['includes/ops_scheduler_messaging.php',['honors_preferences','preferenceKey','skippedChannels']],
  ],
  'Scheduler correctness'=>[
   ['includes/ops_scheduler_messaging.php',["frequency<>'manual'",'sf_sched_next_run','Job is already running','run lease']],
@@ -34,7 +34,7 @@ $sections=[
   ['api/ops-scheduler.php',['SF_OPS_SCHEDULER_SECRET','hash_equals','run_due']],
  ],
  'Campaign channel integrity'=>[
-  ['includes/ops_scheduler_messaging.php',['sf_msg_log_status','delivery_status','email_log_id','member_message_id','preference']],
+  ['includes/ops_scheduler_messaging.php',['sf_msg_log_status','delivery_status','email_log_id','member_message_id','skippedChannels']],
   ['admin/member-messaging.php',['preference-skipped','audience snapshot','immutable']],
   ['api/member-notices.php',['admin.members.manage','csrf_failed','method_not_allowed']],
  ],
