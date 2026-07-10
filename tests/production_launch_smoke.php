@@ -20,7 +20,7 @@ $root=dirname(__DIR__);$markers=[
  'database/production_launch_promotion_v1.sql'=>['production_launch_promotions','production_launch_approvals','production_launch_checks','production_launch_events','target_commit_sha','artifact_sha256'],
  'includes/production_launch.php'=>['sf_prod_binding_gate','sf_prod_approval_gate','sf_prod_phase_gate','sf_prod_transition','Each approval must use a distinct approver','sf_prod_latest_for_sha'],
  'admin/production-launch.php'=>['Independent Approval','Approved package evidence','Evaluate Transition','Event Ledger','sf_csrf_field'],
- 'api/production-deployment-event.php'=>['production_only','HTTP_X_STONEFELLOW_DEPLOYMENT_SIGNATURE','commit_mismatch','status'=>'duplicate'],
+ 'api/production-deployment-event.php'=>['production_only','HTTP_X_STONEFELLOW_DEPLOYMENT_SIGNATURE','commit_mismatch',"'status'=>'duplicate'"],
  'deploy/preflight.php'=>['Production Launch Promotion Score','No approved, deploying, deployed, or verified production promotion','SF_RELEASE_COMMIT_SHA'],
  'includes/release_candidate.php'=>['100% launch certification','Integration scenario coverage','Approved production promotion'],
  '.env.example'=>['SF_RELEASE_COMMIT_SHA','SF_PRODUCTION_LAUNCH_REQUIRE_DISTINCT_APPROVERS=1','SF_PRODUCTION_DEPLOYMENT_EVENT_SECRET'],
