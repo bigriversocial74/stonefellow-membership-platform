@@ -8,9 +8,7 @@ function sf_db(): ?PDO
     static $pdo = false;
     global $database;
 
-    if ($pdo !== false) {
-        return $pdo;
-    }
+    if ($pdo !== false) return $pdo;
 
     $host = trim((string)($database['host'] ?? ''));
     $port = (int)($database['port'] ?? 3306);
@@ -23,18 +21,13 @@ function sf_db(): ?PDO
         $pdo = null;
         return null;
     }
-
     if (str_contains($host, ';') || str_contains($name, ';')) {
         error_log('Stonefellow database configuration rejected unsafe DSN characters.');
         $pdo = null;
         return null;
     }
-    if ($port < 1 || $port > 65535) {
-        $port = 3306;
-    }
-    if (!in_array($charset, ['utf8mb4', 'utf8'], true)) {
-        $charset = 'utf8mb4';
-    }
+    if ($port < 1 || $port > 65535) $port = 3306;
+    if (!in_array($charset, ['utf8mb4', 'utf8'], true)) $charset = 'utf8mb4';
 
     $dsn = "mysql:host={$host};port={$port};dbname={$name};charset={$charset}";
     $options = [
@@ -43,9 +36,7 @@ function sf_db(): ?PDO
         PDO::ATTR_EMULATE_PREPARES => false,
         PDO::ATTR_STRINGIFY_FETCHES => false,
     ];
-    if (defined('PDO::MYSQL_ATTR_MULTI_STATEMENTS')) {
-        $options[PDO::MYSQL_ATTR_MULTI_STATEMENTS] = false;
-    }
+    if (defined('PDO::MYSQL_ATTR_MULTI_STATEMENTS')) $options[PDO::MYSQL_ATTR_MULTI_STATEMENTS] = false;
 
     try {
         $pdo = new PDO($dsn, $user, $pass, $options);
@@ -53,27 +44,20 @@ function sf_db(): ?PDO
         error_log('Stonefellow database connection failed [' . sf_security_request_id() . ']: ' . $e->getMessage());
         $pdo = null;
     }
-
     return $pdo;
 }
 
 function sf_current_user_id(): ?int
 {
     foreach (['sf_user_id', 'user_id', 'member_id'] as $key) {
-        if (!empty($_SESSION[$key]) && filter_var($_SESSION[$key], FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]])) {
-            return (int)$_SESSION[$key];
-        }
+        if (!empty($_SESSION[$key]) && filter_var($_SESSION[$key], FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]])) return (int)$_SESSION[$key];
     }
-
     return null;
 }
 
 function sf_session_key(): string
 {
-    if (empty($_SESSION['sf_session_key']) || !is_string($_SESSION['sf_session_key'])) {
-        $_SESSION['sf_session_key'] = bin2hex(random_bytes(32));
-    }
-
+    if (empty($_SESSION['sf_session_key']) || !is_string($_SESSION['sf_session_key'])) $_SESSION['sf_session_key'] = bin2hex(random_bytes(32));
     return $_SESSION['sf_session_key'];
 }
 
@@ -94,7 +78,6 @@ function sf_json_response(array $payload, int $status = 200): void
     header('Content-Type: application/json; charset=utf-8');
     header('Cache-Control: no-store, private');
     header('X-Request-Id: ' . sf_security_request_id());
-
     try {
         echo json_encode($payload, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR);
     } catch (JsonException $e) {
@@ -106,25 +89,13 @@ function sf_json_response(array $payload, int $status = 200): void
 
 function sf_client_hash(?string $value): ?string
 {
-    if ($value === null || $value === '') {
-        return null;
-    }
-
+    if ($value === null || $value === '') return null;
     global $security;
-    $secret = trim((string)(
-        getenv('SF_HASH_SALT')
-        ?: getenv('SF_APP_KEY')
-        ?: ($security['hash_salt'] ?? '')
-        ?: ($security['app_key'] ?? '')
-    ));
-
+    $secret = trim((string)(getenv('SF_HASH_SALT') ?: getenv('SF_APP_KEY') ?: ($security['hash_salt'] ?? '') ?: ($security['app_key'] ?? '')));
     if ($secret === '') {
         $lock = sf_install_lock_file();
-        if (is_file($lock)) {
-            $secret = hash('sha256', (string)file_get_contents($lock));
-        }
+        if (is_file($lock)) $secret = hash('sha256', (string)file_get_contents($lock));
     }
-
     if ($secret === '') {
         static $logged = false;
         if (!$logged) {
@@ -133,7 +104,6 @@ function sf_client_hash(?string $value): ?string
         }
         return null;
     }
-
     return hash_hmac('sha256', $value, $secret);
 }
 
@@ -146,3 +116,6 @@ function sf_float_from_request(array $data, string $key, float $default = 0.0): 
 {
     return isset($data[$key]) && is_numeric($data[$key]) ? (float)$data[$key] : $default;
 }
+
+require_once __DIR__ . '/auth_hardening.php';
+sf_auth_hardening_prepare_request();
