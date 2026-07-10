@@ -11,6 +11,7 @@ $items = sf_publish_items();
 sf_admin_shell_start('Release Schedule', 'Episode and video calendar', 'Review publish status, release dates, access levels, and watch-next gaps before launch.', 'release-schedule');
 ?>
 <section class="sf-admin-card-grid">
+  <a class="sf-admin-action-card" href="<?= sf_url('admin/catalog-operations.php') ?>"><span>Launch</span><strong>Catalog Operations</strong><small>Unified readiness, SEO, sample cleanup, and reversible publication batches.</small></a>
   <a class="sf-admin-action-card" href="<?= sf_url('admin/publishing.php') ?>"><span>Workflow</span><strong>Publishing Controls</strong><small>Draft, scheduled, published, archived, and early access.</small></a>
   <a class="sf-admin-action-card" href="<?= sf_url('admin/episodes.php') ?>"><span>Episodes</span><strong><?= count($episodes) ?> records</strong><small>Edit story metadata and release windows.</small></a>
   <a class="sf-admin-action-card" href="<?= sf_url('admin/videos.php') ?>"><span>Videos</span><strong><?= count($videos) ?> records</strong><small>Edit stream files and access gates.</small></a>
