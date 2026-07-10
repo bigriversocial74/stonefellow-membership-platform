@@ -15,4 +15,4 @@ $root=dirname(__DIR__);$framework=[
 ];
 foreach($framework as $file=>$markers){$body=is_file($root.'/'.$file)?(string)file_get_contents($root.'/'.$file):'';foreach($markers as $marker)if($body===''||stripos($body,$marker)===false)$fail[]=$file.' missing '.$marker.'.';}
 $overall=sf_pc_score($checks);echo str_repeat('-',72)."\nOverall source score: ".number_format($overall/10,1)."/10\n";
-if($fail){echo "\nBlocking findings:\n- ".implode("\n- ",$fail)."\n";exit(1);}echo "Result: PASS — all ten cumulative source sections score 10/10.\n";
+if($fail){echo "\nBlocking findings:\n- ".implode("\n- ",$fail)."\n";exit(1);}echo "Result: PASS — all cumulative source sections score 10/10.\n";
