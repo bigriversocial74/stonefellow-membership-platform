@@ -15,8 +15,20 @@ jobs:
         run: php -l includes/staging_launch_certification.php && php -l admin/staging-launch-certification.php && php -l deploy/preflight.php && php -l tests/staging_launch_certification_smoke.php && php -l tools/staging-launch-certification-audit.php
       - name: PHP syntax - delivery core
         run: php -l includes/delivery_integrity.php && php -l includes/notifications.php && php -l includes/ops_scheduler_messaging.php
-      - name: PHP syntax - delivery admin and API
-        run: php -l admin/email-templates.php && php -l admin/member-messaging.php && php -l admin/notifications.php && php -l admin/ops-scheduler.php && php -l api/member-notices.php && php -l api/notification-webhook.php && php -l api/ops-scheduler.php
+      - name: PHP syntax - email templates admin
+        run: php -l admin/email-templates.php
+      - name: PHP syntax - member messaging admin
+        run: php -l admin/member-messaging.php
+      - name: PHP syntax - notifications admin
+        run: php -l admin/notifications.php
+      - name: PHP syntax - ops scheduler admin
+        run: php -l admin/ops-scheduler.php
+      - name: PHP syntax - member notices API
+        run: php -l api/member-notices.php
+      - name: PHP syntax - notification webhook API
+        run: php -l api/notification-webhook.php
+      - name: PHP syntax - ops scheduler API
+        run: php -l api/ops-scheduler.php
       - name: PHP syntax - delivery tests and audit
         run: php -l tests/delivery_integrity_smoke.php && php -l tools/delivery-integrity-audit.php
       - name: PHP syntax - remaining repository
