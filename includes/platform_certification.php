@@ -43,7 +43,7 @@ function sf_pc_static_sections(): array {
       'Authentication, Privacy & Abuse'=>[
         ['tests/auth_privacy_abuse_smoke.php',['PASS']],
         ['tools/auth-privacy-abuse-audit.php',['Authentication']],
-        ['docs/AUTHENTICATION_PRIVACY_ABUSE_AUDIT_V1.md',['10/10']],
+        ['docs/AUTH_PRIVACY_ABUSE_AUDIT_V1.md',['10/10']],
       ],
       'Publishing, Search & Moderation'=>[
         ['tests/content_integrity_smoke.php',['PASS']],
