@@ -40,11 +40,11 @@ $sections=[
  ],
  'Webhook authenticity and privacy'=>[
   ['api/notification-webhook.php',['sf_delivery_webhook_signature_valid','provider_event_id','duplicate','[redacted]','beginTransaction']],
-  ['includes/delivery_integrity.php',['SF_NOTIFICATION_WEBHOOK_SECRET','hash_hmac','hash_equals']],
+  ['includes/delivery_integrity.php',['SF_NOTIFICATION_WEBHOOK_SECRET','hash_hmac','hash_equals','sf_delivery_mask_email']],
   ['.env.example',['SF_NOTIFICATION_WEBHOOK_MAX_BYTES=262144','SF_NOTIFICATION_WEBHOOK_SECRET=']],
  ],
  'Admin/operator safeguards'=>[
-  ['admin/notifications.php',['confirm(','sf_delivery_mask_email','Dispatch complete','Test notification failed']],
+  ['admin/notifications.php',['confirm(','privacy-reduced logs','Dispatch complete','Test notification failed']],
   ['admin/member-messaging.php',['confirm(','Sent or archived campaigns cannot be sent again']],
   ['admin/ops-scheduler.php',['confirm(','Job was rejected','Due jobs:']],
  ],
