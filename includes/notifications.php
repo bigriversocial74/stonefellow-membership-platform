@@ -1,616 +1,74 @@
 <?php
 require_once __DIR__ . '/db.php';
+require_once __DIR__ . '/delivery_integrity.php';
 
-const SF_NOTIFICATION_SESSION_LOG = 'sf_notification_session_log';
-
-function sf_notify_h($value): string {
-  return htmlspecialchars((string)$value, ENT_QUOTES, 'UTF-8');
-}
-
-function sf_notify_provider(): string {
-  $provider = strtolower(trim((string)(getenv('SF_MAIL_PROVIDER') ?: getenv('SF_EMAIL_PROVIDER') ?: 'log')));
-  return $provider !== '' ? $provider : 'log';
-}
-
-function sf_notify_from_email(): string {
-  global $site;
-  return trim((string)(getenv('SF_MAIL_FROM_EMAIL') ?: ($site['support_email'] ?? 'support@stonefellow.tv')));
-}
-
-function sf_notify_from_name(): string {
-  global $site;
-  return trim((string)(getenv('SF_MAIL_FROM_NAME') ?: ($site['name'] ?? 'Stonefellow')));
-}
-
-function sf_notify_absolute_url(string $path): string {
-  $path = ltrim($path, '/');
-  $base = trim((string)(getenv('SF_PUBLIC_URL') ?: ''), '/');
-  if ($base !== '') {
-    return $base . '/' . $path;
-  }
-  $scheme = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
-  $host = $_SERVER['HTTP_HOST'] ?? '';
-  if ($host !== '') {
-    $scriptDir = str_replace('\\', '/', dirname($_SERVER['SCRIPT_NAME'] ?? '/'));
-    $scriptDir = preg_replace('~/(admin|api)$~', '', $scriptDir) ?: '';
-    $prefix = trim($scriptDir, '/');
-    return $scheme . '://' . $host . ($prefix !== '' ? '/' . $prefix : '') . '/' . $path;
-  }
-  return sf_url($path);
-}
-
-function sf_notify_money(int $cents, string $currency = 'USD'): string {
-  return '$' . number_format($cents / 100, 2) . ($currency !== 'USD' ? ' ' . strtoupper($currency) : '');
-}
-
-function sf_notify_table_exists(string $table): bool {
-  $pdo = sf_db();
-  if (!$pdo) {
-    return false;
-  }
-  try {
-    $stmt = $pdo->prepare('SHOW TABLES LIKE ?');
-    $stmt->execute([$table]);
-    return (bool)$stmt->fetchColumn();
-  } catch (Throwable $e) {
-    error_log('Stonefellow notification table check failed: ' . $e->getMessage());
-    return false;
-  }
-}
-
-function sf_notify_ready(): bool {
-  return sf_db() instanceof PDO
-    && sf_notify_table_exists('email_templates')
-    && sf_notify_table_exists('notification_logs');
-}
-
+const SF_NOTIFICATION_SESSION_LOG='sf_notification_session_log';
+function sf_notify_h($value): string { return htmlspecialchars((string)$value,ENT_QUOTES,'UTF-8'); }
+function sf_notify_provider(): string { $p=strtolower(trim((string)(getenv('SF_MAIL_PROVIDER')?:getenv('SF_EMAIL_PROVIDER')?:'log')));return in_array($p,['log','sandbox','preview','mail'],true)?$p:'unsupported'; }
+function sf_notify_from_email(): string { global $site;return sf_delivery_safe_email((string)(getenv('SF_MAIL_FROM_EMAIL')?:($site['support_email']??''))); }
+function sf_notify_from_name(): string { global $site;return sf_delivery_clean_header((string)(getenv('SF_MAIL_FROM_NAME')?:($site['name']??'Stonefellow')),120); }
+function sf_notify_absolute_url(string $path): string { $path=ltrim($path,'/');$base=rtrim(trim((string)(getenv('SF_PUBLIC_URL')?:'')),'/');if($base!==''&&preg_match('~^https://~i',$base))return $base.'/'.$path;if(function_exists('sf_absolute_url'))return sf_absolute_url($path);return sf_url($path); }
+function sf_notify_money(int $cents,string $currency='USD'): string { return '$'.number_format($cents/100,2).(strtoupper($currency)!=='USD'?' '.strtoupper($currency):''); }
+function sf_notify_table_exists(string $table): bool { $pdo=sf_db();if(!$pdo instanceof PDO||!preg_match('/^[a-z0-9_]+$/i',$table))return false;try{$s=$pdo->prepare('SHOW TABLES LIKE ?');$s->execute([$table]);return (bool)$s->fetchColumn();}catch(Throwable $e){return false;} }
+function sf_notify_ready(): bool { return sf_db() instanceof PDO&&sf_notify_table_exists('email_templates')&&sf_notify_table_exists('notification_logs'); }
 function sf_notify_default_templates(): array {
-  $memberUrl = sf_notify_absolute_url('member.php');
-  $billingUrl = sf_notify_absolute_url('account-billing.php');
-  return [
-    'welcome' => [
-      'name' => 'Welcome Email',
-      'category' => 'auth',
-      'subject' => 'Welcome to {{site_name}}',
-      'html_body' => '<h1>Welcome to {{site_name}}, {{recipient_name}}.</h1><p>Your account is active. You can now stream music, watch episodes, build playlists, and follow the Stonefellow story.</p><p><a href="{{member_url}}">Open your member dashboard</a></p>',
-      'text_body' => 'Welcome to {{site_name}}, {{recipient_name}}. Open your member dashboard: {{member_url}}',
-      'variables' => ['site_name','recipient_name','member_url'],
-    ],
-    'password_reset' => [
-      'name' => 'Password Reset',
-      'category' => 'auth',
-      'subject' => 'Reset your {{site_name}} password',
-      'html_body' => '<h1>Password reset request</h1><p>Use this secure link within {{expires_minutes}} minutes:</p><p><a href="{{reset_url}}">Reset password</a></p><p>If you did not request this, you can ignore this message.</p>',
-      'text_body' => 'Reset your {{site_name}} password within {{expires_minutes}} minutes: {{reset_url}}',
-      'variables' => ['site_name','expires_minutes','reset_url'],
-    ],
-    'subscription_started' => [
-      'name' => 'Subscription Started',
-      'category' => 'billing',
-      'subject' => 'Your {{plan_name}} membership is active',
-      'html_body' => '<h1>Your membership is active.</h1><p>Thanks for joining {{site_name}}. Your {{plan_name}} access is active through {{period_end}}.</p><p><a href="{{member_url}}">Open member dashboard</a></p>',
-      'text_body' => 'Your {{plan_name}} membership is active through {{period_end}}. {{member_url}}',
-      'variables' => ['plan_name','period_end','member_url'],
-    ],
-    'subscription_canceled' => [
-      'name' => 'Subscription Canceled',
-      'category' => 'billing',
-      'subject' => 'Your {{site_name}} membership was canceled',
-      'html_body' => '<h1>Membership canceled</h1><p>Your membership status changed to {{subscription_status}}. Access remains available until {{period_end}} when applicable.</p>',
-      'text_body' => 'Your membership status changed to {{subscription_status}}. Access until: {{period_end}}',
-      'variables' => ['subscription_status','period_end'],
-    ],
-    'payment_receipt' => [
-      'name' => 'Payment Receipt',
-      'category' => 'billing',
-      'subject' => '{{site_name}} receipt {{invoice_number}}',
-      'html_body' => '<h1>Payment receipt</h1><p>Invoice {{invoice_number}} was paid for {{amount}}.</p><p>Plan: {{plan_name}}</p><p><a href="{{billing_url}}">View billing</a></p>',
-      'text_body' => 'Receipt {{invoice_number}} paid for {{amount}}. Plan: {{plan_name}}. {{billing_url}}',
-      'variables' => ['invoice_number','amount','plan_name','billing_url'],
-    ],
-    'merch_order_confirmation' => [
-      'name' => 'Merch Order Confirmation',
-      'category' => 'commerce',
-      'subject' => 'Stonefellow order {{order_number}} received',
-      'html_body' => '<h1>Order received.</h1><p>Thanks, {{recipient_name}}. Your order {{order_number}} total is {{order_total}}.</p><p><a href="{{receipt_url}}">View receipt</a></p>',
-      'text_body' => 'Order {{order_number}} received. Total: {{order_total}}. Receipt: {{receipt_url}}',
-      'variables' => ['recipient_name','order_number','order_total','receipt_url'],
-    ],
-    'order_fulfilled' => [
-      'name' => 'Order Fulfilled',
-      'category' => 'commerce',
-      'subject' => 'Stonefellow order {{order_number}} was fulfilled',
-      'html_body' => '<h1>Your order was fulfilled.</h1><p>Order {{order_number}} has been marked fulfilled.</p><p>{{fulfillment_note}}</p><p><a href="{{receipt_url}}">View receipt</a></p>',
-      'text_body' => 'Order {{order_number}} was fulfilled. {{fulfillment_note}} {{receipt_url}}',
-      'variables' => ['order_number','fulfillment_note','receipt_url'],
-    ],
-    'admin_new_order' => [
-      'name' => 'Admin New Order Alert',
-      'category' => 'admin',
-      'subject' => 'New Stonefellow order {{order_number}}',
-      'html_body' => '<h1>New merch order</h1><p>{{recipient_name}} placed order {{order_number}} for {{order_total}}.</p><p><a href="{{admin_order_url}}">Review order</a></p>',
-      'text_body' => 'New merch order {{order_number}} for {{order_total}}. Review: {{admin_order_url}}',
-      'variables' => ['recipient_name','order_number','order_total','admin_order_url'],
-    ],
-    'admin_failed_payment' => [
-      'name' => 'Admin Failed Payment Alert',
-      'category' => 'admin',
-      'subject' => 'Stonefellow payment alert: {{payment_status}}',
-      'html_body' => '<h1>Payment alert</h1><p>Status: {{payment_status}}</p><p>Provider ref: {{provider_payment_id}}</p><p>{{error_message}}</p>',
-      'text_body' => 'Payment alert {{payment_status}}. Provider ref: {{provider_payment_id}}. {{error_message}}',
-      'variables' => ['payment_status','provider_payment_id','error_message'],
-    ],
-    'playlist_share' => [
-      'name' => 'Playlist Share',
-      'category' => 'member',
-      'subject' => '{{recipient_name}} shared a Stonefellow playlist',
-      'html_body' => '<h1>A Stonefellow playlist was shared with you.</h1><p>{{sender_name}} shared {{playlist_name}}.</p><p><a href="{{playlist_url}}">Open playlist</a></p>',
-      'text_body' => '{{sender_name}} shared {{playlist_name}}: {{playlist_url}}',
-      'variables' => ['sender_name','playlist_name','playlist_url'],
-    ],
-  ];
+ return [
+ 'welcome'=>['name'=>'Welcome Email','category'=>'auth','subject'=>'Welcome to {{site_name}}','html_body'=>'<h1>Welcome to {{site_name}}, {{recipient_name}}.</h1><p>Your account is active. You can now stream music, watch episodes, build playlists, and follow the Stonefellow story.</p><p><a href="{{member_url}}">Open your member dashboard</a></p>','text_body'=>'Welcome to {{site_name}}, {{recipient_name}}. Open your member dashboard: {{member_url}}','variables'=>['site_name','recipient_name','member_url']],
+ 'password_reset'=>['name'=>'Password Reset','category'=>'auth','subject'=>'Reset your {{site_name}} password','html_body'=>'<h1>Password reset request</h1><p>Use this secure link within {{expires_minutes}} minutes:</p><p><a href="{{reset_url}}">Reset password</a></p><p>If you did not request this, ignore this message.</p>','text_body'=>'Reset your {{site_name}} password within {{expires_minutes}} minutes: {{reset_url}}','variables'=>['site_name','expires_minutes','reset_url']],
+ 'subscription_started'=>['name'=>'Subscription Started','category'=>'billing','subject'=>'Your {{plan_name}} membership is active','html_body'=>'<h1>Your membership is active.</h1><p>Thanks for joining {{site_name}}. Your {{plan_name}} access is active through {{period_end}}.</p><p><a href="{{member_url}}">Open member dashboard</a></p>','text_body'=>'Your {{plan_name}} membership is active through {{period_end}}. {{member_url}}','variables'=>['site_name','plan_name','period_end','member_url']],
+ 'subscription_canceled'=>['name'=>'Subscription Canceled','category'=>'billing','subject'=>'Your {{site_name}} membership was canceled','html_body'=>'<h1>Membership canceled</h1><p>Your membership status changed to {{subscription_status}}. Access remains available until {{period_end}} when applicable.</p>','text_body'=>'Your membership status changed to {{subscription_status}}. Access until: {{period_end}}','variables'=>['site_name','subscription_status','period_end']],
+ 'payment_receipt'=>['name'=>'Payment Receipt','category'=>'billing','subject'=>'{{site_name}} receipt {{invoice_number}}','html_body'=>'<h1>Payment receipt</h1><p>Invoice {{invoice_number}} was paid for {{amount}}.</p><p>Plan: {{plan_name}}</p><p><a href="{{billing_url}}">View billing</a></p>','text_body'=>'Receipt {{invoice_number}} paid for {{amount}}. Plan: {{plan_name}}. {{billing_url}}','variables'=>['site_name','invoice_number','amount','plan_name','billing_url']],
+ 'merch_order_confirmation'=>['name'=>'Merch Order Confirmation','category'=>'commerce','subject'=>'Stonefellow order {{order_number}} received','html_body'=>'<h1>Order received.</h1><p>Thanks, {{recipient_name}}. Your order {{order_number}} total is {{order_total}}.</p><p><a href="{{receipt_url}}">View receipt</a></p>','text_body'=>'Order {{order_number}} received. Total: {{order_total}}. Receipt: {{receipt_url}}','variables'=>['recipient_name','order_number','order_total','receipt_url']],
+ 'order_fulfilled'=>['name'=>'Order Fulfilled','category'=>'commerce','subject'=>'Stonefellow order {{order_number}} was fulfilled','html_body'=>'<h1>Your order was fulfilled.</h1><p>Order {{order_number}} has been marked fulfilled.</p><p>{{fulfillment_note}}</p><p><a href="{{receipt_url}}">View receipt</a></p>','text_body'=>'Order {{order_number}} was fulfilled. {{fulfillment_note}} {{receipt_url}}','variables'=>['order_number','fulfillment_note','receipt_url']],
+ 'admin_new_order'=>['name'=>'Admin New Order Alert','category'=>'admin','subject'=>'New Stonefellow order {{order_number}}','html_body'=>'<h1>New merch order</h1><p>{{recipient_name}} placed order {{order_number}} for {{order_total}}.</p><p><a href="{{admin_order_url}}">Review order</a></p>','text_body'=>'New merch order {{order_number}} for {{order_total}}. Review: {{admin_order_url}}','variables'=>['recipient_name','order_number','order_total','admin_order_url']],
+ 'admin_failed_payment'=>['name'=>'Admin Failed Payment Alert','category'=>'admin','subject'=>'Stonefellow payment alert: {{payment_status}}','html_body'=>'<h1>Payment alert</h1><p>Status: {{payment_status}}</p><p>Provider ref: {{provider_payment_id}}</p><p>{{error_message}}</p>','text_body'=>'Payment alert {{payment_status}}. Provider ref: {{provider_payment_id}}. {{error_message}}','variables'=>['payment_status','provider_payment_id','error_message']],
+ 'playlist_share'=>['name'=>'Playlist Share','category'=>'member','subject'=>'{{recipient_name}} shared a Stonefellow playlist','html_body'=>'<h1>A Stonefellow playlist was shared with you.</h1><p>{{sender_name}} shared {{playlist_name}}.</p><p><a href="{{playlist_url}}">Open playlist</a></p>','text_body'=>'{{sender_name}} shared {{playlist_name}}: {{playlist_url}}','variables'=>['recipient_name','sender_name','playlist_name','playlist_url']],
+ 'member_message_notice'=>['name'=>'Member Message Notice','category'=>'member','subject'=>'{{message_subject}}','html_body'=>'<h1>{{message_subject}}</h1><p>{{message_body}}</p><p><a href="{{action_url}}">Open message</a></p>','text_body'=>'{{message_subject}}\n\n{{message_text}}\n\n{{action_url}}','variables'=>['message_subject','message_body','message_text','action_url']],
+ ];
 }
-
-function sf_notify_seed_default_templates(): int {
-  if (!sf_notify_table_exists('email_templates')) {
-    return 0;
-  }
-  $pdo = sf_db();
-  $count = 0;
-  $sql = "INSERT INTO email_templates (template_key, name, category, subject, html_body, text_body, variables_json, status)
-          VALUES (?, ?, ?, ?, ?, ?, ?, 'active')
-          ON DUPLICATE KEY UPDATE name=VALUES(name), category=VALUES(category), subject=VALUES(subject), html_body=VALUES(html_body), text_body=VALUES(text_body), variables_json=VALUES(variables_json), updated_at=NOW()";
-  $stmt = $pdo->prepare($sql);
-  foreach (sf_notify_default_templates() as $key => $template) {
-    $stmt->execute([
-      $key,
-      $template['name'],
-      $template['category'],
-      $template['subject'],
-      $template['html_body'],
-      $template['text_body'],
-      json_encode($template['variables'] ?? [], JSON_UNESCAPED_SLASHES),
-    ]);
-    $count++;
-  }
-  return $count;
+function sf_notify_seed_default_templates(): int { if(!sf_notify_table_exists('email_templates'))return 0;$pdo=sf_db();$count=0;$s=$pdo->prepare('INSERT INTO email_templates (template_key,name,category,subject,html_body,text_body,variables_json,status) VALUES (?,?,?,?,?,?,?,"active") ON DUPLICATE KEY UPDATE name=VALUES(name),category=VALUES(category),subject=VALUES(subject),html_body=VALUES(html_body),text_body=VALUES(text_body),variables_json=VALUES(variables_json),updated_at=NOW()');foreach(sf_notify_default_templates() as $key=>$t){$s->execute([$key,$t['name'],$t['category'],$t['subject'],$t['html_body'],$t['text_body'],json_encode($t['variables'],JSON_UNESCAPED_SLASHES)]);$count++;}return $count; }
+function sf_notify_template(string $key): ?array { $key=strtolower(trim($key));if($key==='')return null;if(sf_notify_table_exists('email_templates')){try{$s=sf_db()->prepare("SELECT * FROM email_templates WHERE template_key=? AND status='active' LIMIT 1");$s->execute([$key]);$r=$s->fetch();if($r)return $r;}catch(Throwable $e){}}$d=sf_notify_default_templates()[$key]??null;if(!$d)return null;return ['template_key'=>$key,'name'=>$d['name'],'category'=>$d['category'],'subject'=>$d['subject'],'html_body'=>$d['html_body'],'text_body'=>$d['text_body'],'variables_json'=>json_encode($d['variables']),'status'=>'active']; }
+function sf_notify_merge_vars(array $vars,array $recipient=[]): array { global $site;$merged=array_merge(['site_name'=>$site['name']??'Stonefellow','support_email'=>$site['support_email']??sf_notify_from_email(),'recipient_name'=>$recipient['name']??$recipient['display_name']??'','recipient_email'=>$recipient['email']??'','member_url'=>sf_notify_absolute_url('member.php'),'billing_url'=>sf_notify_absolute_url('account-billing.php')],$vars);foreach($merged as $k=>$v){if(is_array($v)||is_object($v))$merged[$k]=json_encode($v,JSON_UNESCAPED_SLASHES|JSON_UNESCAPED_UNICODE);else $merged[$k]=sf_delivery_clean_text((string)$v,20000);}return $merged; }
+function sf_notify_render(string $template,array $vars): string { return preg_replace_callback('/{{\s*([a-zA-Z0-9_.-]+)\s*}}/',static fn($m)=>array_key_exists($m[1],$vars)?(string)$vars[$m[1]]:'',$template)??$template; }
+function sf_notify_render_html(string $template,array $vars): string { $safe=[];foreach($vars as $k=>$v){$escaped=htmlspecialchars((string)$v,ENT_QUOTES|ENT_SUBSTITUTE,'UTF-8');$safe[$k]=str_ends_with($k,'body')?nl2br($escaped):$escaped;}return sf_delivery_sanitize_email_html(sf_notify_render($template,$safe)); }
+function sf_notify_body_preview(string $text): string { $clean=trim(preg_replace('/\s+/',' ',strip_tags($text))??'');return function_exists('mb_substr')?mb_substr($clean,0,500):substr($clean,0,500); }
+function sf_notify_user_recipient(?int $userId): ?array { if(!$userId||!sf_db())return null;try{$s=sf_db()->prepare("SELECT id,email,display_name FROM users WHERE id=? AND status='active' LIMIT 1");$s->execute([$userId]);$r=$s->fetch();$email=sf_delivery_safe_email((string)($r['email']??''));return $r&&$email!==''?['user_id'=>(int)$r['id'],'email'=>$email,'name'=>$r['display_name']?:$email]:null;}catch(Throwable $e){return null;} }
+function sf_notify_admin_recipients(): array { global $site;$out=[];foreach(preg_split('/[,;]/',(string)(getenv('SF_ADMIN_EMAILS')?:''))?:[] as $email){$email=sf_delivery_safe_email($email);if($email!=='')$out[$email]=['email'=>$email,'name'=>'Stonefellow Admin'];}if(sf_db()){try{foreach(sf_db()->query("SELECT id,email,display_name FROM users WHERE role='admin' AND status='active' ORDER BY id LIMIT 25")->fetchAll()?:[] as $r){$email=sf_delivery_safe_email((string)$r['email']);if($email!=='')$out[$email]=['user_id'=>(int)$r['id'],'email'=>$email,'name'=>$r['display_name']?:'Stonefellow Admin'];}}catch(Throwable $e){}}$fallback=sf_delivery_safe_email((string)($site['support_email']??''));if(!$out&&$fallback!=='')$out[$fallback]=['email'=>$fallback,'name'=>'Stonefellow Admin'];return array_values($out); }
+function sf_notify_recipient(array|string $recipient): array { if(is_string($recipient))$recipient=['email'=>$recipient];return ['user_id'=>isset($recipient['user_id'])?(int)$recipient['user_id']:(isset($recipient['id'])?(int)$recipient['id']:null),'email'=>sf_delivery_safe_email((string)($recipient['email']??'')),'name'=>sf_delivery_clean_header((string)($recipient['name']??$recipient['display_name']??''),190)]; }
+function sf_notify_log(array $p): int {
+ $p['provider']=$p['provider']??sf_notify_provider();$metadata=is_string($p['metadata_json']??null)?sf_delivery_json($p['metadata_json']):((array)($p['metadata_json']??[]));
+ if(sf_notify_ready()){
+  try{$key=(string)($metadata['idempotency_key']??'');if($key!==''){$q=sf_db()->prepare("SELECT id FROM notification_logs WHERE JSON_UNQUOTE(JSON_EXTRACT(metadata_json,'$.idempotency_key'))=? AND status<>'canceled' LIMIT 1");$q->execute([$key]);$existing=(int)$q->fetchColumn();if($existing>0)return $existing;}
+   $s=sf_db()->prepare('INSERT INTO notification_logs (user_id,recipient_email,recipient_name,channel,notification_type,template_key,subject,rendered_html,rendered_text,body_preview,status,provider,attempts,error_message,metadata_json,scheduled_at,sent_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)');$s->execute([$p['user_id']??null,$p['recipient_email']??'',$p['recipient_name']??null,$p['channel']??'email',$p['notification_type']??'transactional',$p['template_key']??null,$p['subject']??null,$p['rendered_html']??null,$p['rendered_text']??null,$p['body_preview']??null,$p['status']??'queued',$p['provider'],(int)($p['attempts']??0),$p['error_message']??null,json_encode($metadata,JSON_UNESCAPED_SLASHES|JSON_UNESCAPED_UNICODE),$p['scheduled_at']??null,$p['sent_at']??null]);return (int)sf_db()->lastInsertId();
+  }catch(Throwable $e){error_log('Stonefellow notification log insert failed: '.$e->getMessage());return 0;}
+ }
+ if(session_status()===PHP_SESSION_NONE)session_start();$_SESSION[SF_NOTIFICATION_SESSION_LOG]=$_SESSION[SF_NOTIFICATION_SESSION_LOG]??[];$p['id']=count($_SESSION[SF_NOTIFICATION_SESSION_LOG])+1;$p['created_at']=date('Y-m-d H:i:s');$_SESSION[SF_NOTIFICATION_SESSION_LOG][]=$p;return (int)$p['id'];
 }
-
-function sf_notify_template(string $templateKey): ?array {
-  $templateKey = trim($templateKey);
-  if ($templateKey === '') {
-    return null;
-  }
-  if (sf_notify_table_exists('email_templates')) {
-    try {
-      $stmt = sf_db()->prepare("SELECT * FROM email_templates WHERE template_key = ? AND status = 'active' LIMIT 1");
-      $stmt->execute([$templateKey]);
-      $row = $stmt->fetch();
-      if ($row) {
-        return $row;
-      }
-    } catch (Throwable $e) {
-      error_log('Stonefellow template lookup failed: ' . $e->getMessage());
-    }
-  }
-  $defaults = sf_notify_default_templates();
-  if (!isset($defaults[$templateKey])) {
-    return null;
-  }
-  return [
-    'template_key' => $templateKey,
-    'name' => $defaults[$templateKey]['name'],
-    'category' => $defaults[$templateKey]['category'],
-    'subject' => $defaults[$templateKey]['subject'],
-    'html_body' => $defaults[$templateKey]['html_body'],
-    'text_body' => $defaults[$templateKey]['text_body'],
-    'variables_json' => json_encode($defaults[$templateKey]['variables'] ?? [], JSON_UNESCAPED_SLASHES),
-    'status' => 'active',
-  ];
+function sf_notify_transport_send(array $m): array {
+ $provider=(string)($m['provider']??sf_notify_provider());$to=sf_delivery_safe_email((string)($m['recipient_email']??''));if($to==='')return ['ok'=>false,'error'=>'Recipient email is invalid.'];$production=function_exists('sf_is_production')&&sf_is_production();
+ if(in_array($provider,['log','sandbox','preview'],true)){if($production&&!sf_env_bool('SF_ALLOW_LOG_MAIL_PROVIDER',false))return ['ok'=>false,'error'=>'Log/sandbox mail provider is disabled in production.'];return ['ok'=>true,'provider_message_id'=>'log_'.substr(hash('sha256',$to.'|'.microtime(true)),0,18)];}
+ if($provider==='mail'){$from=sf_notify_from_email();if($from===''||($production&&!sf_env_bool('SF_ALLOW_PHP_MAIL_PROVIDER',false)))return ['ok'=>false,'error'=>'PHP mail provider is not production-enabled.'];$subject=sf_delivery_clean_header((string)($m['subject']??'Stonefellow notification'));$text=sf_delivery_clean_text((string)($m['rendered_text']??strip_tags((string)($m['rendered_html']??''))),100000);$headers=['From: '.sf_notify_from_name().' <'.$from.'>','Reply-To: '.$from,'MIME-Version: 1.0','Content-Type: text/plain; charset=UTF-8','X-Auto-Response-Suppress: All'];$ok=@mail($to,$subject,$text,implode("\r\n",$headers));return ['ok'=>$ok,'provider_message_id'=>$ok?'mail_'.substr(hash('sha256',$to.'|'.microtime(true)),0,18):null,'error'=>$ok?null:'mail() returned false.'];}
+ return ['ok'=>false,'error'=>'Unsupported mail provider.'];
 }
-
-function sf_notify_merge_vars(array $vars, array $recipient = []): array {
-  global $site;
-  $merged = array_merge([
-    'site_name' => $site['name'] ?? 'Stonefellow',
-    'support_email' => $site['support_email'] ?? sf_notify_from_email(),
-    'recipient_name' => $recipient['name'] ?? $recipient['display_name'] ?? '',
-    'recipient_email' => $recipient['email'] ?? '',
-    'member_url' => sf_notify_absolute_url('member.php'),
-    'billing_url' => sf_notify_absolute_url('account-billing.php'),
-  ], $vars);
-  foreach ($merged as $key => $value) {
-    if (is_array($value) || is_object($value)) {
-      $merged[$key] = json_encode($value, JSON_UNESCAPED_SLASHES);
-    }
-  }
-  return $merged;
+function sf_notify_update_log_status(int $id,string $status,?string $providerId=null,?string $error=null,?string $nextAttempt=null): void { if($id<=0||!sf_notify_ready())return;$status=in_array($status,['queued','sent','failed','skipped','canceled'],true)?$status:'failed';try{$sent=$status==='sent'?',sent_at=NOW()':'';$s=sf_db()->prepare("UPDATE notification_logs SET status=?,provider_message_id=COALESCE(?,provider_message_id),error_message=?,scheduled_at=?{$sent},updated_at=NOW() WHERE id=?");$s->execute([$status,$providerId,$error?sf_delivery_clean_text($error,2000):null,$nextAttempt,$id]);}catch(Throwable $e){error_log('Stonefellow notification status update failed: '.$e->getMessage());} }
+function sf_notify_dispatch_log(int $id): bool {
+ if($id<=0)return false;if(!sf_notify_ready())return false;$pdo=sf_db();$lock='message-'.$id;if(!sf_delivery_advisory_lock($pdo,$lock,1))return false;
+ try{$pdo->beginTransaction();$s=$pdo->prepare('SELECT * FROM notification_logs WHERE id=? FOR UPDATE');$s->execute([$id]);$row=$s->fetch();if(!$row){$pdo->rollBack();return false;}if($row['status']==='sent'||$row['status']==='skipped'||$row['status']==='canceled'){$pdo->commit();return $row['status']==='sent';}if(!in_array((string)$row['status'],['queued','failed'],true)||!sf_delivery_retry_due($row)){$pdo->commit();return false;}$max=sf_delivery_env_int('SF_NOTIFICATION_MAX_ATTEMPTS',5,1,20);$attempt=(int)$row['attempts']+1;if($attempt>$max){$pdo->prepare("UPDATE notification_logs SET status='canceled',error_message='Maximum delivery attempts exceeded.',updated_at=NOW() WHERE id=?")->execute([$id]);$pdo->commit();return false;}$metadata=sf_delivery_merge_metadata($row['metadata_json']??null,['attempt_started_at'=>date('c'),'attempt_number'=>$attempt]);$pdo->prepare('UPDATE notification_logs SET attempts=?,metadata_json=?,updated_at=NOW() WHERE id=?')->execute([$attempt,$metadata,$id]);$pdo->commit();
+  $result=sf_notify_transport_send(array_merge($row,['attempts'=>$attempt]));if(!empty($result['ok'])){sf_notify_update_log_status($id,'sent',$result['provider_message_id']??null,null,null);if(!empty($row['template_key'])&&sf_notify_table_exists('email_templates'))sf_db()->prepare('UPDATE email_templates SET last_sent_at=NOW() WHERE template_key=?')->execute([$row['template_key']]);return true;}
+  $retry=$attempt>=$max?null:date('Y-m-d H:i:s',time()+sf_delivery_backoff_seconds($attempt));sf_notify_update_log_status($id,$attempt>=$max?'canceled':'failed',null,$result['error']??'Unknown provider error.',$retry);return false;
+ }catch(Throwable $e){if($pdo->inTransaction())$pdo->rollBack();sf_notify_update_log_status($id,'failed',null,'Delivery exception.',date('Y-m-d H:i:s',time()+sf_delivery_backoff_seconds(1)));error_log('Stonefellow notification dispatch failed: '.$e->getMessage());return false;}finally{sf_delivery_advisory_unlock($pdo,$lock);}
 }
-
-function sf_notify_render(string $template, array $vars): string {
-  return preg_replace_callback('/{{\s*([a-zA-Z0-9_.-]+)\s*}}/', static function ($matches) use ($vars) {
-    $key = $matches[1];
-    return array_key_exists($key, $vars) ? (string)$vars[$key] : '';
-  }, $template) ?? $template;
+function sf_notify_send_template(string $key,array|string $recipient,array $vars=[],array $options=[]): ?int {
+ $recipient=sf_notify_recipient($recipient);$template=sf_notify_template($key);$provider=(string)($options['provider']??sf_notify_provider());$channel=(string)($options['channel']??'email');$type=sf_delivery_clean_header((string)($options['notification_type']??($template['category']??'transactional')),80);$metadata=(array)($options['metadata']??[]);$metadata['idempotency_key']=sf_delivery_idempotency_key($key,$recipient,$vars,$options);
+ if(!$template||$recipient['email']==='')return sf_notify_log(['user_id'=>$recipient['user_id'],'recipient_email'=>$recipient['email'],'recipient_name'=>$recipient['name'],'channel'=>$channel,'notification_type'=>$type,'template_key'=>$key,'status'=>'skipped','provider'=>$provider,'error_message'=>!$template?'Template not found.':'Recipient email invalid.','metadata_json'=>$metadata]);
+ $honors=!empty($options['honors_preferences']);if($honors&&!sf_delivery_transactional_type($type)&&!sf_delivery_preference_enabled((int)($recipient['user_id']??0),$type,$channel))return sf_notify_log(['user_id'=>$recipient['user_id'],'recipient_email'=>$recipient['email'],'recipient_name'=>$recipient['name'],'channel'=>$channel,'notification_type'=>$type,'template_key'=>$key,'status'=>'skipped','provider'=>$provider,'error_message'=>'Recipient preference disabled this notification.','metadata_json'=>$metadata]);
+ $vars=sf_notify_merge_vars($vars,$recipient);$subject=sf_delivery_clean_header(sf_notify_render((string)$template['subject'],$vars));$html=sf_notify_render_html((string)$template['html_body'],$vars);$text=sf_delivery_clean_text(sf_notify_render((string)($template['text_body']??strip_tags($html)),$vars),100000);$scheduled=trim((string)($options['scheduled_at']??''));$scheduled=$scheduled!==''&&strtotime($scheduled)!==false?date('Y-m-d H:i:s',strtotime($scheduled)):null;$dispatch=array_key_exists('dispatch',$options)?(bool)$options['dispatch']:true;
+ $id=sf_notify_log(['user_id'=>$recipient['user_id'],'recipient_email'=>$recipient['email'],'recipient_name'=>$recipient['name']?:null,'channel'=>$channel,'notification_type'=>$type,'template_key'=>$key,'subject'=>$subject,'rendered_html'=>$html,'rendered_text'=>$text,'body_preview'=>sf_notify_body_preview($text?:$html),'status'=>'queued','provider'=>$provider,'metadata_json'=>$metadata,'scheduled_at'=>$scheduled]);if($id&&$dispatch&&!$scheduled)sf_notify_dispatch_log($id);return $id?:null;
 }
-
-function sf_notify_body_preview(string $text): string {
-  $clean = trim(preg_replace('/\s+/', ' ', strip_tags($text)) ?? '');
-  return function_exists('mb_substr') ? mb_substr($clean, 0, 500) : substr($clean, 0, 500);
-}
-
-function sf_notify_user_recipient(?int $userId): ?array {
-  if (!$userId || !sf_db()) {
-    return null;
-  }
-  try {
-    $stmt = sf_db()->prepare('SELECT id, email, display_name FROM users WHERE id = ? LIMIT 1');
-    $stmt->execute([$userId]);
-    $row = $stmt->fetch();
-    if (!$row || empty($row['email'])) {
-      return null;
-    }
-    return ['user_id' => (int)$row['id'], 'email' => $row['email'], 'name' => $row['display_name'] ?: $row['email']];
-  } catch (Throwable $e) {
-    return null;
-  }
-}
-
-function sf_notify_admin_recipients(): array {
-  global $site;
-  $recipients = [];
-  $env = trim((string)(getenv('SF_ADMIN_EMAILS') ?: ''));
-  if ($env !== '') {
-    foreach (preg_split('/[,;]/', $env) ?: [] as $email) {
-      $email = trim($email);
-      if (filter_var($email, FILTER_VALIDATE_EMAIL)) {
-        $recipients[$email] = ['email' => $email, 'name' => 'Stonefellow Admin'];
-      }
-    }
-  }
-  if (sf_db()) {
-    try {
-      $rows = sf_db()->query("SELECT id, email, display_name FROM users WHERE role = 'admin' AND status = 'active' ORDER BY id ASC LIMIT 25")->fetchAll() ?: [];
-      foreach ($rows as $row) {
-        if (!empty($row['email'])) {
-          $recipients[$row['email']] = ['user_id' => (int)$row['id'], 'email' => $row['email'], 'name' => $row['display_name'] ?: 'Stonefellow Admin'];
-        }
-      }
-    } catch (Throwable $e) {}
-  }
-  if (!$recipients && !empty($site['support_email']) && filter_var($site['support_email'], FILTER_VALIDATE_EMAIL)) {
-    $recipients[$site['support_email']] = ['email' => $site['support_email'], 'name' => 'Stonefellow Admin'];
-  }
-  return array_values($recipients);
-}
-
-function sf_notify_recipient(array|string $recipient): array {
-  if (is_string($recipient)) {
-    return ['email' => trim($recipient), 'name' => ''];
-  }
-  return [
-    'user_id' => isset($recipient['user_id']) ? (int)$recipient['user_id'] : (isset($recipient['id']) ? (int)$recipient['id'] : null),
-    'email' => trim((string)($recipient['email'] ?? '')),
-    'name' => trim((string)($recipient['name'] ?? $recipient['display_name'] ?? '')),
-  ];
-}
-
-function sf_notify_log(array $payload): int {
-  $payload['provider'] = $payload['provider'] ?? sf_notify_provider();
-  if (sf_notify_ready()) {
-    try {
-      $stmt = sf_db()->prepare("INSERT INTO notification_logs
-        (user_id, recipient_email, recipient_name, channel, notification_type, template_key, subject, rendered_html, rendered_text, body_preview, status, provider, attempts, error_message, metadata_json, scheduled_at, sent_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
-      $stmt->execute([
-        $payload['user_id'] ?? null,
-        $payload['recipient_email'] ?? '',
-        $payload['recipient_name'] ?? null,
-        $payload['channel'] ?? 'email',
-        $payload['notification_type'] ?? 'transactional',
-        $payload['template_key'] ?? null,
-        $payload['subject'] ?? null,
-        $payload['rendered_html'] ?? null,
-        $payload['rendered_text'] ?? null,
-        $payload['body_preview'] ?? null,
-        $payload['status'] ?? 'queued',
-        $payload['provider'] ?? 'log',
-        (int)($payload['attempts'] ?? 0),
-        $payload['error_message'] ?? null,
-        isset($payload['metadata_json']) ? (is_string($payload['metadata_json']) ? $payload['metadata_json'] : json_encode($payload['metadata_json'], JSON_UNESCAPED_SLASHES)) : null,
-        $payload['scheduled_at'] ?? null,
-        $payload['sent_at'] ?? null,
-      ]);
-      return (int)sf_db()->lastInsertId();
-    } catch (Throwable $e) {
-      error_log('Stonefellow notification log insert failed: ' . $e->getMessage());
-    }
-  }
-
-  if (session_status() === PHP_SESSION_NONE) {
-    session_start();
-  }
-  $_SESSION[SF_NOTIFICATION_SESSION_LOG] = $_SESSION[SF_NOTIFICATION_SESSION_LOG] ?? [];
-  $payload['id'] = count($_SESSION[SF_NOTIFICATION_SESSION_LOG]) + 1;
-  $payload['created_at'] = date('Y-m-d H:i:s');
-  $_SESSION[SF_NOTIFICATION_SESSION_LOG][] = $payload;
-  return (int)$payload['id'];
-}
-
-function sf_notify_transport_send(array $message): array {
-  $provider = (string)($message['provider'] ?? sf_notify_provider());
-  $to = (string)($message['recipient_email'] ?? '');
-  if (!filter_var($to, FILTER_VALIDATE_EMAIL)) {
-    return ['ok' => false, 'error' => 'Recipient email is invalid.'];
-  }
-
-  if (in_array($provider, ['log','sandbox','preview'], true)) {
-    return ['ok' => true, 'provider_message_id' => 'log_' . substr(hash('sha256', $to . microtime(true)), 0, 18)];
-  }
-
-  if ($provider === 'mail') {
-    $subject = (string)($message['subject'] ?? 'Stonefellow notification');
-    $text = (string)($message['rendered_text'] ?? strip_tags((string)($message['rendered_html'] ?? '')));
-    $headers = [];
-    $headers[] = 'From: ' . sf_notify_from_name() . ' <' . sf_notify_from_email() . '>';
-    $headers[] = 'Reply-To: ' . sf_notify_from_email();
-    $headers[] = 'MIME-Version: 1.0';
-    $headers[] = 'Content-Type: text/plain; charset=UTF-8';
-    $ok = @mail($to, $subject, $text, implode("\r\n", $headers));
-    return ['ok' => $ok, 'provider_message_id' => $ok ? 'mail_' . substr(hash('sha256', $to . microtime(true)), 0, 18) : null, 'error' => $ok ? null : 'mail() returned false.'];
-  }
-
-  return ['ok' => false, 'error' => 'Unsupported mail provider: ' . $provider];
-}
-
-function sf_notify_update_log_status(int $logId, string $status, ?string $providerMessageId = null, ?string $error = null): void {
-  if ($logId <= 0 || !sf_notify_ready()) {
-    return;
-  }
-  try {
-    $sentSql = $status === 'sent' ? ', sent_at = NOW()' : '';
-    $stmt = sf_db()->prepare("UPDATE notification_logs SET status = ?, provider_message_id = COALESCE(?, provider_message_id), error_message = ?, attempts = attempts + 1{$sentSql}, updated_at = NOW() WHERE id = ?");
-    $stmt->execute([$status, $providerMessageId, $error, $logId]);
-  } catch (Throwable $e) {
-    error_log('Stonefellow notification status update failed: ' . $e->getMessage());
-  }
-}
-
-function sf_notify_dispatch_log(int $logId): bool {
-  if ($logId <= 0) {
-    return false;
-  }
-  if (!sf_notify_ready()) {
-    return true;
-  }
-  try {
-    $stmt = sf_db()->prepare("SELECT * FROM notification_logs WHERE id = ? LIMIT 1");
-    $stmt->execute([$logId]);
-    $row = $stmt->fetch();
-    if (!$row) {
-      return false;
-    }
-    if (!in_array((string)$row['status'], ['queued','failed'], true)) {
-      return true;
-    }
-    $result = sf_notify_transport_send($row);
-    if (!empty($result['ok'])) {
-      sf_notify_update_log_status($logId, 'sent', $result['provider_message_id'] ?? null, null);
-      if (!empty($row['template_key']) && sf_notify_table_exists('email_templates')) {
-        sf_db()->prepare('UPDATE email_templates SET last_sent_at = NOW() WHERE template_key = ?')->execute([$row['template_key']]);
-      }
-      return true;
-    }
-    sf_notify_update_log_status($logId, 'failed', null, $result['error'] ?? 'Unknown provider error.');
-    return false;
-  } catch (Throwable $e) {
-    sf_notify_update_log_status($logId, 'failed', null, $e->getMessage());
-    return false;
-  }
-}
-
-function sf_notify_send_template(string $templateKey, array|string $recipient, array $vars = [], array $options = []): ?int {
-  $recipient = sf_notify_recipient($recipient);
-  $template = sf_notify_template($templateKey);
-  $provider = $options['provider'] ?? sf_notify_provider();
-  $channel = $options['channel'] ?? 'email';
-  $type = $options['notification_type'] ?? ($template['category'] ?? 'transactional');
-  $metadata = $options['metadata'] ?? [];
-
-  if (!$template || !filter_var($recipient['email'] ?? '', FILTER_VALIDATE_EMAIL)) {
-    $logId = sf_notify_log([
-      'user_id' => $recipient['user_id'] ?? null,
-      'recipient_email' => $recipient['email'] ?? '',
-      'recipient_name' => $recipient['name'] ?? null,
-      'channel' => $channel,
-      'notification_type' => $type,
-      'template_key' => $templateKey,
-      'subject' => $template['subject'] ?? null,
-      'status' => 'skipped',
-      'provider' => $provider,
-      'error_message' => !$template ? 'Template not found.' : 'Recipient email missing or invalid.',
-      'metadata_json' => $metadata,
-    ]);
-    return $logId;
-  }
-
-  $vars = sf_notify_merge_vars($vars, $recipient);
-  $subject = sf_notify_render((string)$template['subject'], $vars);
-  $html = sf_notify_render((string)$template['html_body'], $vars);
-  $text = sf_notify_render((string)($template['text_body'] ?? strip_tags($html)), $vars);
-  $scheduledAt = trim((string)($options['scheduled_at'] ?? '')) ?: null;
-  $shouldDispatch = array_key_exists('dispatch', $options) ? (bool)$options['dispatch'] : true;
-  $status = $scheduledAt ? 'queued' : ($options['status'] ?? 'queued');
-  if (!sf_notify_ready() && $shouldDispatch && !$scheduledAt && in_array((string)$provider, ['log','sandbox','preview'], true)) {
-    $status = 'sent';
-  }
-
-  $logId = sf_notify_log([
-    'user_id' => $recipient['user_id'] ?? null,
-    'recipient_email' => $recipient['email'],
-    'recipient_name' => $recipient['name'] ?: null,
-    'channel' => $channel,
-    'notification_type' => $type,
-    'template_key' => $templateKey,
-    'subject' => $subject,
-    'rendered_html' => $html,
-    'rendered_text' => $text,
-    'body_preview' => sf_notify_body_preview($text ?: $html),
-    'status' => $status,
-    'provider' => $provider,
-    'metadata_json' => $metadata,
-    'scheduled_at' => $scheduledAt,
-  ]);
-
-  if ($shouldDispatch && !$scheduledAt) {
-    sf_notify_dispatch_log($logId);
-  }
-  return $logId;
-}
-
-function sf_notify_dispatch_pending(int $limit = 25): array {
-  $limit = max(1, min(100, $limit));
-  $result = ['processed' => 0, 'sent' => 0, 'failed' => 0];
-  if (!sf_notify_ready()) {
-    return $result;
-  }
-  try {
-    $rows = sf_db()->query("SELECT id FROM notification_logs WHERE status = 'queued' AND (scheduled_at IS NULL OR scheduled_at <= NOW()) ORDER BY created_at ASC LIMIT " . (int)$limit)->fetchAll() ?: [];
-    foreach ($rows as $row) {
-      $result['processed']++;
-      if (sf_notify_dispatch_log((int)$row['id'])) {
-        $result['sent']++;
-      } else {
-        $result['failed']++;
-      }
-    }
-  } catch (Throwable $e) {
-    error_log('Stonefellow dispatch pending failed: ' . $e->getMessage());
-  }
-  return $result;
-}
-
-function sf_notify_recent_logs(int $limit = 100): array {
-  $limit = max(1, min(200, $limit));
-  if (sf_notify_ready()) {
-    try {
-      return sf_db()->query("SELECT nl.*, u.email AS user_email, u.display_name FROM notification_logs nl LEFT JOIN users u ON u.id = nl.user_id ORDER BY nl.created_at DESC, nl.id DESC LIMIT " . (int)$limit)->fetchAll() ?: [];
-    } catch (Throwable $e) {
-      return [];
-    }
-  }
-  if (session_status() === PHP_SESSION_NONE) {
-    session_start();
-  }
-  return array_reverse(array_slice($_SESSION[SF_NOTIFICATION_SESSION_LOG] ?? [], -$limit));
-}
-
-function sf_notify_templates(): array {
-  if (sf_notify_table_exists('email_templates')) {
-    try {
-      return sf_db()->query('SELECT * FROM email_templates ORDER BY category ASC, template_key ASC')->fetchAll() ?: [];
-    } catch (Throwable $e) {
-      return [];
-    }
-  }
-  $rows = [];
-  foreach (sf_notify_default_templates() as $key => $template) {
-    $rows[] = [
-      'template_key' => $key,
-      'name' => $template['name'],
-      'category' => $template['category'],
-      'subject' => $template['subject'],
-      'html_body' => $template['html_body'],
-      'text_body' => $template['text_body'],
-      'variables_json' => json_encode($template['variables'] ?? [], JSON_UNESCAPED_SLASHES),
-      'status' => 'active',
-    ];
-  }
-  return $rows;
-}
-
-function sf_notify_template_by_id(int $id): ?array {
-  if ($id <= 0 || !sf_notify_table_exists('email_templates')) {
-    return null;
-  }
-  try {
-    $stmt = sf_db()->prepare('SELECT * FROM email_templates WHERE id = ? LIMIT 1');
-    $stmt->execute([$id]);
-    return $stmt->fetch() ?: null;
-  } catch (Throwable $e) {
-    return null;
-  }
-}
-
-function sf_notify_save_template(array $data): bool {
-  if (!sf_notify_table_exists('email_templates')) {
-    return false;
-  }
-  $id = isset($data['id']) ? (int)$data['id'] : 0;
-  $templateKey = strtolower(trim((string)($data['template_key'] ?? '')));
-  $templateKey = preg_replace('/[^a-z0-9_\-]+/', '_', $templateKey) ?: '';
-  if ($templateKey === '' || trim((string)($data['subject'] ?? '')) === '' || trim((string)($data['html_body'] ?? '')) === '') {
-    return false;
-  }
-  $variables = trim((string)($data['variables_json'] ?? ''));
-  if ($variables !== '') {
-    json_decode($variables, true);
-    if (json_last_error() !== JSON_ERROR_NONE) {
-      $variables = json_encode(array_filter(array_map('trim', explode(',', $variables))), JSON_UNESCAPED_SLASHES);
-    }
-  } else {
-    $variables = json_encode([], JSON_UNESCAPED_SLASHES);
-  }
-  $name = trim((string)($data['name'] ?? '')) ?: ucwords(str_replace(['_', '-'], ' ', $templateKey));
-  $category = trim((string)($data['category'] ?? 'transactional')) ?: 'transactional';
-  $category = preg_replace('/[^a-z0-9_\-]+/i', '_', $category) ?: 'transactional';
-  $status = (string)($data['status'] ?? 'active');
-  if (!in_array($status, ['active','draft','archived'], true)) {
-    $status = 'active';
-  }
-  try {
-    if ($id > 0) {
-      $stmt = sf_db()->prepare('UPDATE email_templates SET template_key=?, name=?, category=?, subject=?, html_body=?, text_body=?, variables_json=?, status=?, updated_at=NOW() WHERE id=?');
-      return $stmt->execute([$templateKey, $name, $category, trim((string)$data['subject']), (string)$data['html_body'], (string)$data['text_body'], $variables, $status, $id]);
-    }
-    $stmt = sf_db()->prepare('INSERT INTO email_templates (template_key, name, category, subject, html_body, text_body, variables_json, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?)');
-    return $stmt->execute([$templateKey, $name, $category, trim((string)$data['subject']), (string)$data['html_body'], (string)$data['text_body'], $variables, $status]);
-  } catch (Throwable $e) {
-    error_log('Stonefellow save template failed: ' . $e->getMessage());
-    return false;
-  }
-}
-
-function sf_notify_summary(): array {
-  $summary = ['templates' => 0, 'queued' => 0, 'sent' => 0, 'failed' => 0, 'skipped' => 0, 'webhooks' => 0];
-  if (!sf_db()) {
-    $logs = sf_notify_recent_logs(200);
-    foreach ($logs as $log) {
-      $status = (string)($log['status'] ?? 'queued');
-      if (isset($summary[$status])) {
-        $summary[$status]++;
-      }
-    }
-    $summary['templates'] = count(sf_notify_default_templates());
-    return $summary;
-  }
-  try {
-    if (sf_notify_table_exists('email_templates')) {
-      $summary['templates'] = (int)sf_db()->query('SELECT COUNT(*) FROM email_templates')->fetchColumn();
-    }
-    if (sf_notify_table_exists('notification_logs')) {
-      $rows = sf_db()->query('SELECT status, COUNT(*) AS total FROM notification_logs GROUP BY status')->fetchAll() ?: [];
-      foreach ($rows as $row) {
-        $status = (string)$row['status'];
-        if (isset($summary[$status])) {
-          $summary[$status] = (int)$row['total'];
-        }
-      }
-    }
-    if (sf_notify_table_exists('notification_webhook_events')) {
-      $summary['webhooks'] = (int)sf_db()->query('SELECT COUNT(*) FROM notification_webhook_events')->fetchColumn();
-    }
-  } catch (Throwable $e) {}
-  return $summary;
-}
+function sf_notify_dispatch_pending(int $limit=25): array { $limit=max(1,min(100,$limit));$out=['processed'=>0,'sent'=>0,'failed'=>0,'skipped'=>0];if(!sf_notify_ready())return $out;$pdo=sf_db();if(!sf_delivery_advisory_lock($pdo,'notification-queue',1))return $out;try{$max=sf_delivery_env_int('SF_NOTIFICATION_MAX_ATTEMPTS',5,1,20);$s=$pdo->prepare("SELECT id FROM notification_logs WHERE status IN ('queued','failed') AND attempts<? AND (scheduled_at IS NULL OR scheduled_at<=NOW()) ORDER BY created_at,id LIMIT ".$limit);$s->execute([$max]);foreach($s->fetchAll()?:[] as $r){$out['processed']++;if(sf_notify_dispatch_log((int)$r['id']))$out['sent']++;else $out['failed']++;}}catch(Throwable $e){error_log('Stonefellow dispatch pending failed: '.$e->getMessage());}finally{sf_delivery_advisory_unlock($pdo,'notification-queue');}return $out; }
+function sf_notify_recent_logs(int $limit=100): array { $limit=max(1,min(200,$limit));if(sf_notify_ready()){try{return sf_db()->query('SELECT nl.*,u.email user_email,u.display_name FROM notification_logs nl LEFT JOIN users u ON u.id=nl.user_id ORDER BY nl.created_at DESC,nl.id DESC LIMIT '.$limit)->fetchAll()?:[];}catch(Throwable $e){return [];}}if(session_status()===PHP_SESSION_NONE)session_start();return array_reverse(array_slice($_SESSION[SF_NOTIFICATION_SESSION_LOG]??[],-$limit)); }
+function sf_notify_templates(): array { if(sf_notify_table_exists('email_templates')){try{return sf_db()->query('SELECT * FROM email_templates ORDER BY category,template_key')->fetchAll()?:[];}catch(Throwable $e){return [];}}$out=[];foreach(sf_notify_default_templates() as $k=>$t)$out[]=['template_key'=>$k,'name'=>$t['name'],'category'=>$t['category'],'subject'=>$t['subject'],'html_body'=>$t['html_body'],'text_body'=>$t['text_body'],'variables_json'=>json_encode($t['variables']),'status'=>'active'];return $out; }
+function sf_notify_template_by_id(int $id): ?array { if($id<=0||!sf_notify_table_exists('email_templates'))return null;try{$s=sf_db()->prepare('SELECT * FROM email_templates WHERE id=? LIMIT 1');$s->execute([$id]);return $s->fetch()?:null;}catch(Throwable $e){return null;} }
+function sf_notify_save_template(array $data): bool { if(!sf_notify_table_exists('email_templates'))return false;$v=sf_delivery_validate_template($data);if(!$v['ok'])return false;$id=(int)($data['id']??0);$name=sf_delivery_clean_header((string)($data['name']??ucwords(str_replace(['_','-'],' ',$v['template_key']))),190);$category=preg_replace('/[^a-z0-9_-]+/i','_',strtolower(trim((string)($data['category']??'transactional'))))?:'transactional';$status=in_array((string)($data['status']??'draft'),['active','draft','archived'],true)?(string)$data['status']:'draft';try{if($id>0){$s=sf_db()->prepare('UPDATE email_templates SET template_key=?,name=?,category=?,subject=?,html_body=?,text_body=?,variables_json=?,status=?,updated_at=NOW() WHERE id=?');return $s->execute([$v['template_key'],$name,$category,$v['subject'],$v['html_body'],$v['text_body'],json_encode($v['variables']),$status,$id]);}$s=sf_db()->prepare('INSERT INTO email_templates (template_key,name,category,subject,html_body,text_body,variables_json,status) VALUES (?,?,?,?,?,?,?,?)');return $s->execute([$v['template_key'],$name,$category,$v['subject'],$v['html_body'],$v['text_body'],json_encode($v['variables']),$status]);}catch(Throwable $e){error_log('Stonefellow save template failed: '.$e->getMessage());return false;} }
+function sf_notify_summary(): array { $out=['templates'=>0,'queued'=>0,'sent'=>0,'failed'=>0,'skipped'=>0,'canceled'=>0,'webhooks'=>0];if(!sf_db())return $out;try{if(sf_notify_table_exists('email_templates'))$out['templates']=(int)sf_db()->query('SELECT COUNT(*) FROM email_templates')->fetchColumn();if(sf_notify_table_exists('notification_logs'))foreach(sf_db()->query('SELECT status,COUNT(*) total FROM notification_logs GROUP BY status')->fetchAll()?:[] as $r)if(isset($out[$r['status']]))$out[$r['status']]=(int)$r['total'];if(sf_notify_table_exists('notification_webhook_events'))$out['webhooks']=(int)sf_db()->query('SELECT COUNT(*) FROM notification_webhook_events')->fetchColumn();}catch(Throwable $e){}return $out; }
 ?>
