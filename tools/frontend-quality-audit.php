@@ -7,11 +7,10 @@ $read = static function (string $path) use ($root): string {
     $full = $root . '/' . $path;
     return is_file($full) ? (string)file_get_contents($full) : '';
 };
-$has = static function (string $path, array $markers) use ($read): bool {
+$missingMarkers = static function (string $path, array $markers) use ($read): array {
     $body = $read($path);
-    if ($body === '') return false;
-    foreach ($markers as $marker) if (!str_contains($body, $marker)) return false;
-    return true;
+    if ($body === '') return ['file_missing_or_empty'];
+    return array_values(array_filter($markers, static fn(string $marker): bool => !str_contains($body, $marker)));
 };
 
 $sections = [
@@ -61,7 +60,7 @@ $sections = [
         ['includes/footer.php', ['noopener noreferrer']],
     ],
     'Status, errors and print' => [
-        ['includes/header.php', ['aria-live="polite"', 'role="alert"', 'role="status"']],
+        ['includes/header.php', ['aria-live="polite"', 'in_array($sfFlashType', "? 'alert' : 'status'"]],
         ['assets/css/frontend-quality.css', ['@media print', 'sf-flash[role="alert"]']],
         ['assets/js/frontend-quality.js', ['field.focus()', 'aria-valuenow']],
     ],
@@ -76,11 +75,12 @@ foreach ($sections as $section => $checks) {
     $passed = 0;
     foreach ($checks as [$file, $markers]) {
         $totalPoints++;
-        if ($has($file, $markers)) {
+        $missing = $missingMarkers($file, $markers);
+        if (!$missing) {
             $passed++;
             $earnedPoints++;
         } else {
-            $failed[] = $section . ': ' . $file . ' missing one or more required controls.';
+            $failed[] = $section . ': ' . $file . ' missing [' . implode(', ', $missing) . '].';
         }
     }
     $score = (int)round(($passed / count($checks)) * 10);
