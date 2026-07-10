@@ -39,6 +39,8 @@ jobs:
         run: php tests/delivery_integrity_smoke.php
       - name: Staging launch certification smoke tests
         run: php tests/staging_launch_certification_smoke.php
+      - name: Staging integration matrix smoke tests
+        run: php tests/staging_integration_matrix_smoke.php
       - name: Full static code audit
         run: php tools/code-audit.php
       - name: Agentic integration audit
@@ -59,3 +61,5 @@ jobs:
         run: php tools/delivery-integrity-audit.php
       - name: Staging operations launch certification audit
         run: php tools/staging-launch-certification-audit.php
+      - name: Staging integration matrix audit
+        run: php tools/staging-integration-matrix-audit.php
