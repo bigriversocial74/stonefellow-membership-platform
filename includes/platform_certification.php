@@ -37,7 +37,7 @@ function sf_pc_static_sections(): array {
       ],
       'Front-End & Accessibility'=>[
         ['tests/frontend_quality_smoke.php',['PASS']],
-        ['tools/frontend-quality-audit.php',['Frontend']],
+        ['tools/frontend-quality-audit.php',['Front-End']],
         ['docs/FRONTEND_ACCESSIBILITY_PERFORMANCE_AUDIT_V1.md',['10/10']],
       ],
       'Authentication, Privacy & Abuse'=>[
