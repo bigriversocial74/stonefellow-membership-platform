@@ -1,5 +1,90 @@
 <?php
-$pageTitle='Checkout';$pageDescription='Checkout for Stonefellow merch.';$pageClass='shop-page checkout-page';require __DIR__.'/includes/store_checkout_runtime.php';$items=sf_store_cart_items();$totals=sf_store_cart_totals($items);$user=sf_auth_user();$ready=sf_store_checkout_runtime_ready();$customer=sf_store_customer_from_post($_POST?:['email'=>$user['email']??'','name'=>$user['display_name']??'','country'=>'US']);if(($_SERVER['REQUEST_METHOD']??'GET')==='POST'){if(!sf_verify_csrf($_POST['csrf_token']??null)){sf_store_flash('error','Security check failed.');sf_store_redirect('checkout.php');}if(!$ready){sf_store_flash('error','Checkout is unavailable until a verified merch payment adapter is configured.');sf_store_redirect('checkout.php');}$customer=sf_store_customer_from_post($_POST);$order=sf_store_create_order_secure($customer);if($order){$query='order='.urlencode((string)$order['order_number']);if(!empty($order['receipt_token']))$query.='&key='.urlencode((string)$order['receipt_token']);sf_store_redirect('order-confirmation.php?'.$query);}$items=sf_store_cart_items();$totals=sf_store_cart_totals($items);}require __DIR__.'/includes/header.php';
+
+declare(strict_types=1);
+
+$pageTitle = 'Checkout';
+$pageDescription = 'Secure Stripe checkout for Stonefellow merchandise.';
+$pageClass = 'shop-page checkout-page';
+require __DIR__ . '/includes/live_commerce.php';
+
+$items = sf_store_cart_items();
+$user = sf_auth_user();
+$customer = sf_store_customer_from_post($_POST ?: [
+    'email' => $user['email'] ?? '',
+    'name' => $user['display_name'] ?? '',
+    'country' => 'US',
+]);
+$discountCode = trim((string)($_POST['discount_code'] ?? ''));
+$totals = sf_commerce_totals($items, $discountCode);
+$ready = sf_commerce_checkout_ready();
+
+if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
+    if (!sf_verify_csrf($_POST['csrf_token'] ?? null)) {
+        sf_store_flash('error', 'Security check failed. Refresh and try again.');
+        sf_store_redirect('checkout.php');
+    }
+    $customer = sf_store_customer_from_post($_POST);
+    if (!$ready) {
+        sf_store_flash('error', 'Checkout is unavailable until Stripe Connect onboarding is complete.');
+        sf_store_redirect('checkout.php');
+    }
+    $result = sf_commerce_create_pending_checkout($customer, $discountCode);
+    if (!empty($result['ok']) && !empty($result['checkout_url'])) {
+        header('Location: ' . $result['checkout_url'], true, 303);
+        exit;
+    }
+    sf_store_flash('error', (string)($result['error'] ?? 'Checkout could not be started.'));
+    $items = sf_store_cart_items();
+    $totals = sf_commerce_totals($items, $discountCode);
+}
+
+require __DIR__ . '/includes/header.php';
 ?>
-<section class="shop-page-head shop-full-section"><span class="shop-kicker">Secure Checkout</span><h1>Complete Your Order</h1><p><?= $ready?'Controlled non-production sandbox checkout with locked inventory and server pricing.':'Checkout is fail-closed until a verified live merch payment adapter is configured.' ?></p></section><section class="checkout-layout shop-full-section"><div><?php foreach(sf_store_flashes()as$f): ?><div class="sf-admin-alert"><?= sf_store_h($f['message']??'') ?></div><?php endforeach; ?><?php if(!$items): ?><article class="cart-empty-state"><h2>Your cart is empty.</h2><a class="shop-btn shop-btn-primary" href="<?= sf_url('merch.php') ?>">Shop Merch</a></article><?php elseif(!$ready): ?><article class="cart-empty-state"><h2>Checkout is temporarily unavailable.</h2><p>Stonefellow will not mark an order paid without a verified payment runtime. Your cart remains saved.</p><a class="shop-btn shop-btn-primary" href="<?= sf_url('cart.php') ?>">Return to Cart</a></article><?php else: ?><form class="checkout-form" method="post"><?= sf_csrf_field() ?><fieldset><legend>Contact</legend><label>Email <input type="email" name="email" value="<?= sf_store_h($customer['email']??'') ?>" required></label><label>Full Name <input type="text" name="name" value="<?= sf_store_h($customer['name']??'') ?>" required></label><label>Phone <input type="tel" name="phone" value="<?= sf_store_h($customer['phone']??'') ?>"></label></fieldset><fieldset><legend>Shipping</legend><label>Address <input name="address_1" value="<?= sf_store_h($customer['address_1']??'') ?>" required></label><label>Address 2 <input name="address_2" value="<?= sf_store_h($customer['address_2']??'') ?>"></label><label>City <input name="city" value="<?= sf_store_h($customer['city']??'') ?>" required></label><label>State <input name="state" value="<?= sf_store_h($customer['state']??'') ?>" required></label><label>ZIP <input name="postal_code" value="<?= sf_store_h($customer['postal_code']??'') ?>" required></label><input type="hidden" name="country" value="US"></fieldset><div class="payment-placeholder"><strong>Controlled Sandbox</strong><p>Only available outside production.</p></div><button class="shop-btn shop-btn-primary" type="submit">Place Sandbox Order</button></form><?php endif; ?></div><aside class="cart-summary-panel"><h2>Order Review</h2><?php foreach($items as$item): ?><div class="checkout-mini-item"><span><?= sf_store_h($item['product_name']??'') ?> × <?= (int)($item['quantity']??0) ?></span><strong><?= sf_store_money((int)($item['unit_price_cents']??0)*(int)($item['quantity']??0)) ?></strong></div><?php endforeach; ?><div class="summary-line summary-total"><span>Total</span><strong><?= sf_store_money((int)$totals['total_cents']) ?></strong></div></aside></section>
-<?php require __DIR__.'/includes/footer.php'; ?>
+<section class="shop-page-head shop-full-section">
+  <span class="shop-kicker">Secure Checkout</span>
+  <h1>Complete Your Order</h1>
+  <p><?= $ready ? 'Your order is priced and reserved by Stonefellow, then securely paid through Stripe.' : 'Checkout is temporarily unavailable while the merchant payment account is being connected.' ?></p>
+</section>
+<section class="checkout-layout shop-full-section">
+  <div>
+    <?php foreach (sf_store_flashes() as $flash): ?><div class="sf-admin-alert"><?= sf_store_h($flash['message'] ?? '') ?></div><?php endforeach; ?>
+    <?php if (!$items): ?>
+      <article class="cart-empty-state"><h2>Your cart is empty.</h2><a class="shop-btn shop-btn-primary" href="<?= sf_url('merch.php') ?>">Shop Merch</a></article>
+    <?php elseif (!$ready): ?>
+      <article class="cart-empty-state"><h2>Stripe checkout is not connected yet.</h2><p>Your cart remains saved. An administrator must finish Stripe Connect onboarding before payments can be accepted.</p><a class="shop-btn shop-btn-primary" href="<?= sf_url('cart.php') ?>">Return to Cart</a></article>
+    <?php else: ?>
+      <form class="checkout-form" method="post" autocomplete="on">
+        <?= sf_csrf_field() ?>
+        <fieldset><legend>Contact</legend>
+          <label>Email <input type="email" name="email" value="<?= sf_store_h($customer['email'] ?? '') ?>" autocomplete="email" required></label>
+          <label>Full Name <input type="text" name="name" value="<?= sf_store_h($customer['name'] ?? '') ?>" autocomplete="name" required maxlength="190"></label>
+          <label>Phone <input type="tel" name="phone" value="<?= sf_store_h($customer['phone'] ?? '') ?>" autocomplete="tel" maxlength="40"></label>
+        </fieldset>
+        <fieldset><legend>Shipping</legend>
+          <label>Address <input name="address_1" value="<?= sf_store_h($customer['address_1'] ?? '') ?>" autocomplete="shipping address-line1" required maxlength="190"></label>
+          <label>Address 2 <input name="address_2" value="<?= sf_store_h($customer['address_2'] ?? '') ?>" autocomplete="shipping address-line2" maxlength="190"></label>
+          <label>City <input name="city" value="<?= sf_store_h($customer['city'] ?? '') ?>" autocomplete="shipping address-level2" required maxlength="120"></label>
+          <label>State <input name="state" value="<?= sf_store_h($customer['state'] ?? '') ?>" autocomplete="shipping address-level1" required maxlength="120"></label>
+          <label>ZIP <input name="postal_code" value="<?= sf_store_h($customer['postal_code'] ?? '') ?>" autocomplete="shipping postal-code" required maxlength="40"></label>
+          <input type="hidden" name="country" value="US">
+        </fieldset>
+        <fieldset><legend>Discount</legend>
+          <label>Discount Code <input name="discount_code" value="<?= sf_store_h($discountCode) ?>" maxlength="80" autocapitalize="characters"></label>
+          <?php if ($discountCode !== '' && empty($totals['discount']['valid'])): ?><p role="alert"><?= sf_store_h($totals['discount']['message'] ?? 'Discount code is invalid.') ?></p><?php endif; ?>
+        </fieldset>
+        <div class="payment-placeholder"><strong>Stripe Secure Checkout</strong><p>You will continue to Stripe to enter payment details. Stonefellow never stores card numbers.</p></div>
+        <button class="shop-btn shop-btn-primary" type="submit">Continue to Stripe · <?= sf_store_money((int)$totals['total_cents']) ?></button>
+      </form>
+    <?php endif; ?>
+  </div>
+  <aside class="cart-summary-panel"><h2>Order Review</h2>
+    <?php foreach ($items as $item): ?><div class="checkout-mini-item"><span><?= sf_store_h($item['product_name'] ?? '') ?> × <?= (int)($item['quantity'] ?? 0) ?></span><strong><?= sf_store_money((int)($item['unit_price_cents'] ?? 0) * (int)($item['quantity'] ?? 0)) ?></strong></div><?php endforeach; ?>
+    <div class="summary-line"><span>Subtotal</span><strong><?= sf_store_money((int)$totals['subtotal_cents']) ?></strong></div>
+    <?php if ((int)$totals['discount_cents'] > 0): ?><div class="summary-line"><span>Discount</span><strong>−<?= sf_store_money((int)$totals['discount_cents']) ?></strong></div><?php endif; ?>
+    <div class="summary-line"><span>Shipping</span><strong><?= sf_store_money((int)$totals['shipping_cents']) ?></strong></div>
+    <div class="summary-line"><span>Tax</span><strong><?= sf_store_money((int)$totals['tax_cents']) ?></strong></div>
+    <div class="summary-line summary-total"><span>Total</span><strong><?= sf_store_money((int)$totals['total_cents']) ?></strong></div>
+    <small>Final totals are recalculated on the server when checkout starts.</small>
+  </aside>
+</section>
+<?php require __DIR__ . '/includes/footer.php'; ?>

@@ -27,6 +27,8 @@ jobs:
         run: php tests/ai_staging_certification_smoke.php
       - name: Revenue membership media access smoke tests
         run: php tests/revenue_membership_media_access_smoke.php
+      - name: Live commerce Stripe Connect smoke tests
+        run: php tests/live_commerce_stripe_connect_smoke.php
       - name: Data integrity operations recovery smoke tests
         run: php tests/data_ops_recovery_smoke.php
       - name: Frontend accessibility performance smoke tests
@@ -53,6 +55,8 @@ jobs:
         run: php tools/ai-staging-certification-audit.php
       - name: Revenue membership media access audit
         run: php tools/revenue-membership-media-access-audit.php
+      - name: Live commerce Stripe Connect audit
+        run: php tools/live-commerce-stripe-connect-audit.php
       - name: Data integrity operations recovery audit
         run: php tools/data-ops-recovery-audit.php
       - name: Frontend accessibility performance audit
