@@ -15,5 +15,9 @@ jobs:
         run: find . -type f -name '*.php' -not -path './vendor/*' -print0 | xargs -0 -n1 php -l
       - name: Security smoke tests
         run: php tests/security_smoke.php
+      - name: Agentic governance smoke tests
+        run: php tests/agentic_governance_smoke.php
       - name: Full static code audit
         run: php tools/code-audit.php
+      - name: Agentic integration audit
+        run: php tools/agentic-audit.php
