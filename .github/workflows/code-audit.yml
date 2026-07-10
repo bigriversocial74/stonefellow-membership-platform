@@ -23,6 +23,8 @@ jobs:
         run: php tests/revenue_membership_media_access_smoke.php
       - name: Data integrity operations recovery smoke tests
         run: php tests/data_ops_recovery_smoke.php
+      - name: Frontend accessibility performance smoke tests
+        run: php tests/frontend_quality_smoke.php
       - name: Full static code audit
         run: php tools/code-audit.php
       - name: Agentic integration audit
@@ -33,3 +35,5 @@ jobs:
         run: php tools/revenue-membership-media-access-audit.php
       - name: Data integrity operations recovery audit
         run: php tools/data-ops-recovery-audit.php
+      - name: Frontend accessibility performance audit
+        run: php tools/frontend-quality-audit.php
