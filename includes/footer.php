@@ -32,15 +32,11 @@
           <a href="https://facebook.com/stonefellow" target="_blank" rel="noopener noreferrer" aria-label="Stonefellow on Facebook"><span aria-hidden="true">f</span></a>
         </div>
       </div>
-      <form class="home-newsletter" action="#" method="post" data-newsletter-form>
-        <h4>Newsletter</h4>
-        <label class="sf-visually-hidden" for="newsletter-email">Email address for Stonefellow updates</label>
-        <div class="newsletter-row">
-          <input id="newsletter-email" name="email" type="email" placeholder="Your email address" autocomplete="email" inputmode="email" required aria-describedby="newsletter-status">
-          <button type="submit" aria-label="Join the Stonefellow newsletter">➤</button>
-        </div>
-        <p id="newsletter-status" class="sf-visually-hidden" role="status" aria-live="polite"></p>
-      </form>
+      <div class="home-newsletter" aria-labelledby="stonefellow-updates-title">
+        <h4 id="stonefellow-updates-title">Updates</h4>
+        <p>Join Stonefellow to receive account, episode, music, and merch updates.</p>
+        <a class="home-subscribe-btn" href="<?= sf_url('signup.php') ?>">Create Account</a>
+      </div>
       <div class="home-copyright">© <?= date('Y') ?> Stonefellow. All Rights Reserved.</div>
     </div>
   </footer>
