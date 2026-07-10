@@ -1,19 +1,2 @@
 <?php
-require __DIR__ . '/includes/media_delivery.php';
-
-$request = $_GET;
-$request['d'] = 'download';
-$result = sf_media_resolve_request($request);
-if (!$result['ok']) {
-  $code = ($result['error'] ?? '') === 'access_denied' ? 403 : 404;
-  if (in_array(($result['error'] ?? ''), ['invalid_or_expired_token','invalid_signature'], true)) {
-    $code = 401;
-  }
-  http_response_code($code);
-  header('Content-Type: text/plain; charset=utf-8');
-  echo 'Stonefellow download unavailable: ' . ($result['error'] ?? 'unknown_error');
-  exit;
-}
-
-$file = $result['file'];
-sf_media_serve_file($result['path'], (string)($file['mime_type'] ?? 'application/octet-stream'), 'download');
+require __DIR__.'/includes/media_delivery.php';require_once __DIR__.'/includes/revenue_access_governance.php';if(!sf_revenue_media_signing_ready()){http_response_code(503);echo'Stonefellow media signing is not configured.';exit;}$request=$_GET;$request['d']='download';$validation=sf_media_validate_token($request);if(empty($validation['ok'])){http_response_code(401);echo'Stonefellow download unavailable.';exit;}$tokenUser=(int)($validation['payload']['uid']??0);$current=sf_current_user_id();if($tokenUser<=0||$current<=0||$tokenUser!==$current){http_response_code(401);echo'Stonefellow download unavailable: authenticated_token_required';exit;}$member=sf_entitlement_snapshot($current);if(empty($member['can_download_offline'])&&($member['access_level']??'')!=='admin'){http_response_code(403);echo'Stonefellow download unavailable: offline_access_required';exit;}$result=sf_media_resolve_request($request);if(empty($result['ok'])){http_response_code(($result['error']??'')==='access_denied'?403:404);echo'Stonefellow download unavailable.';exit;}$file=$result['file'];sf_media_serve_file($result['path'],(string)($file['mime_type']??'application/octet-stream'),'download');
