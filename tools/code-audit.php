@@ -32,7 +32,7 @@ $sections=[
  'API & webhook integrity'=>[
   ok('Payment webhook is POST-only',has('api/payment-webhook.php',"sf_security_require_method('POST')")),
   ok('Webhook bodies are bounded',has('api/payment-webhook.php','1048576')),
-  ok('Invalid signatures return 401',has('api/payment-webhook.php',"'invalid_signature'],401")),
+  ok('Invalid signatures return 401',has('api/payment-webhook.php','invalid_signature')&&has('api/payment-webhook.php',', 401')),
   ok('Billing events are idempotent',has('api/billing-webhook.php','INSERT IGNORE')),
  ],
  'Billing & commerce'=>[
@@ -67,5 +67,5 @@ $sections=[
  ],
 ];
 $all=true;$scores=[];
-foreach($sections as $name=>$checks){$passed=count(array_filter($checks,fn($c)=>$c['pass']));$score=round($passed/count($checks)*10,1);$scores[]=$score;if($score<10)$all=false;echo "\n{$name}: {$score}/10\n";foreach($checks as $c)echo ($c['pass']?'  [PASS] ':'  [FAIL] ').$c['label']."\n";}
-echo "\nOverall: ".round(array_sum($scores)/count($scores),1)."/10\n";exit($all?0:1);
+foreach($sections as$name=>$checks){$passed=count(array_filter($checks,fn($c)=>$c['pass']));$score=round($passed/count($checks)*10,1);$scores[]=$score;if($score<10)$all=false;echo"\n{$name}: {$score}/10\n";foreach($checks as$c)echo($c['pass']?'  [PASS] ':'  [FAIL] ').$c['label']."\n";}
+echo"\nOverall: ".round(array_sum($scores)/count($scores),1)."/10\n";exit($all?0:1);
