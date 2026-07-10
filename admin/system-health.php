@@ -1,23 +1,19 @@
 <?php
-$pageTitle = 'System Health';
-$pageDescription = 'Stonefellow installer, database, uploads, and runtime health checks.';
-$pageClass = 'membership-page admin-catalog-page';
-require __DIR__ . '/../includes/admin_catalog.php';
-require_once __DIR__ . '/../includes/settings.php';
-require __DIR__ . '/../includes/header.php';
-$checks = sf_system_health_checks();
-$score = sf_health_score($checks);
-sf_admin_shell_start('System Health', 'Launch readiness checks', 'Verify database tables, upload permissions, PHP extensions, environment settings, and runtime readiness.', 'health');
+$pageTitle='System Health';
+$pageDescription='Stonefellow environment, database, migration, backup, release, and monitoring health checks.';
+$pageClass='membership-page admin-catalog-page';
+require __DIR__.'/../includes/admin_catalog.php';
+require_once __DIR__.'/../includes/settings.php';
+require_once __DIR__.'/../includes/data_ops_recovery.php';
+require __DIR__.'/../includes/header.php';
+$baseChecks=sf_system_health_checks();
+$opsChecks=sf_dor_operations_checks();
+$score=sf_dor_score($opsChecks);
+$sections=sf_dor_section_summary($opsChecks);
+sf_admin_shell_start('System Health','Production operations health','Verify runtime dependencies, database integrity, migration checksums, backup evidence, release gates, storage, monitoring, and recovery readiness.','health');
 ?>
-<section class="sf-admin-card-grid">
-  <div class="sf-admin-action-card"><span>Health Score</span><strong><?= (int)$score ?>%</strong><small><?= $score >= 90 ? 'Launch-ready foundation' : 'Review missing items' ?></small></div>
-  <a class="sf-admin-action-card" href="<?= sf_url('install.php') ?>"><span>Installer</span><strong>Public Setup Page</strong><small>Open the installer checklist.</small></a>
-  <a class="sf-admin-action-card" href="<?= sf_url('admin/settings.php') ?>"><span>Settings</span><strong>Runtime Settings</strong><small>Configure identity and toggles.</small></a>
-</section>
-<section class="sf-admin-panel">
-  <div class="sf-admin-panel-head"><div><span class="sf-panel-eyebrow">Checks</span><h2>Environment and schema</h2></div></div>
-  <div class="sf-admin-table-wrap"><table class="sf-admin-table"><thead><tr><th>Check</th><th>Status</th><th>Detail</th></tr></thead><tbody>
-    <?php foreach ($checks as $check): ?><tr><td><strong><?= sf_admin_h($check['label']) ?></strong></td><td><?= !empty($check['ok']) ? sf_admin_status_badge('published') : sf_admin_status_badge('draft') ?></td><td><?= sf_admin_h($check['detail'] ?? '') ?></td></tr><?php endforeach; ?>
-  </tbody></table></div>
-</section>
-<?php sf_admin_shell_end(); require __DIR__ . '/../includes/footer.php'; ?>
+<section class="sf-admin-card-grid"><div class="sf-admin-action-card"><span>Operations Score</span><strong><?= (int)$score ?>%</strong><small><?= $score>=97?'10/10 static readiness':'Resolve operational checks' ?></small></div><a class="sf-admin-action-card" href="<?= sf_url('admin/operations-recovery.php') ?>"><span>Recovery Audit</span><strong>Open</strong><small>Full integrity and recovery report.</small></a><a class="sf-admin-action-card" href="<?= sf_url('admin/migration-checker.php') ?>"><span>Migrations</span><strong><?= sf_admin_h(sf_dor_latest_migration_key()) ?></strong><small>Latest discovered migration.</small></a><a class="sf-admin-action-card" href="<?= sf_url('admin/backups.php') ?>"><span>Backup</span><strong><?= sf_dor_latest_verified_backup(24)?'Verified':'Required' ?></strong><small>24-hour production gate.</small></a><a class="sf-admin-action-card" href="<?= sf_url('admin/monitoring.php') ?>"><span>Monitoring</span><strong>Open</strong><small>Errors, incidents, and jobs.</small></a></section>
+<section class="sf-admin-panel"><div class="sf-admin-panel-head"><div><span class="sf-panel-eyebrow">Operational Sections</span><h2><?= count($sections) ?> sections</h2></div></div><div class="sf-admin-table-wrap"><table class="sf-admin-table"><thead><tr><th>Section</th><th>Score</th><th>Checks</th><th>Failures</th><th>Review</th></tr></thead><tbody><?php foreach($sections as $section): ?><tr><td><strong><?= sf_admin_h($section['section']) ?></strong></td><td><?= (int)$section['score'] ?>%</td><td><?= (int)$section['count'] ?></td><td><?= (int)$section['fails'] ?></td><td><?= (int)$section['warnings'] ?></td></tr><?php endforeach; ?></tbody></table></div></section>
+<section class="sf-admin-panel"><div class="sf-admin-panel-head"><div><span class="sf-panel-eyebrow">Operations Checks</span><h2>Integrity and recovery</h2></div></div><div class="sf-admin-table-wrap"><table class="sf-admin-table"><thead><tr><th>Section</th><th>Check</th><th>Status</th><th>Detail</th></tr></thead><tbody><?php foreach($opsChecks as $check): ?><tr><td><?= sf_admin_h($check['section']) ?></td><td><strong><?= sf_admin_h($check['label']) ?></strong></td><td><?= sf_admin_status_badge($check['status']==='pass'?'active':($check['status']==='fail'?'canceled':'draft')) ?></td><td><?= sf_admin_h($check['detail']) ?></td></tr><?php endforeach; ?></tbody></table></div></section>
+<section class="sf-admin-panel"><div class="sf-admin-panel-head"><div><span class="sf-panel-eyebrow">Foundation Checks</span><h2>Environment and schema</h2></div></div><div class="sf-admin-table-wrap"><table class="sf-admin-table"><thead><tr><th>Check</th><th>Status</th><th>Detail</th></tr></thead><tbody><?php foreach($baseChecks as $check): ?><tr><td><strong><?= sf_admin_h($check['label']) ?></strong></td><td><?= !empty($check['ok'])?sf_admin_status_badge('active'):sf_admin_status_badge('canceled') ?></td><td><?= sf_admin_h($check['detail']??'') ?></td></tr><?php endforeach; ?></tbody></table></div></section>
+<?php sf_admin_shell_end(); require __DIR__.'/../includes/footer.php'; ?>
