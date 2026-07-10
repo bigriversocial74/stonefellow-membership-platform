@@ -43,6 +43,8 @@ jobs:
         run: php tests/staging_integration_matrix_smoke.php
       - name: Production launch promotion smoke tests
         run: php tests/production_launch_smoke.php
+      - name: Whole-platform certification smoke tests
+        run: php tests/platform_certification_smoke.php
       - name: Full static code audit
         run: php tools/code-audit.php
       - name: Agentic integration audit
@@ -67,3 +69,5 @@ jobs:
         run: php tools/staging-integration-matrix-audit.php
       - name: Release candidate production launch audit
         run: php tools/production-launch-audit.php
+      - name: Whole-platform source certification audit
+        run: php tools/platform-certification-audit.php
