@@ -1,0 +1,71 @@
+-- Stonefellow AI Provider Connection & Staging Certification v1
+
+CREATE TABLE IF NOT EXISTS ai_staging_certification_runs (
+  id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  run_key CHAR(36) NOT NULL UNIQUE,
+  run_label VARCHAR(190) NOT NULL,
+  environment_key VARCHAR(40) NOT NULL,
+  run_status ENUM('draft','in_progress','passed','failed','cancelled') NOT NULL DEFAULT 'draft',
+  overall_score DECIMAL(5,2) NOT NULL DEFAULT 0.00,
+  required_checks INT UNSIGNED NOT NULL DEFAULT 0,
+  passed_checks INT UNSIGNED NOT NULL DEFAULT 0,
+  failed_checks INT UNSIGNED NOT NULL DEFAULT 0,
+  pending_checks INT UNSIGNED NOT NULL DEFAULT 0,
+  summary_json LONGTEXT NULL,
+  certification_notes TEXT NULL,
+  started_by_user_id INT UNSIGNED NULL,
+  completed_by_user_id INT UNSIGNED NULL,
+  started_at DATETIME NULL,
+  completed_at DATETIME NULL,
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP NULL DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP,
+  INDEX idx_ai_cert_runs_status (run_status),
+  INDEX idx_ai_cert_runs_environment (environment_key),
+  INDEX idx_ai_cert_runs_created (created_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS ai_staging_certification_checks (
+  id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  run_id BIGINT UNSIGNED NOT NULL,
+  check_key VARCHAR(120) NOT NULL,
+  category_key VARCHAR(80) NOT NULL,
+  check_label VARCHAR(190) NOT NULL,
+  check_status ENUM('pending','running','passed','failed','skipped') NOT NULL DEFAULT 'pending',
+  severity ENUM('info','low','medium','high','critical') NOT NULL DEFAULT 'medium',
+  is_required TINYINT(1) NOT NULL DEFAULT 1,
+  is_automated TINYINT(1) NOT NULL DEFAULT 1,
+  result_message TEXT NULL,
+  evidence_json LONGTEXT NULL,
+  evidence_hash CHAR(64) NULL,
+  checked_by_user_id INT UNSIGNED NULL,
+  started_at DATETIME NULL,
+  completed_at DATETIME NULL,
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP NULL DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP,
+  UNIQUE KEY uq_ai_cert_check (run_id, check_key),
+  INDEX idx_ai_cert_checks_run_status (run_id, check_status),
+  INDEX idx_ai_cert_checks_category (category_key),
+  CONSTRAINT fk_ai_cert_checks_run FOREIGN KEY (run_id) REFERENCES ai_staging_certification_runs(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS ai_staging_provider_cost_reconciliations (
+  id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  run_id BIGINT UNSIGNED NOT NULL,
+  provider_key VARCHAR(40) NOT NULL,
+  period_month CHAR(7) NOT NULL,
+  reserved_cost_cents INT UNSIGNED NOT NULL DEFAULT 0,
+  provider_invoice_cents INT UNSIGNED NULL,
+  variance_cents INT NULL,
+  prompt_tokens BIGINT UNSIGNED NOT NULL DEFAULT 0,
+  completion_tokens BIGINT UNSIGNED NOT NULL DEFAULT 0,
+  image_count INT UNSIGNED NOT NULL DEFAULT 0,
+  request_count INT UNSIGNED NOT NULL DEFAULT 0,
+  reconciliation_status ENUM('pending','matched','review','failed') NOT NULL DEFAULT 'pending',
+  notes TEXT NULL,
+  recorded_by_user_id INT UNSIGNED NULL,
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP NULL DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP,
+  UNIQUE KEY uq_ai_cert_cost_run_provider_month (run_id, provider_key, period_month),
+  INDEX idx_ai_cert_cost_provider_month (provider_key, period_month),
+  CONSTRAINT fk_ai_cert_cost_run FOREIGN KEY (run_id) REFERENCES ai_staging_certification_runs(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
