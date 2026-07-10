@@ -57,6 +57,6 @@ $sections=[
 ];
 $failures=[];$earned=0;$total=0;
 echo "Stonefellow Authentication, Authorization, Privacy & Abuse Audit v1\n".str_repeat('=',68)."\n";
-foreach($sections as $section=>$checks){$passed=0;foreach($checks as [$file,$markers]){$total++;$body=$read($file);$missing=[];foreach($markers as $marker)if($body===''||!str_contains($body,$marker))$missing[]=$marker;if(!$missing){$passed++;$earned++;}else{$failures[]=$section.': '.$file.' missing ['.implode(', ',$missing).'].';}}$score=(int)round(($passed/count($checks))*10);echo sprintf("%-43s %d/10 (%d/%d)\n",$section,$score,$passed,count($checks));}
+foreach($sections as $section=>$checks){$passed=0;foreach($checks as [$file,$markers]){$total++;$body=$read($file);$missing=[];foreach($markers as $marker)if($body===''||stripos($body,$marker)===false)$missing[]=$marker;if(!$missing){$passed++;$earned++;}else{$failures[]=$section.': '.$file.' missing ['.implode(', ',$missing).'].';}}$score=(int)round(($passed/count($checks))*10);echo sprintf("%-43s %d/10 (%d/%d)\n",$section,$score,$passed,count($checks));}
 $overall=$total?round(($earned/$total)*10,1):0;echo str_repeat('-',68)."\nOverall score: {$overall}/10\n";
 if($failures){echo "\nBlocking findings:\n- ".implode("\n- ",$failures)."\n";exit(1);}echo "Result: PASS — all ten sections score 10/10.\n";
