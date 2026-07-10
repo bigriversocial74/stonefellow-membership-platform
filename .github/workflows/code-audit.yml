@@ -33,6 +33,8 @@ jobs:
         run: php tests/launch_catalog_operations_smoke.php
       - name: Staging activation release candidate smoke tests
         run: php tests/staging_activation_release_candidate_smoke.php
+      - name: Production cutover hypercare smoke tests
+        run: php tests/production_cutover_hypercare_smoke.php
       - name: Live commerce Stripe Connect smoke tests
         run: php tests/live_commerce_stripe_connect_smoke.php
       - name: Data integrity operations recovery smoke tests
@@ -67,6 +69,8 @@ jobs:
         run: php tools/launch-catalog-operations-audit.php
       - name: Staging activation release candidate audit
         run: php tools/staging-activation-release-candidate-audit.php
+      - name: Production cutover hypercare audit
+        run: php tools/production-cutover-hypercare-audit.php
       - name: Live commerce Stripe Connect audit
         run: php tools/live-commerce-stripe-connect-audit.php
       - name: Data integrity operations recovery audit

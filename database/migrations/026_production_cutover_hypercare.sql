@@ -1,0 +1,175 @@
+-- Stonefellow migration 026: production cutover and hypercare.
+-- Compatible with MySQL 5.7+/MariaDB 10.2+; creates new tables only.
+
+CREATE TABLE IF NOT EXISTS production_cutover_runs (
+  id BIGINT AUTO_INCREMENT PRIMARY KEY,
+  run_key CHAR(48) NOT NULL,
+  run_label VARCHAR(190) NOT NULL,
+  staging_candidate_id BIGINT NOT NULL,
+  production_promotion_id BIGINT NOT NULL,
+  deployment_release_id BIGINT NOT NULL,
+  backup_run_id BIGINT NOT NULL,
+  target_branch VARCHAR(190) NOT NULL DEFAULT 'main',
+  target_commit_sha CHAR(40) NOT NULL,
+  artifact_url VARCHAR(1000) NOT NULL,
+  artifact_sha256 CHAR(64) NOT NULL,
+  environment_key VARCHAR(40) NOT NULL DEFAULT 'production',
+  maintenance_window_start DATETIME DEFAULT NULL,
+  maintenance_window_end DATETIME DEFAULT NULL,
+  maintenance_status VARCHAR(32) NOT NULL DEFAULT 'planned',
+  traffic_percent INT NOT NULL DEFAULT 0,
+  run_status VARCHAR(32) NOT NULL DEFAULT 'draft',
+  required_checks INT NOT NULL DEFAULT 0,
+  passed_checks INT NOT NULL DEFAULT 0,
+  failed_checks INT NOT NULL DEFAULT 0,
+  pending_checks INT NOT NULL DEFAULT 0,
+  overall_score DECIMAL(5,2) NOT NULL DEFAULT 0,
+  rollback_recommended TINYINT(1) NOT NULL DEFAULT 0,
+  rollback_reason VARCHAR(2000) DEFAULT NULL,
+  launch_notes LONGTEXT DEFAULT NULL,
+  created_by_user_id INT DEFAULT NULL,
+  updated_by_user_id INT DEFAULT NULL,
+  started_at DATETIME DEFAULT NULL,
+  deployed_at DATETIME DEFAULT NULL,
+  stabilized_at DATETIME DEFAULT NULL,
+  completed_at DATETIME DEFAULT NULL,
+  rolled_back_at DATETIME DEFAULT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP NULL DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP,
+  UNIQUE KEY unique_production_cutover_run (run_key),
+  INDEX idx_cutover_commit_status (target_commit_sha, run_status, created_at),
+  INDEX idx_cutover_candidate (staging_candidate_id, production_promotion_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS production_cutover_checks (
+  id BIGINT AUTO_INCREMENT PRIMARY KEY,
+  run_id BIGINT NOT NULL,
+  check_key VARCHAR(120) NOT NULL,
+  section_key VARCHAR(80) NOT NULL,
+  check_label VARCHAR(255) NOT NULL,
+  severity VARCHAR(20) NOT NULL DEFAULT 'critical',
+  is_required TINYINT(1) NOT NULL DEFAULT 1,
+  is_automated TINYINT(1) NOT NULL DEFAULT 0,
+  check_status VARCHAR(32) NOT NULL DEFAULT 'pending',
+  result_message TEXT DEFAULT NULL,
+  evidence_json LONGTEXT DEFAULT NULL,
+  evidence_hash CHAR(64) DEFAULT NULL,
+  checked_by_user_id INT DEFAULT NULL,
+  started_at DATETIME DEFAULT NULL,
+  completed_at DATETIME DEFAULT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP NULL DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP,
+  UNIQUE KEY unique_production_cutover_check (run_id, check_key),
+  INDEX idx_cutover_checks_status (run_id, section_key, check_status),
+  FOREIGN KEY (run_id) REFERENCES production_cutover_runs(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS production_cutover_evidence (
+  id BIGINT AUTO_INCREMENT PRIMARY KEY,
+  run_id BIGINT NOT NULL,
+  check_key VARCHAR(120) NOT NULL,
+  evidence_type VARCHAR(40) NOT NULL DEFAULT 'note',
+  evidence_label VARCHAR(255) NOT NULL,
+  source_reference VARCHAR(1000) NOT NULL,
+  artifact_sha256 CHAR(64) DEFAULT NULL,
+  metadata_json LONGTEXT DEFAULT NULL,
+  verification_status VARCHAR(32) NOT NULL DEFAULT 'verified',
+  submitted_by_user_id INT DEFAULT NULL,
+  verified_by_user_id INT DEFAULT NULL,
+  verified_at DATETIME DEFAULT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  INDEX idx_cutover_evidence (run_id, check_key, verification_status),
+  FOREIGN KEY (run_id) REFERENCES production_cutover_runs(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS production_cutover_events (
+  id BIGINT AUTO_INCREMENT PRIMARY KEY,
+  run_id BIGINT NOT NULL,
+  source_event_id VARCHAR(190) DEFAULT NULL,
+  event_type VARCHAR(120) NOT NULL,
+  event_status VARCHAR(32) NOT NULL DEFAULT 'processed',
+  event_message VARCHAR(2000) NOT NULL,
+  payload_hash CHAR(64) DEFAULT NULL,
+  redacted_payload_json LONGTEXT DEFAULT NULL,
+  actor_user_id INT DEFAULT NULL,
+  processed_at DATETIME DEFAULT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE KEY unique_cutover_source_event (run_id, source_event_id),
+  INDEX idx_cutover_events (run_id, event_type, created_at),
+  FOREIGN KEY (run_id) REFERENCES production_cutover_runs(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS production_cutover_decisions (
+  id BIGINT AUTO_INCREMENT PRIMARY KEY,
+  run_id BIGINT NOT NULL,
+  decision_type VARCHAR(32) NOT NULL,
+  decision_status VARCHAR(32) NOT NULL DEFAULT 'recorded',
+  decision_note TEXT NOT NULL,
+  evidence_reference VARCHAR(1000) NOT NULL,
+  evidence_sha256 CHAR(64) DEFAULT NULL,
+  decided_by_user_id INT DEFAULT NULL,
+  decided_at DATETIME NOT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  INDEX idx_cutover_decisions (run_id, decision_type, decided_at),
+  FOREIGN KEY (run_id) REFERENCES production_cutover_runs(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS production_hypercare_checkpoints (
+  id BIGINT AUTO_INCREMENT PRIMARY KEY,
+  run_id BIGINT NOT NULL,
+  checkpoint_key VARCHAR(40) NOT NULL,
+  scheduled_for DATETIME NOT NULL,
+  checkpoint_status VARCHAR(32) NOT NULL DEFAULT 'pending',
+  health_score INT NOT NULL DEFAULT 0,
+  blocker_count INT NOT NULL DEFAULT 0,
+  summary_json LONGTEXT DEFAULT NULL,
+  completed_by_user_id INT DEFAULT NULL,
+  completed_at DATETIME DEFAULT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE KEY unique_hypercare_checkpoint (run_id, checkpoint_key),
+  INDEX idx_hypercare_due (checkpoint_status, scheduled_for),
+  FOREIGN KEY (run_id) REFERENCES production_cutover_runs(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS production_hypercare_metrics (
+  id BIGINT AUTO_INCREMENT PRIMARY KEY,
+  checkpoint_id BIGINT NOT NULL,
+  metric_key VARCHAR(100) NOT NULL,
+  metric_value DECIMAL(18,4) DEFAULT NULL,
+  metric_unit VARCHAR(40) DEFAULT NULL,
+  threshold_value DECIMAL(18,4) DEFAULT NULL,
+  threshold_direction VARCHAR(20) NOT NULL DEFAULT 'max',
+  metric_status VARCHAR(32) NOT NULL DEFAULT 'unknown',
+  source_reference VARCHAR(1000) DEFAULT NULL,
+  evidence_sha256 CHAR(64) DEFAULT NULL,
+  recorded_at DATETIME NOT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE KEY unique_hypercare_metric (checkpoint_id, metric_key),
+  INDEX idx_hypercare_metric_status (metric_status, metric_key),
+  FOREIGN KEY (checkpoint_id) REFERENCES production_hypercare_checkpoints(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS production_verification_certificates (
+  id BIGINT AUTO_INCREMENT PRIMARY KEY,
+  certificate_key CHAR(48) NOT NULL,
+  run_id BIGINT NOT NULL,
+  target_commit_sha CHAR(40) NOT NULL,
+  artifact_sha256 CHAR(64) NOT NULL,
+  certificate_status VARCHAR(32) NOT NULL DEFAULT 'verified',
+  overall_score DECIMAL(5,2) NOT NULL DEFAULT 100,
+  availability_baseline DECIMAL(8,4) DEFAULT NULL,
+  payment_success_baseline DECIMAL(8,4) DEFAULT NULL,
+  media_success_baseline DECIMAL(8,4) DEFAULT NULL,
+  membership_baseline INT DEFAULT NULL,
+  revenue_baseline_cents BIGINT DEFAULT NULL,
+  known_issues_json LONGTEXT DEFAULT NULL,
+  handoff_notes LONGTEXT NOT NULL,
+  certificate_sha256 CHAR(64) NOT NULL,
+  issued_by_user_id INT DEFAULT NULL,
+  issued_at DATETIME NOT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE KEY unique_production_certificate (certificate_key),
+  UNIQUE KEY unique_production_certificate_run (run_id),
+  INDEX idx_production_certificate_commit (target_commit_sha, certificate_status),
+  FOREIGN KEY (run_id) REFERENCES production_cutover_runs(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
