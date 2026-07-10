@@ -24,7 +24,7 @@ $sections=[
   ['.env.example',['SF_IMPORT_MAX_BYTES=2097152','SF_IMPORT_MAX_ROWS=500']],
  ],
  'Draft-first import policy'=>[
-  ['includes/importer.php',["'status'=>'draft'","'status'=>'inactive'",'is_primary'=>0]],
+  ['includes/importer.php',["'status'=>'draft'","'status'=>'inactive'","'is_primary'=>0"]],
   ['admin/import.php',['Draft First','does not become public automatically']],
   ['includes/importer.php',['Invalid status for target table','Invalid access_level']],
  ],
@@ -55,5 +55,13 @@ $sections=[
  ],
 ];
 $fail=[];$earned=0;$total=0;echo "Stonefellow Content Publishing, Search, Import & Moderation Audit v1\n".str_repeat('=',70)."\n";
-foreach($sections as $section=>$checks){$pass=0;foreach($checks as [$file,$markers]){$total++;$body=$read($file);$missing=[];foreach($markers as $m)if($body===''||stripos($body,$m)===false)$missing[]=$m;if(!$missing){$pass++;$earned++;}else$fail[]=$section.': '.$file.' missing ['.implode(', ',$missing).'].';$score=(int)round($pass/count($checks)*10);echo sprintf("%-42s %d/10 (%d/%d)\n",$section,$score,$pass,count($checks));}
+foreach($sections as $section=>$checks){
+  $pass=0;
+  foreach($checks as [$file,$markers]){
+    $total++;$body=$read($file);$missing=[];
+    foreach($markers as $m)if($body===''||stripos($body,(string)$m)===false)$missing[]=(string)$m;
+    if(!$missing){$pass++;$earned++;}else{$fail[]=$section.': '.$file.' missing ['.implode(', ',$missing).'].';}
+  }
+  $score=(int)round($pass/count($checks)*10);echo sprintf("%-42s %d/10 (%d/%d)\n",$section,$score,$pass,count($checks));
+}
 $overall=$total?round($earned/$total*10,1):0;echo str_repeat('-',70)."\nOverall score: {$overall}/10\n";if($fail){echo "\nBlocking findings:\n- ".implode("\n- ",$fail)."\n";exit(1);}echo "Result: PASS — all ten sections score 10/10.\n";
