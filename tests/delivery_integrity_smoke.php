@@ -16,6 +16,7 @@ $fail=[];$assert=static function(bool $ok,string $message)use(&$fail):void{if(!$
 $assert(sf_delivery_clean_header("Subject\r\nBcc: victim@example.com")==='Subject Bcc: victim@example.com','Header cleaner should remove CR/LF injection.');
 $assert(sf_delivery_safe_email("bad@example.com\r\nBcc:x@example.com")==='','Email validation should reject header injection.');
 $assert(sf_delivery_safe_email('member@example.com')==='member@example.com','Valid email should pass.');
+$assert(sf_delivery_mask_email('member@example.com')==='m*****@example.com','Email masking should hide the local part.');
 $assert(sf_delivery_backoff_seconds(1)===60&&sf_delivery_backoff_seconds(3)===240,'Retry backoff should be exponential.');
 
 $dirty='<h1 onclick="alert(1)">Hi</h1><script>alert(1)</script><form><input></form><a href="javascript:alert(1)">x</a>';
@@ -36,12 +37,12 @@ $assert(sf_delivery_transactional_type('billing')&&!sf_delivery_transactional_ty
 
 $root=dirname(__DIR__);$markers=[
  'includes/notifications.php'=>['idempotency_key','sf_delivery_advisory_lock','SF_NOTIFICATION_MAX_ATTEMPTS','sf_delivery_backoff_seconds','honors_preferences','SF_ALLOW_LOG_MAIL_PROVIDER'],
- 'includes/ops_scheduler_messaging.php'=>['frequency<>\'manual\'','sf_delivery_advisory_lock','sf_msg_log_status','honors_preferences','campaign-recipient-'],
+ 'includes/ops_scheduler_messaging.php'=>["frequency<>'manual'",'sf_delivery_advisory_lock','sf_msg_log_status','honors_preferences','campaign-recipient-'],
  'api/ops-scheduler.php'=>['SF_OPS_SCHEDULER_SECRET','HTTP_X_STONEFELLOW_SCHEDULER_SECRET','csrf_failed'],
  'api/member-notices.php'=>['admin.members.manage','HTTP_X_CSRF_TOKEN','method_not_allowed'],
  'api/notification-webhook.php'=>['sf_delivery_webhook_signature_valid','provider_event_id','duplicate','[redacted]'],
  'admin/email-templates.php'=>['sandbox=""','srcdoc','sanitization'],
- 'admin/notifications.php'=>['failed or canceled','Reset attempts','masked'],
+ 'admin/notifications.php'=>['failed or canceled','Reset attempts','privacy-reduced logs'],
  'admin/member-messaging.php'=>['preference-skipped','Honor member channel preferences','immutable'],
 ];
 foreach($markers as $file=>$needles){$body=(string)file_get_contents($root.'/'.$file);foreach($needles as $needle)$assert(stripos($body,$needle)!==false,$file.' should contain '.$needle.'.');}
