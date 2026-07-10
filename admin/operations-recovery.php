@@ -16,6 +16,7 @@ require __DIR__.'/../includes/header.php';
 sf_admin_shell_start('Operations','Data integrity, operations & recovery audit v1','Verify migration checksums, relational integrity, backup evidence, release gates, environment safety, monitoring, and recovery readiness.','operations-recovery');
 ?>
 <section class="sf-admin-card-grid">
+  <a class="sf-admin-action-card" href="<?= sf_url('admin/platform-certification.php') ?>"><span>Platform</span><strong>Certification</strong><small>Source score and deployed launch evidence.</small></a>
   <div class="sf-admin-action-card"><span>Audit Score</span><strong><?= (int)$score ?>%</strong><small><?= $score>=97?'10/10 static readiness':'Resolve blocking checks' ?></small></div>
   <a class="sf-admin-action-card" href="<?= sf_url('admin/migration-checker.php') ?>"><span>Migrations</span><strong><?= count($drift) ?></strong><small>Checksum-controlled SQL files.</small></a>
   <a class="sf-admin-action-card" href="<?= sf_url('admin/backups.php') ?>"><span>Verified Backup</span><strong><?= $backup?'Ready':'Missing' ?></strong><small><?= $backup?sf_admin_h($backup['run_key']):'Required for production repair/release' ?></small></a>
