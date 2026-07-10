@@ -1,0 +1,79 @@
+/* Stonefellow front-end production quality foundation. */
+.sf-skip-link {
+  position: fixed;
+  left: 1rem;
+  top: 1rem;
+  z-index: 100000;
+  transform: translateY(-180%);
+  padding: .8rem 1rem;
+  border-radius: .5rem;
+  background: #fff;
+  color: #111;
+  font-weight: 800;
+  text-decoration: none;
+  box-shadow: 0 8px 30px rgba(0,0,0,.28);
+}
+.sf-skip-link:focus { transform: translateY(0); }
+
+:where(a, button, input, select, textarea, summary, [tabindex]):focus-visible {
+  outline: 3px solid currentColor;
+  outline-offset: 3px;
+}
+
+:where(button, input, select, textarea) { font: inherit; }
+:where(button, summary, [role="button"]) { touch-action: manipulation; }
+:where(input, select, textarea):user-invalid { outline: 3px solid #e5484d; outline-offset: 2px; }
+
+.sr-only,
+.sf-visually-hidden {
+  position: absolute !important;
+  width: 1px !important;
+  height: 1px !important;
+  padding: 0 !important;
+  margin: -1px !important;
+  overflow: hidden !important;
+  clip: rect(0, 0, 0, 0) !important;
+  white-space: nowrap !important;
+  border: 0 !important;
+}
+
+[data-site-nav][hidden] { display: none !important; }
+[data-admin-nav-tab][aria-selected="true"] { position: relative; }
+[role="tabpanel"][hidden] { display: none !important; }
+
+.sf-flash[role="alert"] { scroll-margin-top: 7rem; }
+.sf-progress-accessible { position: relative; }
+
+@media (max-width: 880px) {
+  .nav-toggle,
+  .home-user-summary,
+  .home-subscribe-btn,
+  .home-nav a { min-width: 44px; min-height: 44px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto !important; }
+  *, *::before, *::after {
+    animation-duration: .01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: .01ms !important;
+    scroll-behavior: auto !important;
+  }
+  video[autoplay] { animation: none !important; }
+}
+
+@media (forced-colors: active) {
+  :where(a, button, input, select, textarea, summary):focus-visible { outline: 2px solid CanvasText; }
+  .nav-toggle span { background: CanvasText !important; }
+}
+
+@media print {
+  .site-global-header,
+  .site-global-footer,
+  .sf-skip-link,
+  audio,
+  video,
+  [data-nav-toggle] { display: none !important; }
+  body { background: #fff !important; color: #000 !important; }
+  a { color: #000 !important; text-decoration: underline; }
+}
