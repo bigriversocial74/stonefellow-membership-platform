@@ -1,0 +1,47 @@
+name: Stonefellow VP3 Clips Bridge
+
+on:
+  pull_request:
+    paths:
+      - 'admin/vp3-clip*.php'
+      - 'admin/vp3-clips*.php'
+      - 'includes/vp3_clips*.php'
+      - 'jobs/vp3-clips-worker.php'
+      - 'vp3-clip-media.php'
+      - 'database/migrations/027_vp3_clips_publisher_bridge.sql'
+      - 'tests/vp3_clips_bridge_smoke.php'
+      - 'tools/vp3-clips-bridge-audit.php'
+      - '.github/workflows/vp3-clips-bridge.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'admin/vp3-clip*.php'
+      - 'admin/vp3-clips*.php'
+      - 'includes/vp3_clips*.php'
+      - 'jobs/vp3-clips-worker.php'
+      - 'vp3-clip-media.php'
+      - 'database/migrations/027_vp3_clips_publisher_bridge.sql'
+      - 'tests/vp3_clips_bridge_smoke.php'
+      - 'tools/vp3-clips-bridge-audit.php'
+      - '.github/workflows/vp3-clips-bridge.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  bridge-quality:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+          coverage: none
+      - name: PHP syntax
+        run: |
+          find admin includes jobs tests tools -type f -name '*.php' -print0 | xargs -0 -n1 php -l
+          php -l vp3-clip-media.php
+      - name: Bridge smoke
+        run: php tests/vp3_clips_bridge_smoke.php
+      - name: Bridge audit
+        run: php tools/vp3-clips-bridge-audit.php

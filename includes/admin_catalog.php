@@ -95,6 +95,8 @@ function sf_admin_nav_groups(): array {
       'songs' => ['Songs', 'admin/music-songs.php'],
       'episodes' => ['Episodes', 'admin/episodes.php'],
       'videos' => ['Videos', 'admin/videos.php'],
+      'vp3-clips' => ['VP3 Clips', 'admin/vp3-clips.php'],
+      'vp3-clips-settings' => ['VP3 Clips Settings', 'admin/vp3-clips-settings.php'],
       'seasons' => ['Seasons', 'admin/seasons.php'],
       'release-schedule' => ['Release Schedule', 'admin/release-schedule.php'],
       'publishing' => ['Publishing', 'admin/publishing.php'],
