@@ -41,6 +41,7 @@ jobs:
       - name: Reset to current main and extract
         run: |
           set -euo pipefail
+          cp .github/workflows/vp3-clips-publisher-import.yml /tmp/vp3-clips-publisher-import.yml
           git config user.name 'Stonefellow Build Automation'
           git config user.email 'actions@users.noreply.github.com'
           git fetch origin main
@@ -62,12 +63,19 @@ jobs:
           set -euo pipefail
           git add docs/VP3_CLIPS_PUBLISHER_BRIDGE_V1.md docs/CODE_AUDIT_VP3_CLIPS_PUBLISHER_BRIDGE_V1.md tests/vp3_clips_bridge_smoke.php tools/vp3-clips-bridge-audit.php .github/workflows/vp3-clips-bridge.yml
           git commit -m 'Certify Stonefellow VP3 Clips publishing bridge'
+      - name: Retain controller for owner cleanup
+        run: |
+          set -euo pipefail
+          mkdir -p .github/workflows
+          cp /tmp/vp3-clips-publisher-import.yml .github/workflows/vp3-clips-publisher-import.yml
+          git add .github/workflows/vp3-clips-publisher-import.yml
+          git commit -m 'Retain temporary Stonefellow VP3 Clips import controller'
       - name: Verify clean source history
         run: |
           set -euo pipefail
           test ! -e .vp3-import
-          test ! -e .github/workflows/vp3-clips-publisher-import.yml
+          test -e .github/workflows/vp3-clips-publisher-import.yml
           test -z "$(git status --porcelain)"
-          git log --oneline -4
+          git log --oneline -5
       - name: Replace staging history
         run: git push --force origin "HEAD:${{ github.event.pull_request.head.ref }}"
