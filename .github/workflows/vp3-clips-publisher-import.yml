@@ -49,6 +49,7 @@ jobs:
           git reset --hard origin/main
           git clean -fdx
           tar -xzf /tmp/stone-vp3-clips-bridge.tar.gz
+          rm -f .github/workflows/vp3-clips-bridge.yml
       - name: Commit clip runtime and source ownership
         run: |
           set -euo pipefail
@@ -62,7 +63,7 @@ jobs:
       - name: Commit verification and documentation
         run: |
           set -euo pipefail
-          git add docs/VP3_CLIPS_PUBLISHER_BRIDGE_V1.md docs/CODE_AUDIT_VP3_CLIPS_PUBLISHER_BRIDGE_V1.md tests/vp3_clips_bridge_smoke.php tools/vp3-clips-bridge-audit.php .github/workflows/vp3-clips-bridge.yml
+          git add docs/VP3_CLIPS_PUBLISHER_BRIDGE_V1.md docs/CODE_AUDIT_VP3_CLIPS_PUBLISHER_BRIDGE_V1.md tests/vp3_clips_bridge_smoke.php tools/vp3-clips-bridge-audit.php
           git commit -m 'Certify Stonefellow VP3 Clips publishing bridge'
       - name: Retain controller for owner cleanup
         run: |
@@ -84,6 +85,7 @@ jobs:
           set -euo pipefail
           test ! -e .vp3-import
           test -e .github/workflows/vp3-clips-publisher-import.yml
+          test ! -e .github/workflows/vp3-clips-bridge.yml
           test -z "$(git status --porcelain)"
           git log --oneline -6
       - name: Replace staging tree
