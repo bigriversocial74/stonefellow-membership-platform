@@ -13,4 +13,5 @@ define('SF_VP3_CLIPS_LOADED', true);
 require_once __DIR__ . '/vp3_clips_core.php';
 require_once __DIR__ . '/vp3_clips_render.php';
 require_once __DIR__ . '/vp3_clips_bridge.php';
+require_once __DIR__ . '/vp3_clips_certification.php';
 require_once __DIR__ . '/vp3_clips_jobs.php';

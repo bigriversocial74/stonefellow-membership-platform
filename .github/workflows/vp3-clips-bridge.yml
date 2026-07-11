@@ -9,7 +9,8 @@ on:
       - 'jobs/vp3-clips-worker.php'
       - 'vp3-clip-media.php'
       - 'database/migrations/027_vp3_clips_publisher_bridge.sql'
-      - 'tests/vp3_clips_bridge_smoke.php'
+      - 'database/migrations/028_vp3_clips_live_certification.sql'
+      - 'tests/vp3_clips*.php'
       - 'tools/vp3-clips-bridge-audit.php'
       - '.github/workflows/vp3-clips-bridge.yml'
   push:
@@ -21,7 +22,8 @@ on:
       - 'jobs/vp3-clips-worker.php'
       - 'vp3-clip-media.php'
       - 'database/migrations/027_vp3_clips_publisher_bridge.sql'
-      - 'tests/vp3_clips_bridge_smoke.php'
+      - 'database/migrations/028_vp3_clips_live_certification.sql'
+      - 'tests/vp3_clips*.php'
       - 'tools/vp3-clips-bridge-audit.php'
       - '.github/workflows/vp3-clips-bridge.yml'
 
@@ -43,5 +45,7 @@ jobs:
           php -l vp3-clip-media.php
       - name: Bridge smoke
         run: php tests/vp3_clips_bridge_smoke.php
+      - name: Live certification smoke
+        run: php tests/vp3_clips_certification_smoke.php
       - name: Bridge audit
         run: php tools/vp3-clips-bridge-audit.php
