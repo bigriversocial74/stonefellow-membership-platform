@@ -101,6 +101,9 @@ $sfRobots = (string)($pageRobots ?? ($sfIsAdminSurface
     <link rel="stylesheet" href="<?= sf_asset('css/admin-tabs.css') ?>">
     <link rel="stylesheet" href="<?= sf_asset('css/storyboarding-system.css') ?>">
   <?php endif; ?>
+  <?php foreach ((array)($pageExtraStyles ?? []) as $sfExtraStyle): ?>
+    <link rel="stylesheet" href="<?= sf_asset((string)$sfExtraStyle) ?>">
+  <?php endforeach; ?>
   <script type="application/ld+json"><?= sf_frontend_json_ld($sfMetaTitle, $sfMetaDescription) ?></script>
 </head>
 <body class="<?= htmlspecialchars($sfBodyClass, ENT_QUOTES, 'UTF-8') ?>">
