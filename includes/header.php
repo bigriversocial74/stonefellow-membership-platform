@@ -68,7 +68,7 @@ $sfRobots = (string)($pageRobots ?? ($sfIsAdminSurface ? 'noindex,nofollow,noarc
   <link rel="stylesheet" href="<?= sf_asset('css/customer-ui.css') ?>">
   <link rel="stylesheet" href="<?= sf_asset('css/mobile-home.css') ?>">
   <link rel="stylesheet" href="<?= sf_asset('css/frontend-quality.css') ?>">
-  <?php if (!$sfIsAdminSurface): ?><link rel="stylesheet" href="<?= sf_asset('css/likenessing.css?v=20260716-1') ?>"><?php endif; ?>
+  <?php if (!$sfIsAdminSurface): ?><link rel="stylesheet" href="<?= sf_asset('css/likenessing.css?v=20260716-1') ?>"><link rel="stylesheet" href="<?= sf_asset('css/likenessing-sprites.css?v=20260716-1') ?>"><?php endif; ?>
   <?php if ($sfIsAdminSurface): ?><link rel="stylesheet" href="<?= sf_asset('css/admin-polish.css') ?>"><link rel="stylesheet" href="<?= sf_asset('css/admin-tabs.css') ?>"><link rel="stylesheet" href="<?= sf_asset('css/storyboarding-system.css') ?>"><?php endif; ?>
   <script type="application/ld+json"><?= sf_frontend_json_ld($sfMetaTitle, $sfMetaDescription) ?></script>
 </head>
