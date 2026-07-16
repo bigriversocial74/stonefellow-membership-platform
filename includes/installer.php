@@ -6,6 +6,7 @@ require_once __DIR__ . '/security.php';
 require_once __DIR__ . '/license.php';
 require_once __DIR__ . '/installer-core.php';
 require_once __DIR__ . '/standalone-installer.php';
+require_once __DIR__ . '/installer-mysql-compat.php';
 
 sf_install_bootstrap_standalone_license();
 
