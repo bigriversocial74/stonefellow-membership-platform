@@ -4,27 +4,30 @@ $pageDescription = 'Likenessing is an original dark comedy about actors, agents,
 $pageClass = 'home-template likenessing-home';
 require __DIR__ . '/includes/data.php';
 require __DIR__ . '/includes/header.php';
+?>
+<link rel="stylesheet" href="<?= sf_asset('css/likenessing-media-v4.css?v=20260717') ?>">
+<?php
 
 $cast = [
-  ['title' => 'The Movie Star', 'name' => 'Charming. Bankable.', 'description' => 'Always has a deal on the table.', 'position' => '0%'],
-  ['title' => 'The Agent', 'name' => 'Ruthless negotiator.', 'description' => 'Will sell ice to an Eskimo.', 'position' => '16.666%'],
-  ['title' => 'The Manager', 'name' => 'Numbers guy.', 'description' => 'Sees opportunity everywhere.', 'position' => '33.333%'],
-  ['title' => 'The Lawyer', 'name' => 'Protects the talent.', 'description' => 'And their future. For a fee.', 'position' => '50%'],
-  ['title' => 'The Newcomer', 'name' => 'Big dreams.', 'description' => 'No idea what he is really signing.', 'position' => '66.666%'],
-  ['title' => 'The Studio Exec', 'name' => 'Owns the game.', 'description' => 'Makes the rules. Changes them daily.', 'position' => '83.333%'],
-  ['title' => 'The Publicist', 'name' => 'Controls the narrative.', 'description' => 'And the damage control.', 'position' => '100%'],
+  ['title' => 'The Movie Star', 'name' => 'Charming. Bankable.', 'description' => 'Always has a deal on the table.', 'asset' => 'cast_movie_star'],
+  ['title' => 'The Agent', 'name' => 'Ruthless negotiator.', 'description' => 'Will sell ice to an Eskimo.', 'asset' => 'cast_agent'],
+  ['title' => 'The Manager', 'name' => 'Numbers guy.', 'description' => 'Sees opportunity everywhere.', 'asset' => 'cast_manager'],
+  ['title' => 'The Lawyer', 'name' => 'Protects the talent.', 'description' => 'And their future. For a fee.', 'asset' => 'cast_lawyer'],
+  ['title' => 'The Newcomer', 'name' => 'Big dreams.', 'description' => 'No idea what he is really signing.', 'asset' => 'cast_newcomer'],
+  ['title' => 'The Studio Exec', 'name' => 'Owns the game.', 'description' => 'Makes the rules. Changes them daily.', 'asset' => 'cast_studio_exec'],
+  ['title' => 'The Publicist', 'name' => 'Controls the narrative.', 'description' => 'And the damage control.', 'asset' => 'cast_publicist'],
 ];
 
 $episodes = [
-  ['number' => 'EP 1', 'title' => 'Pilot', 'description' => 'A struggling actor gets an offer that could change everything.', 'position' => '0%'],
-  ['number' => 'EP 2', 'title' => 'Fine Print', 'description' => 'One clause can make you rich. Another can own your soul.', 'position' => '25%'],
-  ['number' => 'EP 3', 'title' => 'Double Exposure', 'description' => 'Two versions of you. One problem.', 'position' => '50%'],
-  ['number' => 'EP 4', 'title' => 'Commercial Break', 'description' => 'Your likeness sells soap. And your dignity.', 'position' => '75%'],
-  ['number' => 'EP 5', 'title' => "Who's Driving?", 'description' => 'When your AI books the role you wanted.', 'position' => '100%'],
+  ['number' => 'EP 1', 'title' => 'Pilot', 'description' => 'A struggling actor gets an offer that could change everything.', 'asset' => 'episode_pilot'],
+  ['number' => 'EP 2', 'title' => 'Fine Print', 'description' => 'One clause can make you rich. Another can own your soul.', 'asset' => 'episode_fine_print'],
+  ['number' => 'EP 3', 'title' => 'Double Exposure', 'description' => 'Two versions of you. One problem.', 'asset' => 'episode_double_exposure'],
+  ['number' => 'EP 4', 'title' => 'Commercial Break', 'description' => 'Your likeness sells soap. And your dignity.', 'asset' => 'episode_commercial_break'],
+  ['number' => 'EP 5', 'title' => "Who's Driving?", 'description' => 'When your AI books the role you wanted.', 'asset' => 'episode_whos_driving'],
 ];
 ?>
 <section class="lk-hero" aria-labelledby="lk-home-title">
-  <img class="lk-hero-image" src="<?= lk_asset_url('hero') ?>" alt="Actors and representatives meeting in a Hollywood office overlooking Los Angeles">
+  <img class="lk-hero-image" src="<?= lk_asset_url('hero') ?>" alt="An actor, agent, and representative overlooking Los Angeles" fetchpriority="high" decoding="async">
   <div class="lk-hero-shade" aria-hidden="true"></div>
   <div class="lk-hero-content">
     <p class="lk-eyebrow">Fame. Fortune.<br>Full control.</p>
@@ -39,7 +42,7 @@ $episodes = [
 </section>
 
 <section class="lk-shell lk-premise" aria-labelledby="lk-premise-title">
-  <div class="lk-premise-image"><img src="<?= lk_asset_url('premise') ?>" alt="A performer standing on a studio lot beneath a digital artificial intelligence likeness"></div>
+  <div class="lk-premise-image"><img src="<?= lk_asset_url('premise') ?>" alt="A performer on a film set beneath a vast digital likeness" loading="lazy" decoding="async"></div>
   <div class="lk-premise-copy">
     <p class="lk-label">The Premise</p>
     <h2 id="lk-premise-title">Every opportunity comes with a contract.</h2>
@@ -58,7 +61,7 @@ $episodes = [
   <div class="lk-cast-grid">
     <?php foreach ($cast as $person): ?>
       <a class="lk-cast-card" href="<?= sf_url('cast.php') ?>">
-        <div class="lk-cast-photo" style="background-image:url('<?= lk_asset_url('cast') ?>');background-position:<?= $person['position'] ?> center" role="img" aria-label="<?= htmlspecialchars($person['title'], ENT_QUOTES, 'UTF-8') ?>"></div>
+        <img src="<?= lk_asset_url($person['asset']) ?>" alt="<?= htmlspecialchars($person['title'], ENT_QUOTES, 'UTF-8') ?>" loading="lazy" decoding="async">
         <div><strong><?= htmlspecialchars($person['title'], ENT_QUOTES, 'UTF-8') ?></strong><p><?= htmlspecialchars($person['name'], ENT_QUOTES, 'UTF-8') ?><br><?= htmlspecialchars($person['description'], ENT_QUOTES, 'UTF-8') ?></p></div>
       </a>
     <?php endforeach; ?>
@@ -70,7 +73,7 @@ $episodes = [
   <div class="lk-episode-grid">
     <?php foreach ($episodes as $episode): ?>
       <a class="lk-episode-card" href="<?= sf_url('episodes.php') ?>">
-        <div class="lk-episode-art"><div class="lk-episode-photo" style="background-image:url('<?= lk_asset_url('episodes') ?>');background-position:<?= $episode['position'] ?> center" role="img" aria-label="<?= htmlspecialchars($episode['title'], ENT_QUOTES, 'UTF-8') ?> episode still"></div><span><?= htmlspecialchars($episode['number'], ENT_QUOTES, 'UTF-8') ?></span></div>
+        <div class="lk-episode-art"><img src="<?= lk_asset_url($episode['asset']) ?>" alt="<?= htmlspecialchars($episode['title'], ENT_QUOTES, 'UTF-8') ?> episode still" loading="lazy" decoding="async"><span><?= htmlspecialchars($episode['number'], ENT_QUOTES, 'UTF-8') ?></span></div>
         <div class="lk-episode-body"><strong><?= htmlspecialchars($episode['title'], ENT_QUOTES, 'UTF-8') ?></strong><p><?= htmlspecialchars($episode['description'], ENT_QUOTES, 'UTF-8') ?></p><span class="lk-card-play lk-icon lk-icon-play" aria-label="Play"></span></div>
       </a>
     <?php endforeach; ?>
@@ -81,7 +84,7 @@ $episodes = [
   <div class="lk-shell lk-newsletter-inner">
     <div><h2 id="lk-newsletter-title">Stay in the Loop</h2><p>Get exclusive content, behind-the-scenes gossip, and early access to new episodes.</p></div>
     <form action="<?= sf_url('signup.php') ?>" method="get"><label class="sr-only" for="lk-news-email">Email address</label><input id="lk-news-email" type="email" name="email" placeholder="Enter your email" required><button type="submit">Subscribe</button></form>
-    <img src="<?= lk_asset_url('newsletter') ?>" alt="Behind-the-scenes Likenessing production photographs">
+    <img src="<?= lk_asset_url('newsletter') ?>" alt="Behind-the-scenes Likenessing production photographs" loading="lazy" decoding="async">
     <p class="lk-signoff">See you<br>on set.</p>
   </div>
 </section>
