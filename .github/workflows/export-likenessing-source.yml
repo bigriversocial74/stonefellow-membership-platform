@@ -4,6 +4,10 @@ on:
   push:
     branches:
       - feature/likenessing-platform-reskin-20260716
+  pull_request:
+    branches:
+      - main
+    types: [opened, synchronize, reopened]
   workflow_dispatch:
 
 permissions:
