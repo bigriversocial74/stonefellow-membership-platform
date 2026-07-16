@@ -1,0 +1,27 @@
+name: Export Likenessing Source
+
+on:
+  push:
+    branches:
+      - feature/likenessing-platform-reskin-20260716
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  export:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out Likenessing branch
+        uses: actions/checkout@v4
+      - name: Remove Git metadata
+        run: rm -rf .git
+      - name: Upload complete platform source
+        uses: actions/upload-artifact@v4
+        with:
+          name: likenessing-platform-source
+          path: .
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 1
