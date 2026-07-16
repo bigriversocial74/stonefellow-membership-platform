@@ -1,27 +1,30 @@
-const STONEFELLOW_CACHE = 'stonefellow-shell-v1';
+const DESERTRIO_CACHE = 'desertrio-shell-v3';
 const CORE_ASSETS = [
   './',
   './index.php',
   './offline.php',
   './episodes.php',
-  './music.php',
-  './player.php',
+  './cast.php',
+  './series.php',
+  './merch.php',
   './assets/css/stonefellow.css',
   './assets/css/pwa-upload.css',
+  './assets/css/desertrio.css',
+  './assets/css/desertrio-pages.css',
+  './assets/css/desertrio-responsive.css',
   './assets/js/stonefellow.js',
   './assets/js/pwa-upload.js',
-  './assets/images/brand/home-brand-approved.png',
-  './assets/images/brand/footer-brand-approved.png',
-  './assets/images/brand/logo-mark.png'
+  './assets/images/desertrio/desertrio-welcome.svg',
+  './assets/images/desertrio/desertrio-newsletter.svg'
 ];
 
 self.addEventListener('install', (event) => {
-  event.waitUntil(caches.open(STONEFELLOW_CACHE).then((cache) => cache.addAll(CORE_ASSETS)).catch(() => null));
+  event.waitUntil(caches.open(DESERTRIO_CACHE).then((cache) => cache.addAll(CORE_ASSETS)).catch(() => null));
   self.skipWaiting();
 });
 
 self.addEventListener('activate', (event) => {
-  event.waitUntil(caches.keys().then((keys) => Promise.all(keys.filter((key) => key !== STONEFELLOW_CACHE).map((key) => caches.delete(key)))));
+  event.waitUntil(caches.keys().then((keys) => Promise.all(keys.filter((key) => key !== DESERTRIO_CACHE).map((key) => caches.delete(key)))));
   self.clients.claim();
 });
 
@@ -38,7 +41,7 @@ self.addEventListener('fetch', (event) => {
   if (isNavigationRequest(request)) {
     event.respondWith(fetch(request).then((response) => {
       const copy = response.clone();
-      caches.open(STONEFELLOW_CACHE).then((cache) => cache.put(request, copy)).catch(() => null);
+      caches.open(DESERTRIO_CACHE).then((cache) => cache.put(request, copy)).catch(() => null);
       return response;
     }).catch(() => caches.match(request).then((cached) => cached || caches.match('./offline.php'))));
     return;
@@ -48,7 +51,7 @@ self.addEventListener('fetch', (event) => {
     const network = fetch(request).then((response) => {
       if (response && response.status === 200) {
         const copy = response.clone();
-        caches.open(STONEFELLOW_CACHE).then((cache) => cache.put(request, copy)).catch(() => null);
+        caches.open(DESERTRIO_CACHE).then((cache) => cache.put(request, copy)).catch(() => null);
       }
       return response;
     }).catch(() => cached);
