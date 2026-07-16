@@ -1,153 +1,110 @@
 <?php
-$pageTitle = 'Home';
-$pageDescription = 'Watch the Stonefellow series, stream the soundtrack, and subscribe for access.';
-$pageClass = 'home-template';
-require __DIR__ . '/includes/data.php';
-require __DIR__ . '/includes/theme_public.php';
+$pageTitle = 'DesertRio';
+$pageDescription = 'Stream DesertRio, an Arizona-set reality-style drama about fashion, lifestyle, ambition, and the secrets that surface under the desert sun.';
+$pageClass = 'home-template desertrio-home-template';
 
-$homeHero = sf_theme_public_image_src('home_hero', 'images/home/hero-reference-crop.png');
-$homeEpisodePoster = sf_theme_public_image_src('episode_poster', 'images/home/pilot-reference-card.png');
-$homeMusicHero = sf_theme_public_image_src('music_hero', 'images/home/live-reference-card.png');
-$homeAlbumCover = sf_theme_public_image_src('album_cover', 'images/music/soundtrack-cover.png');
-$homeTracks = [
-  ['n' => '1', 'title' => 'Born to Burn', 'time' => '3:48'],
-  ['n' => '2', 'title' => 'Blackout in the Rearview', 'time' => '3:35'],
-  ['n' => '3', 'title' => 'Tearing Down the Walls', 'time' => '4:02'],
-  ['n' => '4', 'title' => 'Heart of a Loaded Gun', 'time' => '3:57'],
-  ['n' => '5', 'title' => 'Saint or Sinner', 'time' => '3:41'],
-];
+require __DIR__ . '/includes/data.php';
+require __DIR__ . '/includes/desertrio_theme.php';
 require __DIR__ . '/includes/header.php';
 ?>
-<?= sf_theme_css_variables_tag(null, '.home-template') ?>
-<section class="home-full home-hero-full">
-  <div class="home-shell">
-    <section class="home-hero-grid">
-    <div class="home-copy">
-      <h1>Watch the Series. Stream the Soundtrack.</h1>
-      <p>Stonefellow is a rock &amp; roll drama about brotherhood, betrayal, and the price of greatness. Stream every episode. Listen to every song. Live the story.</p>
-      <div class="home-actions">
-        <a class="home-btn home-btn-primary" href="subscribe.php"><span class="icon-play"></span>Subscribe to Watch</a>
-        <a class="home-btn home-btn-outline" href="music.php"><span class="icon-wave"></span>Stream the Music</a>
-      </div>
-    </div>
-    <div class="home-hero-image">
-      <img src="<?= htmlspecialchars($homeHero) ?>" alt="Stonefellow performing live on stage">
+
+<section class="dr-home-hero" aria-labelledby="dr-home-title">
+  <div class="dr-home-hero-media">
+    <img src="<?= sf_asset($desertRioAssets['hero']) ?>" alt="DesertRio cast at an exclusive Arizona poolside retreat" fetchpriority="high">
+  </div>
+  <div class="dr-home-hero-shade" aria-hidden="true"></div>
+  <div class="dr-home-hero-copy">
+    <p class="dr-home-intro">ARIZONA IS HOT.<br>FAME IS HOTTER.</p>
+    <h1 id="dr-home-title">DesertRio</h1>
+    <div class="dr-ornament" aria-hidden="true"><span></span><b>✦</b><span></span></div>
+    <h2>FASHION. LIFESTYLE. DRAMA.</h2>
+    <p class="dr-home-sub">NOTHING STAYS HIDDEN IN THE DESERT.</p>
+    <div class="dr-home-actions">
+      <a class="dr-button dr-button-primary" href="<?= sf_url('episodes.php') ?>">Stream Now <span class="dr-button-play" aria-hidden="true">▷</span></a>
       <button
-        class="home-video-trigger"
+        class="dr-button"
         type="button"
         data-home-video-open
         data-video-src="https://www.youtube.com/embed/jMlQMre7LcA?start=14&amp;autoplay=1&amp;rel=0&amp;modestbranding=1"
         aria-haspopup="dialog"
         aria-controls="home-video-modal"
-      >
-        <span class="home-video-trigger-icon" aria-hidden="true"></span>
-        <span>Play Video</span>
-      </button>
+      >Watch Trailer <span class="dr-button-play" aria-hidden="true">▷</span></button>
     </div>
-    </section>
   </div>
 </section>
 
-<section class="home-shell">
-  <section class="home-featured-section">
-    <div class="home-section-title"><span>Featured</span></div>
-    <div class="home-feature-grid">
-      <a class="feature-card" href="episodes.php">
-        <div class="feature-image"><img src="<?= htmlspecialchars($homeEpisodePoster) ?>" alt="Pilot episode still"></div>
-        <div class="feature-info">
-          <h3>Pilot Episode</h3>
-          <p>Watch the beginning.</p>
-        </div>
-      </a>
-      <a class="feature-card feature-card-soundtrack" href="music.php">
-        <div class="feature-image soundtrack-art"><img src="<?= htmlspecialchars($homeAlbumCover) ?>" alt="Official soundtrack cover"></div>
-        <div class="feature-info">
-          <h3>Official Soundtrack</h3>
-          <p>Listen to every song.</p>
-        </div>
-      </a>
-      <a class="feature-card" href="music.php">
-        <div class="feature-image"><img src="<?= htmlspecialchars($homeMusicHero) ?>" alt="Stonefellow live sessions"></div>
-        <div class="feature-info">
-          <h3>Live Sessions</h3>
-          <p>Acoustic &amp; live performances.</p>
-        </div>
-      </a>
+<section class="dr-welcome" id="about" aria-labelledby="dr-welcome-title">
+  <div class="dr-welcome-image">
+    <img src="<?= sf_asset($desertRioAssets['welcome']) ?>" alt="Exclusive Scottsdale desert residence and pool">
+    <span class="dr-welcome-script">Scottsdale, Arizona</span>
+  </div>
+  <div class="dr-welcome-copy">
+    <p class="dr-eyebrow">Welcome To</p>
+    <h2 id="dr-welcome-title">The Desert’s Most<br><em>Exclusive Playground.</em></h2>
+    <div class="dr-small-ornament" aria-hidden="true"><span></span><b>✦</b><span></span></div>
+    <p>Follow a group of rising models, influencers, and industry insiders as they chase dreams, break hearts, and burn bridges—under the Arizona sun and beyond the velvet rope.</p>
+    <div class="dr-feature-grid">
+      <a href="<?= sf_url('series.php') ?>"><b aria-hidden="true">◇</b><span>High Fashion</span></a>
+      <a href="<?= sf_url('episodes.php') ?>"><b aria-hidden="true">⌁</b><span>Pool Parties</span></a>
+      <a href="<?= sf_url('cast.php') ?>"><b aria-hidden="true">♧</b><span>Arizona Luxury</span></a>
+      <a href="<?= sf_url('episodes.php') ?>"><b aria-hidden="true">☾</b><span>Late-Night Drama</span></a>
     </div>
-  </section>
-
-  <section class="home-player-panel">
-    <div class="album-column">
-      <div class="album-art-wrap">
-        <img src="<?= htmlspecialchars($homeAlbumCover) ?>" alt="Born to Burn artwork">
-      </div>
-    </div>
-    <div class="player-column">
-      <div class="now-playing-label">Now Playing</div>
-      <h2>Born to Burn</h2>
-      <div class="artist-line">Stonefellow</div>
-      <div class="time-row"><span>1:24</span><span>3:48</span></div>
-      <div class="progress-line"><span></span></div>
-      <div class="player-controls">
-        <button type="button">↺</button>
-        <button type="button">◀</button>
-        <button type="button" class="play-circle">❚❚</button>
-        <button type="button">▶</button>
-        <button type="button">↻</button>
-      </div>
-    </div>
-    <div class="track-column">
-      <ol class="home-tracklist">
-        <?php foreach ($homeTracks as $track): ?>
-          <li>
-            <span class="track-number"><?= htmlspecialchars($track['n']) ?></span>
-            <span class="track-title"><?= htmlspecialchars($track['title']) ?></span>
-            <span class="track-time"><?= htmlspecialchars($track['time']) ?></span>
-          </li>
-        <?php endforeach; ?>
-      </ol>
-      <a class="track-link" href="music.php">View Full Soundtrack →</a>
-    </div>
-  </section>
-
-  <section class="home-access-panel">
-    <div class="access-price-block">
-      <div class="access-kicker">Choose Your Access</div>
-      <div class="access-price"><span class="currency">$</span>9<span class="cents">99</span><span class="period">/ Month</span></div>
-      <a class="home-btn home-btn-primary access-btn" href="subscribe.php">Subscribe Now</a>
-      <div class="access-note">Cancel anytime.</div>
-    </div>
-    <ul class="access-list">
-      <li>Watch every episode in HD</li>
-      <li>Stream the full soundtrack</li>
-      <li>Exclusive content &amp; behind-the-scenes</li>
-      <li>Early access to new episodes</li>
-    </ul>
-  </section>
-
-  <section class="home-app-panel">
-    <div class="app-image-col">
-      <img src="<?= sf_asset('images/app/app-promo.png') ?>" alt="Stonefellow mobile app promo">
-    </div>
-    <div class="app-copy-col">
-      <h2>Take Stonefellow<br>Wherever You Go</h2>
-      <p>Stream the series. Listen to the music.<br>Download the app for iOS &amp; Android.</p>
-    </div>
-    <div class="store-buttons-col">
-      <a href="app.php" class="store-badge">Download on the App Store</a>
-      <a href="app.php" class="store-badge">Get it on Google Play</a>
-    </div>
-  </section>
+  </div>
 </section>
 
-<div class="home-video-modal" id="home-video-modal" role="dialog" aria-modal="true" aria-label="Stonefellow video preview" hidden data-home-video-modal>
+<section class="dr-home-section" id="cast" aria-labelledby="dr-cast-title">
+  <header class="dr-section-head">
+    <div><span></span><h2 id="dr-cast-title">The Cast</h2><span></span></div>
+    <p>Beautiful faces. Complicated lives.</p>
+  </header>
+  <div class="dr-cast-grid">
+    <?php foreach ($desertRioCast as $member): ?>
+      <article class="dr-cast-card">
+        <a href="<?= sf_url('cast.php') ?>" aria-label="Meet <?= htmlspecialchars($member['name'], ENT_QUOTES, 'UTF-8') ?>">
+          <img src="<?= sf_asset($member['image']) ?>" alt="<?= htmlspecialchars($member['name'], ENT_QUOTES, 'UTF-8') ?>" loading="lazy" decoding="async">
+          <div class="dr-cast-card-body">
+            <h3><?= htmlspecialchars($member['name'], ENT_QUOTES, 'UTF-8') ?></h3>
+            <p><?= htmlspecialchars($member['role'], ENT_QUOTES, 'UTF-8') ?></p>
+            <span class="dr-cast-card-plus" aria-hidden="true">+</span>
+          </div>
+        </a>
+      </article>
+    <?php endforeach; ?>
+  </div>
+  <a class="dr-home-link" href="<?= sf_url('cast.php') ?>">Meet the Full Cast <span aria-hidden="true">→</span></a>
+</section>
+
+<section class="dr-home-section dr-home-drama" id="episodes" aria-labelledby="dr-drama-title">
+  <header class="dr-section-head">
+    <div><span></span><h2 id="dr-drama-title">Drama Runs Deep</h2><span></span></div>
+    <p>Secrets. Betrayals. Obsessions.</p>
+  </header>
+  <div class="dr-story-grid">
+    <?php foreach ($desertRioStories as $story): ?>
+      <article class="dr-story-card">
+        <a href="<?= sf_url($story['href']) ?>" aria-label="<?= htmlspecialchars($story['title'], ENT_QUOTES, 'UTF-8') ?>">
+          <img src="<?= sf_asset($story['image']) ?>" alt="<?= htmlspecialchars($story['title'], ENT_QUOTES, 'UTF-8') ?>" loading="lazy" decoding="async">
+          <span class="dr-story-card-overlay" aria-hidden="true"></span>
+          <div class="dr-story-card-copy">
+            <small><?= htmlspecialchars($story['eyebrow'], ENT_QUOTES, 'UTF-8') ?></small>
+            <h3><?= htmlspecialchars($story['title'], ENT_QUOTES, 'UTF-8') ?></h3>
+            <span class="dr-story-card-play" aria-hidden="true">▷</span>
+          </div>
+        </a>
+      </article>
+    <?php endforeach; ?>
+  </div>
+  <a class="dr-home-link" href="<?= sf_url('episodes.php') ?>">View All Episodes <span aria-hidden="true">→</span></a>
+</section>
+
+<div class="home-video-modal" id="home-video-modal" role="dialog" aria-modal="true" aria-label="DesertRio trailer" hidden data-home-video-modal>
   <div class="home-video-backdrop" data-home-video-close></div>
   <div class="home-video-dialog" role="document">
-    <button class="home-video-close" type="button" aria-label="Close video" data-home-video-close>×</button>
+    <button class="home-video-close" type="button" aria-label="Close trailer" data-home-video-close>×</button>
     <div class="home-video-frame-wrap">
       <iframe
         data-home-video-frame
-        title="Stonefellow video preview"
+        title="DesertRio trailer"
         src=""
         loading="lazy"
         allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
@@ -158,7 +115,7 @@ require __DIR__ . '/includes/header.php';
 </div>
 
 <script>
-(function(){
+(function () {
   const openButton = document.querySelector('[data-home-video-open]');
   const modal = document.querySelector('[data-home-video-modal]');
   const frame = document.querySelector('[data-home-video-frame]');
@@ -167,33 +124,26 @@ require __DIR__ . '/includes/header.php';
 
   let previousFocus = null;
 
-  function openVideoModal(){
+  function openVideoModal() {
     previousFocus = document.activeElement;
     frame.src = openButton.dataset.videoSrc || '';
     modal.hidden = false;
     document.body.classList.add('home-video-modal-open');
-
     const closeButton = modal.querySelector('.home-video-close');
     if (closeButton) closeButton.focus();
   }
 
-  function closeVideoModal(){
+  function closeVideoModal() {
     modal.hidden = true;
     frame.src = '';
     document.body.classList.remove('home-video-modal-open');
-
-    if (previousFocus && typeof previousFocus.focus === 'function') {
-      previousFocus.focus();
-    }
+    if (previousFocus && typeof previousFocus.focus === 'function') previousFocus.focus();
   }
 
   openButton.addEventListener('click', openVideoModal);
   closeButtons.forEach((button) => button.addEventListener('click', closeVideoModal));
-
   document.addEventListener('keydown', (event) => {
-    if (event.key === 'Escape' && !modal.hidden) {
-      closeVideoModal();
-    }
+    if (event.key === 'Escape' && !modal.hidden) closeVideoModal();
   });
 })();
 </script>
