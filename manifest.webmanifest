@@ -1,31 +1,21 @@
 {
-  "name": "Stonefellow Streaming",
-  "short_name": "Stonefellow",
-  "description": "Watch Stonefellow, stream the music, manage your library, and follow the story.",
+  "name": "Likenessing Streaming",
+  "short_name": "Likenessing",
+  "description": "Watch Likenessing, manage your library, follow episodes, and access member content.",
   "start_url": "index.php",
   "scope": "./",
   "display": "standalone",
   "orientation": "portrait-primary",
-  "background_color": "#050403",
-  "theme_color": "#0b0907",
-  "categories": ["entertainment", "music", "video"],
+  "background_color": "#050505",
+  "theme_color": "#050505",
+  "categories": ["entertainment", "video", "comedy"],
   "icons": [
-    {
-      "src": "assets/images/brand/logo-mark.png",
-      "sizes": "192x192",
-      "type": "image/png",
-      "purpose": "any maskable"
-    },
-    {
-      "src": "assets/images/brand/home-brand-approved.png",
-      "sizes": "512x512",
-      "type": "image/png",
-      "purpose": "any"
-    }
+    {"src": "likenessing-asset.php?name=favicon&v=20260716", "sizes": "192x192", "type": "image/png", "purpose": "any maskable"},
+    {"src": "likenessing-asset.php?name=logo&v=20260716", "sizes": "279x99", "type": "image/webp", "purpose": "any"}
   ],
   "shortcuts": [
     {"name": "Watch", "url": "episodes.php", "description": "Open episodes"},
-    {"name": "Music", "url": "player.php", "description": "Open music player"},
+    {"name": "Cast", "url": "cast.php", "description": "Meet the cast"},
     {"name": "Library", "url": "library.php", "description": "Open member library"}
   ]
 }
