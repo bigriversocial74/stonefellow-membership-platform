@@ -26,13 +26,13 @@ $sections = [
     ],
     'Forms and validation' => [
         ['assets/js/frontend-quality.js', ['querySelectorAll(\'input, select, textarea\')', 'addEventListener(\'invalid\'']],
-        ['includes/footer.php', ['Join Stonefellow', 'Create Account']],
+        ['includes/footer.php', ['Join the List', 'Create Account']],
         ['assets/css/frontend-quality.css', [':user-invalid', 'font: inherit']],
     ],
     'Media accessibility' => [
         ['assets/js/frontend-quality.js', ['audio, video', 'progressbar', 'Playback progress']],
         ['player.php', ['aria-label="Stonefellow audio player"', 'aria-label="Now playing controls"', 'aria-label="Play or pause"']],
-        ['index.php', ['aria-haspopup="dialog"', 'aria-modal="true"', 'title="Stonefellow video preview"']],
+        ['index.php', ['aria-labelledby="lk-home-title"', 'role="img"', 'aria-label="Play"']],
     ],
     'Responsive and touch' => [
         ['assets/css/frontend-quality.css', ['@media (max-width: 880px)', 'min-width: 44px', 'min-height: 44px', 'touch-action: manipulation']],
@@ -69,7 +69,7 @@ $sections = [
 $failed = [];
 $totalPoints = 0;
 $earnedPoints = 0;
-echo "Stonefellow Front-End Production Quality Audit v1\n";
+echo "Likenessing Front-End Production Quality Audit v1\n";
 echo str_repeat('=', 54) . "\n";
 foreach ($sections as $section => $checks) {
     $passed = 0;
