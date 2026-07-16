@@ -6,21 +6,21 @@ require __DIR__ . '/includes/data.php';
 require __DIR__ . '/includes/header.php';
 
 $castCards = [
-  ['name' => 'The Movie Star', 'role' => 'Charmingly bankable. Always has a deal on the table.', 'image' => 'images/likenessing/cast-movie-star-v2.webp'],
-  ['name' => 'The Agent', 'role' => 'Ruthless negotiator. Will sell ice to an Eskimo.', 'image' => 'images/likenessing/cast-agent-v2.webp'],
-  ['name' => 'The Manager', 'role' => 'Numbers guy. Sees opportunity everywhere.', 'image' => 'images/likenessing/cast-manager-v2.webp'],
-  ['name' => 'The Lawyer', 'role' => 'Protects the talent. And their future. For a fee.', 'image' => 'images/likenessing/cast-lawyer-v2.webp'],
-  ['name' => 'The Newcomer', 'role' => 'Big dreams. No idea what he is really signing.', 'image' => 'images/likenessing/cast-newcomer-v2.webp'],
-  ['name' => 'The Studio Exec', 'role' => 'Owns the game. Makes the rules. Changes them daily.', 'image' => 'images/likenessing/cast-studio-exec-v2.webp'],
-  ['name' => 'The Publicist', 'role' => 'Controls the narrative. And the damage control.', 'image' => 'images/likenessing/cast-publicist-v2.webp'],
+  ['name' => 'The Movie Star', 'role' => 'Charmingly bankable. Always has a deal on the table.', 'slot' => 0],
+  ['name' => 'The Agent', 'role' => 'Ruthless negotiator. Will sell ice to an Eskimo.', 'slot' => 1],
+  ['name' => 'The Manager', 'role' => 'Numbers guy. Sees opportunity everywhere.', 'slot' => 2],
+  ['name' => 'The Lawyer', 'role' => 'Protects the talent. And their future. For a fee.', 'slot' => 3],
+  ['name' => 'The Newcomer', 'role' => 'Big dreams. No idea what he is really signing.', 'slot' => 4],
+  ['name' => 'The Studio Exec', 'role' => 'Owns the game. Makes the rules. Changes them daily.', 'slot' => 5],
+  ['name' => 'The Publicist', 'role' => 'Controls the narrative. And the damage control.', 'slot' => 6],
 ];
 
 $episodeCards = [
-  ['number' => 'EP 1', 'title' => 'Pilot', 'description' => 'A struggling actor gets an offer that could change everything.', 'image' => 'images/likenessing/episode-pilot-v2.webp'],
-  ['number' => 'EP 2', 'title' => 'Fine Print', 'description' => 'One clause can make you rich. Another can own your soul.', 'image' => 'images/likenessing/episode-fine-print-v2.webp'],
-  ['number' => 'EP 3', 'title' => 'Double Exposure', 'description' => 'Two versions of you. One problem.', 'image' => 'images/likenessing/episode-double-exposure-v2.webp'],
-  ['number' => 'EP 4', 'title' => 'Commercial Break', 'description' => 'Your likeness sells soap. And your dignity.', 'image' => 'images/likenessing/episode-commercial-break-v2.webp'],
-  ['number' => 'EP 5', 'title' => "Who's Driving?", 'description' => 'When your AI books the role you wanted.', 'image' => 'images/likenessing/episode-whos-driving-v2.webp'],
+  ['number' => 'EP 1', 'title' => 'Pilot', 'description' => 'A struggling actor gets an offer that could change everything.', 'slot' => 0],
+  ['number' => 'EP 2', 'title' => 'Fine Print', 'description' => 'One clause can make you rich. Another can own your soul.', 'slot' => 1],
+  ['number' => 'EP 3', 'title' => 'Double Exposure', 'description' => 'Two versions of you. One problem.', 'slot' => 2],
+  ['number' => 'EP 4', 'title' => 'Commercial Break', 'description' => 'Your likeness sells soap. And your dignity.', 'slot' => 3],
+  ['number' => 'EP 5', 'title' => "Who's Driving?", 'description' => 'When your AI books the role you wanted.', 'slot' => 4],
 ];
 
 $listUrl = $sfHeaderUser ? sf_url('watchlist.php') : sf_url('signup.php');
@@ -60,7 +60,7 @@ $listUrl = $sfHeaderUser ? sf_url('watchlist.php') : sf_url('signup.php');
   <div class="lk-cast-grid">
     <?php foreach ($castCards as $card): ?>
       <a class="lk-cast-card" href="<?= sf_url('cast.php') ?>">
-        <img src="<?= sf_asset($card['image']) ?>" alt="<?= htmlspecialchars($card['name'], ENT_QUOTES, 'UTF-8') ?>" loading="lazy" decoding="async">
+        <span class="lk-cast-photo lk-cast-photo-<?= (int)$card['slot'] ?>" role="img" aria-label="<?= htmlspecialchars($card['name'], ENT_QUOTES, 'UTF-8') ?>"></span>
         <div><strong><?= htmlspecialchars($card['name'], ENT_QUOTES, 'UTF-8') ?></strong><p><?= htmlspecialchars($card['role'], ENT_QUOTES, 'UTF-8') ?></p></div>
       </a>
     <?php endforeach; ?>
@@ -72,7 +72,7 @@ $listUrl = $sfHeaderUser ? sf_url('watchlist.php') : sf_url('signup.php');
   <div class="lk-episode-grid">
     <?php foreach ($episodeCards as $episode): ?>
       <a class="lk-episode-card" href="<?= sf_url('episodes.php') ?>">
-        <div class="lk-episode-art"><img src="<?= sf_asset($episode['image']) ?>" alt="<?= htmlspecialchars($episode['title'], ENT_QUOTES, 'UTF-8') ?> episode still" loading="lazy" decoding="async"><span><?= htmlspecialchars($episode['number'], ENT_QUOTES, 'UTF-8') ?></span></div>
+        <div class="lk-episode-art"><span class="lk-episode-photo lk-episode-photo-<?= (int)$episode['slot'] ?>" role="img" aria-label="<?= htmlspecialchars($episode['title'], ENT_QUOTES, 'UTF-8') ?> episode still"></span><span><?= htmlspecialchars($episode['number'], ENT_QUOTES, 'UTF-8') ?></span></div>
         <div class="lk-episode-body"><strong><?= htmlspecialchars($episode['title'], ENT_QUOTES, 'UTF-8') ?></strong><p><?= htmlspecialchars($episode['description'], ENT_QUOTES, 'UTF-8') ?></p><span class="lk-card-play lk-icon lk-icon-play" aria-label="Play episode"></span></div>
       </a>
     <?php endforeach; ?>
