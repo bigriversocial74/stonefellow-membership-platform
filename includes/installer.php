@@ -48,4 +48,10 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
         sf_install_flash('error', 'Owner password must be at least 12 characters.');
         sf_install_redirect('admin');
     }
+
+    $script = str_replace('\\', '/', (string)($_SERVER['SCRIPT_NAME'] ?? ''));
+    if (sf_install_license_bypass_enabled() && str_ends_with($script, '/setup/standalone.php')) {
+        require_once __DIR__ . '/desertrio-installer-handler.php';
+        sf_desertrio_install_handle_post();
+    }
 }
