@@ -5,6 +5,7 @@ $pageClass = 'series-app-template likenessing-about';
 require __DIR__ . '/includes/data.php';
 require __DIR__ . '/includes/header.php';
 ?>
+<link rel="stylesheet" href="<?= sf_asset('css/likenessing-media-v4.css?v=20260717') ?>">
 <section class="lk-shell lk-page-hero">
   <div>
     <p class="lk-label">About the Series</p>
@@ -12,7 +13,7 @@ require __DIR__ . '/includes/header.php';
     <p>Likenessing is a dark workplace comedy set inside the new economy of synthetic performers. Actors, agents, lawyers, publicists, and studio executives all want the benefits of artificial intelligence—until the technology starts negotiating for itself.</p>
     <a class="lk-button lk-button-gold" href="<?= sf_url('episodes.php') ?>">Watch the Series</a>
   </div>
-  <img src="<?= lk_asset_url('hero') ?>" alt="The Likenessing cast in a Hollywood office">
+  <img src="<?= lk_asset_url('hero') ?>" alt="The Likenessing cast in a Hollywood office" fetchpriority="high" decoding="async">
 </section>
 <section class="lk-shell lk-story-grid">
   <article>
@@ -20,7 +21,7 @@ require __DIR__ . '/includes/header.php';
     <h2>Every opportunity comes with a contract.</h2>
     <p>When a breakthrough licensing platform lets performers sell digital versions of themselves, the entertainment business discovers an endless supply of talent. The people behind those faces discover that ownership, identity, and consent are harder to automate.</p>
   </article>
-  <img src="<?= lk_asset_url('premise') ?>" alt="A digital likeness appearing above a working film studio">
+  <img src="<?= lk_asset_url('premise') ?>" alt="A digital likeness appearing above a working film studio" loading="lazy" decoding="async">
 </section>
 <section class="lk-shell lk-values">
   <article><span class="lk-icon lk-icon-account" aria-hidden="true"></span><h3>Identity</h3><p>What remains personal when your face can perform without you?</p></article>
