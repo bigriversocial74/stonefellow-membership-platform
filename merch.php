@@ -1,34 +1,34 @@
 <?php
-$pageTitle = 'Merch';
-$pageDescription = 'Shop official Stonefellow merch, limited drops, vinyl, posters, and launch bundles.';
-$pageClass = 'shop-page merch-page';
+$pageTitle = 'Shop';
+$pageDescription = 'Shop official DesertRio apparel, accessories, limited releases, and cast-inspired collections.';
+$pageClass = 'shop-page merch-page desertrio-shop-template';
+$pageExtraStyles = ['css/desertrio-commerce.css'];
 require __DIR__ . '/includes/store.php';
-require __DIR__ . '/includes/theme_public.php';
+require __DIR__ . '/includes/desertrio_theme.php';
 
 $categorySlug = trim((string)($_GET['category'] ?? ''));
 $products = sf_store_products($categorySlug !== '' ? ['category' => $categorySlug] : []);
 $featuredProduct = sf_store_featured_product() ?: ($products[0] ?? null);
 $categories = sf_store_categories();
 $cartCount = sf_store_cart_totals()['item_count'];
-$themeMerchHero = sf_theme_public_image_src('merch_hero', $featuredProduct['image_path'] ?? 'images/merch/merch-hero.png');
+$themeMerchHero = sf_asset($desertRioAssets['story_afterparty']);
 require __DIR__ . '/includes/header.php';
 ?>
-<?= sf_theme_css_variables_tag(null, '.merch-page') ?>
 <section class="shop-hero shop-full-section">
   <div class="shop-hero-copy">
-    <span class="shop-kicker">Official Store</span>
-    <h1>Wear the Sound.<br>Live the Story.</h1>
-    <p>Tour-inspired gear, pirate-rock marks, posters, vinyl, guitar picks, and launch bundles built into the Stonefellow universe.</p>
+    <span class="shop-kicker">The DesertRio Collection</span>
+    <h1>Bring the Desert<br>Home With You.</h1>
+    <p>Shop cast-inspired apparel, poolside essentials, limited accessories, premiere releases, and collectible pieces from the world of DesertRio.</p>
     <div class="shop-actions">
-      <a class="shop-btn shop-btn-primary" href="#featured-store">Shop Featured</a>
-      <a class="shop-btn shop-btn-outline" href="<?= sf_url('subscribe.php') ?>">Subscriber Drops</a>
+      <a class="shop-btn shop-btn-primary" href="#featured-store">Shop the Collection</a>
+      <a class="shop-btn shop-btn-outline" href="<?= sf_url('subscribe.php') ?>">Member Exclusives</a>
     </div>
   </div>
   <div class="shop-hero-art">
-    <img src="<?= sf_store_h($themeMerchHero) ?>" alt="Stonefellow official merch collection">
+    <img src="<?= sf_store_h($themeMerchHero) ?>" alt="DesertRio cast at an exclusive Arizona event">
     <?php if ($featuredProduct): ?>
       <div class="shop-drop-card">
-        <span><?= sf_store_h($featuredProduct['badge_label'] ?? 'Featured Drop') ?></span>
+        <span><?= sf_store_h($featuredProduct['badge_label'] ?? 'Featured Release') ?></span>
         <strong><?= sf_store_h($featuredProduct['name'] ?? '') ?></strong>
         <p><?= sf_store_h($featuredProduct['short_description'] ?? $featuredProduct['description'] ?? '') ?></p>
       </div>
@@ -39,8 +39,8 @@ require __DIR__ . '/includes/header.php';
 <section id="featured-store" class="shop-section shop-full-section">
   <div class="shop-section-head">
     <div>
-      <span class="shop-kicker">Featured Store</span>
-      <h2>Official Stonefellow Gear</h2>
+      <span class="shop-kicker">Official Store</span>
+      <h2>DesertRio Favorites</h2>
     </div>
     <a class="shop-pill-link" href="<?= sf_url('cart.php') ?>">View Cart<?= $cartCount ? ' (' . (int)$cartCount . ')' : '' ?></a>
   </div>
@@ -78,7 +78,7 @@ require __DIR__ . '/includes/header.php';
           <p><?= sf_store_h($product['short_description'] ?? $product['description'] ?? '') ?></p>
           <div class="shop-card-actions">
             <?php if ($locked): ?>
-              <a class="shop-btn shop-btn-primary" href="<?= sf_url('subscribe.php') ?>">Unlock Drop</a>
+              <a class="shop-btn shop-btn-primary" href="<?= sf_url('subscribe.php') ?>">Unlock Release</a>
             <?php elseif ($soldOut): ?>
               <button class="shop-btn shop-btn-primary" type="button" disabled>Sold Out</button>
             <?php else: ?>
@@ -90,7 +90,7 @@ require __DIR__ . '/includes/header.php';
                 <button class="shop-btn shop-btn-primary" type="submit">Add to Cart</button>
               </form>
             <?php endif; ?>
-            <a class="shop-text-link" href="<?= sf_store_h(sf_store_product_url($product)) ?>">Details →</a>
+            <a class="shop-text-link" href="<?= sf_store_h(sf_store_product_url($product)) ?>">View Details →</a>
           </div>
         </div>
       </article>
@@ -100,16 +100,16 @@ require __DIR__ . '/includes/header.php';
 
 <section class="shop-feature-band shop-full-section">
   <div>
-    <span class="shop-kicker">Subscriber Only</span>
-    <h2>Early Drops, Limited Bundles, and Backstage Collectibles.</h2>
-    <p>Subscriber merch now checks live access gates before cart entry. Founding fans get early access to limited pilot gear and soundtrack releases.</p>
+    <span class="shop-kicker">Members First</span>
+    <h2>Premiere Drops, Cast Favorites, and Limited Desert Releases.</h2>
+    <p>Member-only access rules remain connected to the existing commerce runtime, allowing selected products to open early for subscribers and founding viewers.</p>
   </div>
-  <a class="shop-btn shop-btn-primary" href="<?= sf_url('subscribe.php') ?>">Unlock Drops</a>
+  <a class="shop-btn shop-btn-primary" href="<?= sf_url('subscribe.php') ?>">View Membership</a>
 </section>
 
 <section class="shop-process shop-full-section">
-  <article><span>01</span><h3>Choose Gear</h3><p>Browse official products, sizes, drops, bundles, and subscriber-only merch.</p></article>
-  <article><span>02</span><h3>Add to Cart</h3><p>Cart rows now persist by session or member account when the database is configured.</p></article>
-  <article><span>03</span><h3>Checkout</h3><p>Checkout creates order, payment transaction, inventory movement, and order history records.</p></article>
+  <article><span>01</span><h3>Choose Your Look</h3><p>Browse official collections, sizes, limited releases, accessories, and cast-inspired products.</p></article>
+  <article><span>02</span><h3>Save Your Cart</h3><p>Cart items remain connected to the existing session and member-account persistence system.</p></article>
+  <article><span>03</span><h3>Secure Checkout</h3><p>Orders continue through the existing Stripe, inventory, transaction, and order-history workflows.</p></article>
 </section>
 <?php require __DIR__ . '/includes/footer.php'; ?>
