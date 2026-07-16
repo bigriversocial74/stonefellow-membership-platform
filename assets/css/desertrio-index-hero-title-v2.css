@@ -1,0 +1,48 @@
+/* DesertRio homepage hero title correction. */
+.desertrio-index-v3 .dr3-hero-copy {
+  width: min(720px, 52%);
+}
+
+.desertrio-index-v3 .dr3-hero-title {
+  max-width: 720px;
+  margin: 0;
+  color: #0d0c0b;
+  font: 400 clamp(58px, 6.6vw, 104px)/.9 var(--dr-serif);
+  letter-spacing: -.058em;
+  text-wrap: balance;
+}
+
+.desertrio-index-v3 .dr3-hero-title span {
+  display: block;
+}
+
+@media (max-width: 1180px) {
+  .desertrio-index-v3 .dr3-hero-copy {
+    width: 55%;
+  }
+
+  .desertrio-index-v3 .dr3-hero-title {
+    font-size: clamp(54px, 6.4vw, 82px);
+  }
+}
+
+@media (max-width: 900px) {
+  .desertrio-index-v3 .dr3-hero-copy {
+    width: 100%;
+  }
+
+  .desertrio-index-v3 .dr3-hero-title {
+    max-width: 680px;
+    margin-inline: auto;
+    font-size: clamp(52px, 10vw, 78px);
+    line-height: .94;
+  }
+}
+
+@media (max-width: 640px) {
+  .desertrio-index-v3 .dr3-hero-title {
+    max-width: 390px;
+    font-size: clamp(45px, 13vw, 64px);
+    letter-spacing: -.045em;
+  }
+}
