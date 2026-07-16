@@ -2,7 +2,7 @@
 $pageTitle = 'DesertRio';
 $pageDescription = 'Stream DesertRio, an Arizona-set reality drama about fashion, ambition, attraction, and the secrets that surface under the desert sun.';
 $pageClass = 'home-template desertrio-home-template desertrio-index-v3';
-$pageExtraStyles = ['css/desertrio-index-v3.css'];
+$pageExtraStyles = ['css/desertrio-index-v3.css', 'css/desertrio-index-hero-title-v2.css'];
 
 require __DIR__ . '/includes/data.php';
 require __DIR__ . '/includes/desertrio_theme.php';
@@ -20,8 +20,10 @@ require __DIR__ . '/includes/header.php';
   <div class="dr3-hero-wash" aria-hidden="true"></div>
   <div class="dr3-shell dr3-hero-inner">
     <div class="dr3-hero-copy">
-      <p class="dr3-kicker">Arizona is hot.<br>Fame is hotter.</p>
-      <h1 id="dr3-home-title">DesertRio</h1>
+      <h1 class="dr3-hero-title" id="dr3-home-title">
+        <span>Arizona Is Hot.</span>
+        <span>Fame Is Hotter.</span>
+      </h1>
       <div class="dr3-rule" aria-hidden="true"><span></span><b>✦</b><span></span></div>
       <p class="dr3-tagline">Fashion. Lifestyle. Drama.</p>
       <p class="dr3-subtitle">Nothing stays hidden in the desert.</p>
