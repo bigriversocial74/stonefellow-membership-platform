@@ -1,0 +1,54 @@
+/* Likenessing individual media upgrade v4 */
+body.likenessing-theme .lk-hero-image{transform:none;object-position:center center}
+body.likenessing-theme .lk-cast-card>img{display:block;width:100%;aspect-ratio:4/5;object-fit:cover;object-position:center 28%;filter:saturate(.92) contrast(1.03);transition:transform .25s ease,filter .25s ease}
+body.likenessing-theme .lk-cast-card:hover>img{transform:scale(1.025);filter:saturate(1) contrast(1.04)}
+body.likenessing-theme .lk-episode-art>img{display:block;width:100%;aspect-ratio:16/9;object-fit:cover;object-position:center}
+body.likenessing-theme .lk-profile-card>img{display:block;width:100%;height:100%;min-height:300px;object-fit:cover;object-position:center 26%}
+body.likenessing-theme .lk-page-hero>img{object-position:center}
+body.likenessing-theme .lk-premise-image img{object-position:center}
+body.likenessing-theme .lk-news-grid img,
+body.likenessing-theme .lk-extra-grid img,
+body.likenessing-theme .lk-cast-cta img{object-position:center}
+
+.lk-episodes-title{padding-bottom:42px}
+.lk-episodes-feature{display:grid;grid-template-columns:minmax(0,1.35fr) minmax(340px,.65fr);border:1px solid var(--lk-line);background:#090909;margin-bottom:48px}
+.lk-episodes-feature-art{position:relative;min-height:520px;overflow:hidden}
+.lk-episodes-feature-art>img{width:100%;height:100%;min-height:520px;object-fit:cover}
+.lk-feature-play{position:absolute;inset:0;display:grid;place-items:center;background:linear-gradient(90deg,transparent 55%,rgba(0,0,0,.18));transition:background .2s ease}
+.lk-feature-play:hover{background:rgba(0,0,0,.1)}
+.lk-feature-play .lk-icon{width:72px;height:72px;filter:drop-shadow(0 8px 24px #000)}
+.lk-episodes-feature-copy{display:flex;flex-direction:column;justify-content:center;padding:48px}
+.lk-episodes-feature-copy h2{font-family:"Playfair Display",Georgia,serif;font-size:clamp(48px,5vw,76px);line-height:.98;margin:12px 0 20px}
+.lk-episodes-feature-copy>p:not(.lk-label){color:#fff;font-size:16px;line-height:1.7}
+.lk-episode-library{padding-bottom:70px}
+.lk-episode-library-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px}
+.lk-library-card{display:grid;grid-template-columns:minmax(260px,.9fr) minmax(0,1.1fr);border:1px solid var(--lk-line-soft);background:#0a0a0a;overflow:hidden}
+.lk-library-art{position:relative;min-height:250px}
+.lk-library-art>img{width:100%;height:100%;min-height:250px;object-fit:cover}
+.lk-library-number{position:absolute;left:14px;top:14px;padding:6px 9px;background:rgba(0,0,0,.72);border:1px solid var(--lk-line);color:#fff;font-size:11px;font-weight:800}
+.lk-library-play{position:absolute;right:14px;bottom:14px;width:38px;height:38px}
+.lk-library-card>div{padding:28px;display:flex;flex-direction:column;justify-content:center}
+.lk-library-card small{color:var(--lk-gold);font-weight:800;text-transform:uppercase;letter-spacing:.08em}
+.lk-library-card h2{font-family:"Playfair Display",Georgia,serif;font-size:36px;margin:8px 0 10px}
+.lk-library-card p{color:#fff;line-height:1.6;font-size:14px}
+.lk-library-card>div>a{margin-top:18px;color:var(--lk-gold);font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:.05em}
+
+@media(max-width:1180px){
+  body.likenessing-theme .lk-cast-grid{grid-template-columns:repeat(4,minmax(0,1fr))}
+  .lk-episode-library-grid{grid-template-columns:1fr}
+}
+@media(max-width:900px){
+  .lk-episodes-feature{grid-template-columns:1fr}
+  .lk-episodes-feature-art,.lk-episodes-feature-art>img{min-height:380px}
+  .lk-library-card{grid-template-columns:1fr}
+  .lk-library-art,.lk-library-art>img{min-height:320px}
+  body.likenessing-theme .lk-profile-card{grid-template-columns:180px 1fr}
+}
+@media(max-width:720px){
+  body.likenessing-theme .lk-cast-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+  body.likenessing-theme .lk-episode-grid{grid-template-columns:1fr}
+  body.likenessing-theme .lk-profile-grid{grid-template-columns:1fr}
+  body.likenessing-theme .lk-profile-card{grid-template-columns:1fr}
+  body.likenessing-theme .lk-profile-card>img{height:420px}
+  .lk-episodes-feature-copy{padding:30px 24px}
+}

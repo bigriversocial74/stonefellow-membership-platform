@@ -1,62 +1,32 @@
 <?php
-$pageTitle = 'Series';
-$pageDescription = 'Take Stonefellow anywhere with the series, music, downloads, and exclusive app content.';
-$pageClass = 'series-app-template';
+$pageTitle = 'About';
+$pageDescription = 'The premise, themes, and creative world behind Likenessing.';
+$pageClass = 'series-app-template likenessing-about';
 require __DIR__ . '/includes/data.php';
 require __DIR__ . '/includes/header.php';
 ?>
-<section class="series-app-page">
-  <section class="series-app-hero">
-    <div class="series-app-copy">
-      <h1>Stonefellow<br>Anywhere.</h1>
-      <div class="series-app-rule" aria-hidden="true"></div>
-      <p class="series-app-lead">The show. The music. In your pocket.</p>
-      <div class="series-feature-list">
-        <article>
-          <span class="series-feature-icon">▶</span>
-          <div><h2>Watch all episodes</h2><p>Stream on any device.</p></div>
-        </article>
-        <article>
-          <span class="series-feature-icon">≋</span>
-          <div><h2>Stream the soundtrack</h2><p>Listen anytime, anywhere.</p></div>
-        </article>
-        <article>
-          <span class="series-feature-icon">↓</span>
-          <div><h2>Download &amp; go</h2><p>Watch offline. No limits.</p></div>
-        </article>
-        <article>
-          <span class="series-feature-icon">▭</span>
-          <div><h2>Continue watching</h2><p>Pick up right where you left off.</p></div>
-        </article>
-        <article>
-          <span class="series-feature-icon">★</span>
-          <div><h2>Exclusive content</h2><p>Only in the app.</p></div>
-        </article>
-      </div>
-    </div>
-    <div class="series-phone-art">
-      <img src="<?= sf_asset('images/series/series-phone-mockups.png') ?>" alt="Stonefellow mobile app screens">
-    </div>
-  </section>
-
-  <section class="series-download-block">
-    <div class="series-divider"><span>Download the App</span></div>
-    <div class="series-store-row">
-      <a href="app.php" class="series-store-badge"><span></span><strong>Download on the<br>App Store</strong></a>
-      <a href="app.php" class="series-store-badge"><span>▶</span><strong>Get it on<br>Google Play</strong></a>
-    </div>
-  </section>
-
-  <section class="series-stage-section">
-    <img src="<?= sf_asset('images/series/series-stage-band.png') ?>" alt="Stonefellow full band performance">
-    <div class="series-stage-mark left">SF</div>
-    <div class="series-stage-mark right">SF</div>
-  </section>
-
-  <section class="series-benefit-bar">
-    <article><span>♫</span><div><h3>Listen to Every Song</h3><p>The official soundtrack.</p></div></article>
-    <article><span>▷</span><div><h3>Watch Every Episode</h3><p>Stream the series.</p></div></article>
-    <article><span>★</span><div><h3>Exclusive Extras</h3><p>Behind the scenes &amp; more.</p></div></article>
-  </section>
+<link rel="stylesheet" href="<?= sf_asset('css/likenessing-media-v4.css?v=20260717') ?>">
+<section class="lk-shell lk-page-hero">
+  <div>
+    <p class="lk-label">About the Series</p>
+    <h1>Everyone wants your likeness.<br>Someone owns the fine print.</h1>
+    <p>Likenessing is a dark workplace comedy set inside the new economy of synthetic performers. Actors, agents, lawyers, publicists, and studio executives all want the benefits of artificial intelligence—until the technology starts negotiating for itself.</p>
+    <a class="lk-button lk-button-gold" href="<?= sf_url('episodes.php') ?>">Watch the Series</a>
+  </div>
+  <img src="<?= lk_asset_url('hero') ?>" alt="The Likenessing cast in a Hollywood office" fetchpriority="high" decoding="async">
+</section>
+<section class="lk-shell lk-story-grid">
+  <article>
+    <p class="lk-label">The Premise</p>
+    <h2>Every opportunity comes with a contract.</h2>
+    <p>When a breakthrough licensing platform lets performers sell digital versions of themselves, the entertainment business discovers an endless supply of talent. The people behind those faces discover that ownership, identity, and consent are harder to automate.</p>
+  </article>
+  <img src="<?= lk_asset_url('premise') ?>" alt="A digital likeness appearing above a working film studio" loading="lazy" decoding="async">
+</section>
+<section class="lk-shell lk-values">
+  <article><span class="lk-icon lk-icon-account" aria-hidden="true"></span><h3>Identity</h3><p>What remains personal when your face can perform without you?</p></article>
+  <article><span class="lk-icon lk-icon-lock" aria-hidden="true"></span><h3>Ownership</h3><p>Every clause protects someone. It is rarely the person signing.</p></article>
+  <article><span class="lk-icon lk-icon-star" aria-hidden="true"></span><h3>Ambition</h3><p>Fame is easier to scale when the star never needs sleep.</p></article>
+  <article><span class="lk-icon lk-icon-info" aria-hidden="true"></span><h3>Comedy</h3><p>The future is absurd, especially when legal approves it.</p></article>
 </section>
 <?php require __DIR__ . '/includes/footer.php'; ?>

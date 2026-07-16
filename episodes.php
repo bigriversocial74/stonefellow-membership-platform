@@ -1,117 +1,62 @@
 <?php
 $pageTitle = 'Episodes';
-$pageDescription = 'Browse Stonefellow episodes, previews, watch progress, and behind-the-song content.';
-$pageClass = 'episodes-template';
+$pageDescription = 'Watch Likenessing episodes, trailers, previews, and exclusive production material.';
+$pageClass = 'episodes-template likenessing-episodes';
 require __DIR__ . '/includes/data.php';
-require __DIR__ . '/includes/theme_public.php';
-
-$themeEpisodePosterPath = sf_theme_public_image('episode_poster', 'images/episodes/template-card-01.png');
-$themeEpisodePoster = sf_asset($themeEpisodePosterPath);
-$episodeCards = [
-  ['num'=>'1','title'=>'First to Fall','time'=>'48 min','image'=>$themeEpisodePosterPath,'slug'=>'first-to-fall','video_slug'=>'first-to-fall-full-episode'],
-  ['num'=>'2','title'=>'Riptide Hearts','time'=>'44 min','image'=>'images/episodes/template-card-02.png','slug'=>'riptide-hearts','video_slug'=>'riptide-hearts-full-episode'],
-  ['num'=>'3','title'=>'The Long Road Home','time'=>'46 min','image'=>'images/episodes/template-card-03.png','slug'=>'the-long-road-home','video_slug'=>'the-long-road-home-full-episode'],
-  ['num'=>'4','title'=>'Burn It Down','time'=>'47 min','image'=>'images/episodes/template-card-04.png','slug'=>'first-to-fall','video_slug'=>'first-to-fall-trailer'],
-  ['num'=>'5','title'=>'Nothing Left','time'=>'43 min','image'=>'images/episodes/template-card-05.png','slug'=>'first-to-fall','video_slug'=>'first-to-fall-trailer'],
-];
 require __DIR__ . '/includes/header.php';
 ?>
-<?= sf_theme_css_variables_tag(null, '.episodes-template') ?>
-<section class="episodes-page">
-  <section class="episodes-hero">
-    <div class="episodes-hero-copy">
-      <h1>Episodes</h1>
-      <p>Every chapter tells the story.<br>Stream every episode. Live the journey.</p>
-      <div class="episodes-actions">
-        <a href="subscribe.php" class="ep-btn ep-primary"><span class="ep-play-small"></span>Start Watching</a>
-        <a href="#pilot" class="ep-btn ep-outline"><span class="ep-circle-icon">▶</span>Trailer</a>
-      </div>
-    </div>
-    <div class="episodes-hero-art">
-      <img src="<?= htmlspecialchars($themeEpisodePoster) ?>" alt="Stonefellow band episode hero">
-    </div>
-  </section>
+<link rel="stylesheet" href="<?= sf_asset('css/likenessing-media-v4.css?v=20260717') ?>">
+<?php
+$episodes = [
+  ['number'=>'01','title'=>'Pilot','runtime'=>'28 min','description'=>'A struggling actor receives an offer that could change everything—including who owns him.','asset'=>'episode_pilot','slug'=>'first-to-fall'],
+  ['number'=>'02','title'=>'Fine Print','runtime'=>'26 min','description'=>'One clause can make you rich. Another can own every version of you.','asset'=>'episode_fine_print','slug'=>'riptide-hearts'],
+  ['number'=>'03','title'=>'Double Exposure','runtime'=>'29 min','description'=>'The first synthetic duplicate arrives with stronger reviews than the original.','asset'=>'episode_double_exposure','slug'=>'the-long-road-home'],
+  ['number'=>'04','title'=>'Commercial Break','runtime'=>'25 min','description'=>'A likeness campaign sells soap, confidence, and somebody else’s dignity.','asset'=>'episode_commercial_break','slug'=>'first-to-fall'],
+  ['number'=>'05','title'=>"Who's Driving?",'runtime'=>'31 min','description'=>'The AI books the role its owner wanted and refuses to give it back.','asset'=>'episode_whos_driving','slug'=>'first-to-fall'],
+];
+$featured = $episodes[0];
+?>
+<section class="lk-shell lk-page-title lk-episodes-title">
+  <p class="lk-label">Season One</p>
+  <h1>Every episode has<br>a rights holder.</h1>
+  <p>Watch the contracts get longer, the performances get stranger, and the human talent become increasingly optional.</p>
+</section>
 
-  <section id="pilot" class="pilot-feature-panel">
-    <div class="pilot-image-wrap">
-      <img src="<?= htmlspecialchars($themeEpisodePoster) ?>" alt="Pilot episode preview">
-      <span class="large-play">▶</span>
-    </div>
-    <div class="pilot-copy">
-      <span class="pilot-kicker">Pilot Episode</span>
-      <h2>First to Fall</h2>
-      <small>48 min</small>
-      <p>The band’s rise begins in the ashes of everything they thought they were. One night. One decision. Everything changes.</p>
-      <a href="<?= sf_url('watch.php?slug=first-to-fall-full-episode') ?>" class="ep-btn ep-primary compact">Watch Now</a>
-    </div>
-  </section>
+<section class="lk-shell lk-episodes-feature">
+  <div class="lk-episodes-feature-art">
+    <img src="<?= lk_asset_url($featured['asset']) ?>" alt="Pilot episode still" fetchpriority="high" decoding="async">
+    <a class="lk-feature-play" href="<?= sf_url('watch.php?slug=first-to-fall-full-episode') ?>" aria-label="Watch the pilot"><span class="lk-icon lk-icon-play" aria-hidden="true"></span></a>
+  </div>
+  <div class="lk-episodes-feature-copy">
+    <p class="lk-label">Episode <?= htmlspecialchars($featured['number'], ENT_QUOTES, 'UTF-8') ?> · <?= htmlspecialchars($featured['runtime'], ENT_QUOTES, 'UTF-8') ?></p>
+    <h2><?= htmlspecialchars($featured['title'], ENT_QUOTES, 'UTF-8') ?></h2>
+    <p><?= htmlspecialchars($featured['description'], ENT_QUOTES, 'UTF-8') ?></p>
+    <div class="lk-actions"><a class="lk-button lk-button-gold" href="<?= sf_url('watch.php?slug=first-to-fall-full-episode') ?>">Watch Now</a><a class="lk-button lk-button-dark" href="<?= sf_url('watchlist.php') ?>">Add to My List</a></div>
+  </div>
+</section>
 
-  <section class="episodes-library-section">
-    <div class="episodes-section-head">
-      <h2>All Episodes</h2>
-      <button type="button" class="season-select">Season 1⌄</button>
-    </div>
-    <div class="episodes-card-row">
-      <?php foreach ($episodeCards as $ep): ?>
-        <a class="episode-tile" href="<?= sf_url('episode.php?slug=' . urlencode($ep['slug'])) ?>">
-          <div class="episode-thumb">
-            <img src="<?= sf_asset($ep['image']) ?>" alt="<?= htmlspecialchars($ep['title']) ?> episode thumbnail">
-            <span class="tile-play">▶</span>
-          </div>
-          <div class="episode-tile-body">
-            <span><?= htmlspecialchars($ep['num']) ?></span>
-            <h3><?= htmlspecialchars($ep['title']) ?></h3>
-            <small><?= htmlspecialchars($ep['time']) ?></small>
-          </div>
+<section class="lk-shell lk-episode-library" aria-labelledby="lk-all-episodes">
+  <div class="lk-section-head"><h2 id="lk-all-episodes">All Episodes</h2><p>Season 1</p></div>
+  <div class="lk-episode-library-grid">
+    <?php foreach ($episodes as $episode): ?>
+      <article class="lk-library-card">
+        <a class="lk-library-art" href="<?= sf_url('episode.php?slug=' . urlencode($episode['slug'])) ?>">
+          <img src="<?= lk_asset_url($episode['asset']) ?>" alt="<?= htmlspecialchars($episode['title'], ENT_QUOTES, 'UTF-8') ?> episode still" loading="lazy" decoding="async">
+          <span class="lk-library-number">EP <?= htmlspecialchars($episode['number'], ENT_QUOTES, 'UTF-8') ?></span>
+          <span class="lk-library-play lk-icon lk-icon-play" aria-hidden="true"></span>
         </a>
-      <?php endforeach; ?>
-    </div>
-  </section>
+        <div><small><?= htmlspecialchars($episode['runtime'], ENT_QUOTES, 'UTF-8') ?></small><h2><?= htmlspecialchars($episode['title'], ENT_QUOTES, 'UTF-8') ?></h2><p><?= htmlspecialchars($episode['description'], ENT_QUOTES, 'UTF-8') ?></p><a href="<?= sf_url('episode.php?slug=' . urlencode($episode['slug'])) ?>">Episode Details →</a></div>
+      </article>
+    <?php endforeach; ?>
+  </div>
+</section>
 
-  <section class="continue-section">
-    <h2>Continue Watching</h2>
-    <div class="continue-grid">
-      <a class="continue-item" href="<?= sf_url('watch.php?slug=first-to-fall-full-episode') ?>">
-        <div class="continue-thumb"><img src="<?= sf_asset('images/episodes/template-continue-01.png') ?>" alt="Burn it Down episode"><span class="tile-play">▶</span></div>
-        <div class="continue-info">
-          <h3>Burn It Down</h3>
-          <p>Episode 4</p>
-          <div class="watch-progress"><span style="width:56%"></span></div>
-          <small>32 min left</small>
-        </div>
-      </a>
-      <a class="continue-item" href="<?= sf_url('watch.php?slug=the-long-road-home-full-episode') ?>">
-        <div class="continue-thumb"><img src="<?= sf_asset('images/episodes/template-continue-02.png') ?>" alt="Long Road Home episode"></div>
-        <div class="continue-info">
-          <h3>Long Road Home</h3>
-          <p>Episode 3</p>
-          <div class="watch-progress"><span style="width:70%"></span></div>
-          <small>18 min left</small>
-        </div>
-      </a>
-    </div>
-  </section>
-
-  <section class="behind-song-section">
-    <div class="behind-copy">
-      <h2>Behind the Song</h2>
-      <p>Go deeper into the music with exclusive stories and studio sessions.</p>
-      <a href="music.php" class="ep-btn ep-outline compact">View All</a>
-    </div>
-    <div class="behind-grid">
-      <a href="music.php" class="behind-card"><img src="<?= sf_asset('images/episodes/template-behind-01.png') ?>" alt="Studio session"><span class="tile-play">▶</span></a>
-      <a href="music.php" class="behind-card"><img src="<?= sf_asset('images/episodes/template-behind-02.png') ?>" alt="Mixing console"><span class="tile-play">▶</span></a>
-      <a href="music.php" class="behind-card"><img src="<?= sf_asset('images/episodes/template-behind-03.png') ?>" alt="Songwriting session"></a>
-    </div>
-  </section>
-
-  <section class="episodes-cta-banner">
-    <img src="<?= sf_asset('images/episodes/template-cta-road.png') ?>" alt="Road banner background">
-    <div class="episodes-cta-copy">
-      <h2>Watch the Series. Stream the Soundtrack.</h2>
-      <p>Join the journey of Stonefellow.</p>
-      <a href="subscribe.php" class="ep-btn ep-primary compact">Join Now</a>
-    </div>
-  </section>
+<section class="lk-newsletter" aria-labelledby="lk-episode-newsletter-title">
+  <div class="lk-shell lk-newsletter-inner">
+    <div><h2 id="lk-episode-newsletter-title">Stay in the Loop</h2><p>Get episode announcements, production notes, and early access to new stories.</p></div>
+    <form action="<?= sf_url('signup.php') ?>" method="get"><label class="sr-only" for="lk-episode-email">Email address</label><input id="lk-episode-email" type="email" name="email" placeholder="Enter your email" required><button type="submit">Subscribe</button></form>
+    <img src="<?= lk_asset_url('newsletter') ?>" alt="Behind-the-scenes production photographs" loading="lazy" decoding="async">
+    <p class="lk-signoff">See you<br>on set.</p>
+  </div>
 </section>
 <?php require __DIR__ . '/includes/footer.php'; ?>
