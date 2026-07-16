@@ -1,0 +1,242 @@
+/* DesertRio episode detail and secure watch surfaces */
+body.dr-theme.episode-detail-page,
+body.dr-theme.watch-page { background: #f8f5f0; }
+
+.dr-episode-detail {
+  background: var(--dr-bg);
+}
+.dr-detail-hero {
+  position: relative;
+  min-height: 540px;
+  overflow: hidden;
+  background: #14100d;
+  color: #fff;
+}
+.dr-detail-hero-media,
+.dr-detail-hero-media img,
+.dr-detail-hero-shade { position: absolute; inset: 0; width: 100%; height: 100%; }
+.dr-detail-hero-media img { object-fit: cover; }
+.dr-detail-hero-shade {
+  background:
+    linear-gradient(90deg, rgba(16,12,9,.94) 0%, rgba(16,12,9,.72) 42%, rgba(16,12,9,.18) 75%),
+    linear-gradient(0deg, rgba(16,12,9,.82) 0%, transparent 48%);
+}
+.dr-detail-hero-inner {
+  position: relative;
+  z-index: 2;
+  min-height: 540px;
+  padding: 78px 7vw 58px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 310px;
+  align-items: end;
+  gap: 48px;
+}
+.dr-detail-kicker {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 9px;
+  margin-bottom: 16px;
+}
+.dr-detail-kicker span {
+  padding: 7px 10px;
+  border: 1px solid rgba(255,255,255,.32);
+  border-radius: 999px;
+  background: rgba(255,255,255,.08);
+  color: #f4e7d4;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+.dr-detail-copy h1 {
+  max-width: 800px;
+  margin: 0;
+  font: 400 clamp(54px, 7.5vw, 98px)/.94 var(--dr-serif);
+  letter-spacing: -4px;
+}
+.dr-detail-copy > p {
+  max-width: 690px;
+  margin: 20px 0 0;
+  color: rgba(255,255,255,.82);
+  font-size: 15px;
+  line-height: 1.7;
+}
+.dr-detail-meta {
+  margin-top: 20px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 18px;
+  color: rgba(255,255,255,.68);
+  font-size: 10px;
+  letter-spacing: .055em;
+  text-transform: uppercase;
+}
+.dr-detail-actions { margin-top: 26px; display: flex; flex-wrap: wrap; gap: 12px; }
+.dr-detail-actions .dr-button:not(.dr-button-primary) {
+  border-color: rgba(255,255,255,.55);
+  background: rgba(14,10,8,.36);
+  color: #fff;
+}
+.dr-access-card {
+  padding: 22px;
+  border: 1px solid rgba(255,255,255,.25);
+  border-radius: 16px;
+  background: rgba(255,255,255,.1);
+  backdrop-filter: blur(14px);
+  box-shadow: 0 18px 45px rgba(0,0,0,.2);
+}
+.dr-access-card strong { display: block; font: 400 27px/1.05 var(--dr-serif); }
+.dr-access-card p { margin: 10px 0 0; color: rgba(255,255,255,.72); line-height: 1.6; }
+.dr-access-card a { margin-top: 17px; width: 100%; }
+
+.dr-detail-content { padding: 42px 5vw 56px; }
+.dr-detail-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.25fr) minmax(280px, .75fr);
+  gap: 22px;
+}
+.dr-detail-panel {
+  padding: 25px;
+  border: 1px solid var(--dr-line);
+  border-radius: 15px;
+  background: #fff;
+  box-shadow: 0 10px 28px rgba(56,42,24,.07);
+}
+.dr-detail-panel small {
+  color: var(--dr-gold-dark);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+}
+.dr-detail-panel h2 {
+  margin: 8px 0 11px;
+  font: 400 clamp(27px, 3vw, 39px)/1.06 var(--dr-serif);
+}
+.dr-detail-panel p { margin: 0; color: var(--dr-copy); line-height: 1.65; }
+.dr-progress-row { margin-top: 22px; }
+.dr-progress-head { display: flex; justify-content: space-between; gap: 12px; color: #4a443e; font-size: 10px; }
+.dr-progress-track { height: 5px; margin-top: 9px; overflow: hidden; border-radius: 999px; background: #eee5da; }
+.dr-progress-track i { display: block; height: 100%; background: var(--dr-gold); }
+.dr-related-section { padding: 0 5vw 56px; }
+.dr-related-grid { margin-top: 19px; display: grid; grid-template-columns: repeat(4, minmax(0,1fr)); gap: 13px; }
+.dr-related-card {
+  overflow: hidden;
+  border: 1px solid var(--dr-line);
+  border-radius: 12px;
+  background: #fff;
+  color: var(--dr-ink);
+}
+.dr-related-card img { width: 100%; height: 170px; object-fit: cover; }
+.dr-related-card div { padding: 15px; }
+.dr-related-card small { color: var(--dr-gold-dark); font-size: 9px; text-transform: uppercase; }
+.dr-related-card strong { display: block; margin-top: 6px; font: 400 22px/1.05 var(--dr-serif); }
+.dr-related-card span { display: block; margin-top: 6px; color: var(--dr-muted); font-size: 10px; }
+.dr-comment-wrap { padding: 0 5vw 58px; }
+
+/* Watch page */
+body.dr-theme.watch-page .dr-site-header { background: #100c0a; box-shadow: none; }
+body.dr-theme.watch-page .dr-logo,
+body.dr-theme.watch-page .dr-nav a,
+body.dr-theme.watch-page .dr-account-summary { color: #fff; }
+body.dr-theme.watch-page .dr-menu-button span { background: #fff; }
+.dr-watch-shell {
+  background: #100c0a;
+  color: #fff;
+}
+.dr-watch-topbar {
+  min-height: 52px;
+  padding: 0 4vw;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  border-top: 1px solid rgba(255,255,255,.08);
+  border-bottom: 1px solid rgba(255,255,255,.08);
+  background: #100c0a;
+}
+.dr-watch-topbar > div { display: flex; flex-wrap: wrap; align-items: center; gap: 13px; }
+.dr-watch-topbar a,
+.dr-watch-topbar span { color: rgba(255,255,255,.68); font-size: 9px; letter-spacing: .06em; text-transform: uppercase; }
+.dr-watch-topbar a:hover { color: #fff; }
+.dr-watch-stage {
+  position: relative;
+  width: 100%;
+  min-height: min(72vw, 760px);
+  display: grid;
+  place-items: center;
+  background: #000;
+}
+.dr-watch-video { width: 100%; max-height: min(72vw, 760px); background: #000; }
+.dr-watch-lock {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  padding: 40px;
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  text-align: center;
+  background: linear-gradient(rgba(13,9,7,.58), rgba(13,9,7,.92));
+}
+.dr-watch-lock span { color: #e6c999; font-size: 10px; font-weight: 700; letter-spacing: .13em; text-transform: uppercase; }
+.dr-watch-lock h1 { max-width: 760px; margin: 12px 0 10px; font: 400 clamp(42px, 6vw, 75px)/1 var(--dr-serif); }
+.dr-watch-lock p { max-width: 650px; margin: 0; color: rgba(255,255,255,.72); line-height: 1.7; }
+.dr-watch-lock a { margin-top: 22px; }
+.dr-watch-info {
+  padding: 34px 5vw 45px;
+  display: grid;
+  grid-template-columns: minmax(0,1fr) 340px;
+  gap: 35px;
+  background: #17110e;
+}
+.dr-watch-main small { color: #d5ae6b; font-size: 10px; letter-spacing: .12em; text-transform: uppercase; }
+.dr-watch-main h1 { margin: 9px 0 12px; font: 400 clamp(38px,5vw,65px)/1 var(--dr-serif); }
+.dr-watch-main > p { max-width: 760px; margin: 0; color: rgba(255,255,255,.72); line-height: 1.7; }
+.dr-watch-meta { margin-top: 18px; display: flex; flex-wrap: wrap; gap: 9px 18px; color: rgba(255,255,255,.58); font-size: 9px; text-transform: uppercase; }
+.dr-watch-actions { margin-top: 22px; display: flex; flex-wrap: wrap; gap: 10px; }
+.dr-watch-actions .dr-button { min-height: 41px; border-color: rgba(255,255,255,.35); background: rgba(255,255,255,.08); color: #fff; }
+.dr-watch-progress {
+  align-self: start;
+  padding: 22px;
+  border: 1px solid rgba(255,255,255,.16);
+  border-radius: 14px;
+  background: rgba(255,255,255,.06);
+}
+.dr-watch-progress small { color: #d5ae6b; font-size: 9px; letter-spacing: .12em; text-transform: uppercase; }
+.dr-watch-progress h2 { margin: 9px 0 15px; font: 400 30px/1 var(--dr-serif); }
+.dr-watch-progress p { margin: 14px 0 0; color: rgba(255,255,255,.62); line-height: 1.6; }
+.dr-watch-progress .dr-progress-track { background: rgba(255,255,255,.15); }
+.dr-watch-library { padding: 38px 5vw 54px; background: var(--dr-paper); color: var(--dr-ink); }
+.dr-chapter-grid { margin-top: 18px; display: grid; grid-template-columns: repeat(5,minmax(0,1fr)); gap: 11px; }
+.dr-chapter-card { padding: 17px; border: 1px solid var(--dr-line); border-radius: 10px; background: #fff; }
+.dr-chapter-card span { color: var(--dr-gold-dark); font-size: 10px; font-weight: 700; }
+.dr-chapter-card strong { display: block; margin-top: 8px; font: 400 18px/1.08 var(--dr-serif); }
+
+@media (max-width: 900px) {
+  .dr-detail-hero-inner { grid-template-columns: 1fr; align-items: end; }
+  .dr-access-card { max-width: 520px; }
+  .dr-detail-grid { grid-template-columns: 1fr; }
+  .dr-related-grid { grid-template-columns: repeat(2,minmax(0,1fr)); }
+  .dr-watch-topbar { padding: 12px 20px; align-items: flex-start; }
+  .dr-watch-info { grid-template-columns: 1fr; }
+  .dr-chapter-grid { grid-template-columns: repeat(2,minmax(0,1fr)); }
+}
+@media (max-width: 620px) {
+  .dr-detail-hero-inner { min-height: 610px; padding: 45px 22px 35px; }
+  .dr-detail-copy h1 { font-size: 50px; letter-spacing: -2.5px; }
+  .dr-detail-actions { display: grid; }
+  .dr-detail-actions .dr-button { width: 100%; }
+  .dr-detail-content,
+  .dr-related-section,
+  .dr-comment-wrap { padding-left: 18px; padding-right: 18px; }
+  .dr-related-grid { grid-template-columns: 1fr; }
+  .dr-related-card img { height: 205px; }
+  .dr-watch-topbar { display: grid; }
+  .dr-watch-stage { min-height: 56vw; }
+  .dr-watch-info,
+  .dr-watch-library { padding-left: 18px; padding-right: 18px; }
+  .dr-watch-actions { display: grid; }
+  .dr-watch-actions .dr-button { width: 100%; }
+  .dr-chapter-grid { grid-template-columns: 1fr; }
+}
