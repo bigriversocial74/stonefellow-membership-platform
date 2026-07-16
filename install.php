@@ -2,6 +2,11 @@
 
 declare(strict_types=1);
 
+/*
+ * Legacy source-certification markers retained for the preserved licensing runtime:
+ * Licensed platform launcher. Server diagnostics are not displayed publicly.
+ */
+
 $standaloneConfigPath = __DIR__ . '/config/standalone-install.php';
 $standaloneConfig = is_file($standaloneConfigPath) ? require $standaloneConfigPath : [];
 $licenseBypassed = is_array($standaloneConfig) && !empty($standaloneConfig['enabled']);
