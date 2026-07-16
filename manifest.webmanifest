@@ -1,14 +1,14 @@
 {
-  "name": "Stonefellow Streaming",
-  "short_name": "Stonefellow",
-  "description": "Watch Stonefellow, stream the music, manage your library, and follow the story.",
+  "name": "DesertRio Streaming",
+  "short_name": "DesertRio",
+  "description": "Watch DesertRio, follow the cast, stream episodes, manage your library, and stay inside the story.",
   "start_url": "index.php",
   "scope": "./",
   "display": "standalone",
   "orientation": "portrait-primary",
-  "background_color": "#050403",
-  "theme_color": "#0b0907",
-  "categories": ["entertainment", "music", "video"],
+  "background_color": "#f8f5f0",
+  "theme_color": "#c39a57",
+  "categories": ["entertainment", "video", "lifestyle"],
   "icons": [
     {
       "src": "assets/images/brand/logo-mark.png",
@@ -24,8 +24,8 @@
     }
   ],
   "shortcuts": [
-    {"name": "Watch", "url": "episodes.php", "description": "Open episodes"},
-    {"name": "Music", "url": "player.php", "description": "Open music player"},
-    {"name": "Library", "url": "library.php", "description": "Open member library"}
+    {"name": "Watch", "url": "episodes.php", "description": "Open DesertRio episodes"},
+    {"name": "Cast", "url": "cast.php", "description": "Meet the DesertRio cast"},
+    {"name": "Library", "url": "library.php", "description": "Open the member library"}
   ]
 }
