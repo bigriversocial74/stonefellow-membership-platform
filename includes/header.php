@@ -16,10 +16,10 @@ $sfIsCustomerSurface = $sfHeaderUser && !$sfIsAdminSurface && strpos($sfPageClas
 $sfPublicNav = [
   ['label' => 'Home', 'href' => 'index.php', 'pages' => ['index.php']],
   ['label' => 'Series', 'href' => 'series.php', 'pages' => ['series.php']],
+  ['label' => 'Cast', 'href' => 'cast.php', 'pages' => ['cast.php']],
   ['label' => 'Episodes', 'href' => 'episodes.php', 'pages' => ['episodes.php', 'episode.php', 'watch.php']],
   ['label' => 'Music', 'href' => 'music.php', 'pages' => ['music.php', 'player.php', 'album.php', 'song.php']],
-  ['label' => 'Cast', 'href' => 'cast.php', 'pages' => ['cast.php']],
-  ['label' => 'Merch', 'href' => 'merch.php', 'pages' => ['merch.php', 'product.php']],
+  ['label' => 'Shop', 'href' => 'merch.php', 'pages' => ['merch.php', 'product.php']],
 ];
 $sfCurrentPage = sf_current_page();
 $sfMainNav = $sfHeaderUser ? [] : $sfPublicNav;
@@ -40,7 +40,7 @@ $sfRobots = (string)($pageRobots ?? ($sfIsAdminSurface ? 'noindex,nofollow,noarc
   <title><?= htmlspecialchars($sfDocumentTitle, ENT_QUOTES, 'UTF-8') ?></title>
   <meta name="description" content="<?= htmlspecialchars($sfMetaDescription, ENT_QUOTES, 'UTF-8') ?>">
   <meta name="robots" content="<?= htmlspecialchars($sfRobots, ENT_QUOTES, 'UTF-8') ?>">
-  <meta name="theme-color" content="#0b0907">
+  <meta name="theme-color" content="<?= $sfIsAdminSurface ? '#0b0907' : '#f8f5f0' ?>">
   <meta name="color-scheme" content="dark light">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -60,7 +60,7 @@ $sfRobots = (string)($pageRobots ?? ($sfIsAdminSurface ? 'noindex,nofollow,noarc
   <link rel="apple-touch-icon" href="<?= sf_asset('images/brand/logo-mark.png') ?>">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Bebas+Neue&family=Cinzel:wght@600;700&family=Bodoni+Moda:opsz,wght@6..96,500;6..96,600;6..96,700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Bebas+Neue&family=Cinzel:wght@600;700&family=Bodoni+Moda:opsz,wght@6..96,400;6..96,500;6..96,600;6..96,700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="<?= sf_asset('css/stonefellow.css') ?>">
   <link rel="stylesheet" href="<?= sf_asset('css/pwa-upload.css') ?>">
   <link rel="stylesheet" href="<?= sf_asset('css/nav-cleanup.css') ?>">
@@ -68,6 +68,7 @@ $sfRobots = (string)($pageRobots ?? ($sfIsAdminSurface ? 'noindex,nofollow,noarc
   <link rel="stylesheet" href="<?= sf_asset('css/customer-ui.css') ?>">
   <link rel="stylesheet" href="<?= sf_asset('css/mobile-home.css') ?>">
   <link rel="stylesheet" href="<?= sf_asset('css/frontend-quality.css') ?>">
+  <?php if (!$sfIsAdminSurface): ?><link rel="stylesheet" href="<?= sf_asset('css/stonefellow-reskin.css') ?>"><?php endif; ?>
   <?php if ($sfIsAdminSurface): ?><link rel="stylesheet" href="<?= sf_asset('css/admin-polish.css') ?>"><link rel="stylesheet" href="<?= sf_asset('css/admin-tabs.css') ?>"><link rel="stylesheet" href="<?= sf_asset('css/storyboarding-system.css') ?>"><?php endif; ?>
   <script type="application/ld+json"><?= sf_frontend_json_ld($sfMetaTitle, $sfMetaDescription) ?></script>
 </head>
@@ -76,16 +77,33 @@ $sfRobots = (string)($pageRobots ?? ($sfIsAdminSurface ? 'noindex,nofollow,noarc
   <div class="site-noise" aria-hidden="true"></div>
   <header class="home-header-full site-global-header">
     <div class="home-header">
-      <a class="home-brand" href="<?= sf_url('index.php') ?>" aria-label="Stonefellow home"><img src="<?= sf_asset('images/brand/home-brand-approved.png') ?>" alt="Stonefellow" class="home-brand-image" decoding="async" fetchpriority="high"></a>
-      <?php if ($sfMainNav): ?><button class="nav-toggle home-nav-toggle" type="button" aria-label="Open navigation" aria-expanded="false" aria-controls="site-navigation" data-nav-toggle><span aria-hidden="true"></span><span aria-hidden="true"></span><span aria-hidden="true"></span></button><?php endif; ?>
-      <?php if ($sfMainNav): ?><nav class="home-nav" id="site-navigation" aria-label="Primary navigation" data-site-nav><?php foreach ($sfMainNav as $item): ?><?php $isActive = in_array($sfCurrentPage, $item['pages'], true); ?><a class="<?= $isActive ? 'is-active' : '' ?>"<?= $isActive ? ' aria-current="page"' : '' ?> href="<?= sf_url($item['href']) ?>"><?= htmlspecialchars($item['label'], ENT_QUOTES, 'UTF-8') ?></a><?php endforeach; ?></nav><?php endif; ?>
+      <a class="home-brand" href="<?= sf_url('index.php') ?>" aria-label="Stonefellow home">
+        <img src="<?= sf_asset('images/brand/home-brand-approved.png') ?>" alt="Stonefellow" class="home-brand-image" decoding="async" fetchpriority="high">
+        <span class="sf-reskin-wordmark" aria-hidden="true">Stonefellow</span>
+      </a>
+      <?php if ($sfMainNav): ?>
+        <nav class="home-nav" id="site-navigation" aria-label="Primary navigation" data-site-nav>
+          <?php foreach ($sfMainNav as $item): ?>
+            <?php $isActive = in_array($sfCurrentPage, $item['pages'], true); ?>
+            <a class="<?= $isActive ? 'is-active' : '' ?>"<?= $isActive ? ' aria-current="page"' : '' ?> href="<?= sf_url($item['href']) ?>"><?= htmlspecialchars($item['label'], ENT_QUOTES, 'UTF-8') ?></a>
+          <?php endforeach; ?>
+        </nav>
+      <?php endif; ?>
       <div class="home-header-actions">
+        <?php if (!$sfIsAdminSurface): ?><a href="<?= sf_url('subscribe.php') ?>" class="sf-stream-top">Stream Now</a><?php endif; ?>
         <?php if ($sfHeaderUser): ?>
-          <details class="home-user-menu"><summary class="home-user-summary"><span><?= htmlspecialchars($sfHeaderUser['display_name'] ?: 'Account', ENT_QUOTES, 'UTF-8') ?></span></summary><div class="home-user-dropdown"><a href="<?= sf_url('member.php') ?>">Member Dashboard</a><a href="<?= sf_url('library.php') ?>">My Library</a><a href="<?= sf_url('watchlist.php') ?>">Watchlist</a><a href="<?= sf_url('playlists.php') ?>">Playlists</a><a href="<?= sf_url('notifications.php') ?>">Notifications</a><a href="<?= sf_url('messages.php') ?>">Messages</a><a href="<?= sf_url('comments.php') ?>">Comments</a><a href="<?= sf_url('cart.php') ?>">Cart</a><a href="<?= sf_url('account.php') ?>">Account Settings</a><a href="<?= sf_url('account-billing.php') ?>">Billing</a><a href="<?= sf_url('support.php') ?>">Support</a><?php if ($sfIsAdminUser): ?><a class="home-user-admin-link" href="<?= sf_url('admin/index.php') ?>">Admin Dashboard</a><?php endif; ?><a href="<?= sf_url('logout.php') ?>">Logout</a></div></details>
+          <details class="home-user-menu">
+            <summary class="home-user-summary"><span><?= htmlspecialchars($sfHeaderUser['display_name'] ?: 'Account', ENT_QUOTES, 'UTF-8') ?></span></summary>
+            <div class="home-user-dropdown"><a href="<?= sf_url('member.php') ?>">Member Dashboard</a><a href="<?= sf_url('library.php') ?>">My Library</a><a href="<?= sf_url('watchlist.php') ?>">Watchlist</a><a href="<?= sf_url('playlists.php') ?>">Playlists</a><a href="<?= sf_url('notifications.php') ?>">Notifications</a><a href="<?= sf_url('messages.php') ?>">Messages</a><a href="<?= sf_url('comments.php') ?>">Comments</a><a href="<?= sf_url('cart.php') ?>">Cart</a><a href="<?= sf_url('account.php') ?>">Account Settings</a><a href="<?= sf_url('account-billing.php') ?>">Billing</a><a href="<?= sf_url('support.php') ?>">Support</a><?php if ($sfIsAdminUser): ?><a class="home-user-admin-link" href="<?= sf_url('admin/index.php') ?>">Admin Dashboard</a><?php endif; ?><a href="<?= sf_url('logout.php') ?>">Logout</a></div>
+          </details>
         <?php else: ?>
-          <details class="home-user-menu home-user-menu-public"><summary class="home-user-summary"><span>Account</span></summary><div class="home-user-dropdown"><a href="<?= sf_url('signin.php') ?>">Sign In</a><a href="<?= sf_url('signup.php') ?>">Create Account</a><a href="<?= sf_url('forgot-password.php') ?>">Forgot Password</a></div></details><a href="<?= sf_url('signup.php') ?>" class="home-subscribe-btn <?= sf_is_active('signup.php') ?>">Subscribe</a>
+          <details class="home-user-menu home-user-menu-public">
+            <summary class="home-user-summary"><span>Account</span></summary>
+            <div class="home-user-dropdown"><a href="<?= sf_url('signin.php') ?>">Sign In</a><a href="<?= sf_url('signup.php') ?>">Create Account</a><a href="<?= sf_url('forgot-password.php') ?>">Forgot Password</a></div>
+          </details>
         <?php endif; ?>
       </div>
+      <?php if ($sfMainNav): ?><button class="nav-toggle home-nav-toggle" type="button" aria-label="Open navigation" aria-expanded="false" aria-controls="site-navigation" data-nav-toggle><span aria-hidden="true"></span><span aria-hidden="true"></span><span aria-hidden="true"></span></button><?php endif; ?>
     </div>
   </header>
   <main id="main-content" tabindex="-1">
