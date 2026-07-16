@@ -5,6 +5,9 @@ declare(strict_types=1);
 require_once __DIR__ . '/security.php';
 require_once __DIR__ . '/license.php';
 require_once __DIR__ . '/installer-core.php';
+require_once __DIR__ . '/standalone-installer.php';
+
+sf_install_bootstrap_standalone_license();
 
 function sf_install_csrf_token(): string
 {
@@ -23,10 +26,10 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
     $provided = (string)($_POST['install_csrf'] ?? '');
     if ($provided === '' || !hash_equals(sf_install_csrf_token(), $provided)) {
         sf_install_flash('error', 'Installer security check failed. Refresh the page and try again.');
-        sf_install_redirect('license');
+        sf_install_redirect(sf_install_license_bypass_enabled() ? 'server' : 'license');
     }
     if (sf_install_is_locked()) {
-        sf_install_flash('error', 'Stonefellow is already installed. Sign in to the administrator dashboard to manage the platform.');
+        sf_install_flash('error', 'Likenessing is already installed. Sign in to the administrator dashboard to manage the platform.');
         sf_install_redirect('done');
     }
     $password = (string)($_POST['admin_password'] ?? $_POST['password'] ?? '');
