@@ -214,3 +214,64 @@ body.dr-theme .dr-story-card-overlay h3,
 body.dr-theme .dr-story-card-overlay strong {
   color: #fff !important;
 }
+
+/* Shared DesertRio display color for every page except the approved index page. */
+body.dr-theme:not(.desertrio-index-v3) {
+  --dr-display-color: #f8e7cb;
+}
+
+body.dr-theme:not(.desertrio-index-v3) main h1,
+body.dr-theme:not(.desertrio-index-v3) main h2,
+body.dr-theme:not(.desertrio-index-v3) main h3,
+body.dr-theme:not(.desertrio-index-v3) .dr-display,
+body.dr-theme:not(.desertrio-index-v3) .dr-inner-hero-copy h1,
+body.dr-theme:not(.desertrio-index-v3) .dr-about-copy h2,
+body.dr-theme:not(.desertrio-index-v3) .dr-editorial-card h3,
+body.dr-theme:not(.desertrio-index-v3) .dr-episode-list-head h1,
+body.dr-theme:not(.desertrio-index-v3) .dr-episode-feature-copy h2,
+body.dr-theme:not(.desertrio-index-v3) .dr-cast-profile h2,
+body.dr-theme:not(.desertrio-index-v3) .dr-cast-relationships h2,
+body.dr-theme:not(.desertrio-index-v3) .shop-hero-copy h1,
+body.dr-theme:not(.desertrio-index-v3) .shop-section-head h2,
+body.dr-theme:not(.desertrio-index-v3) .shop-product-body h3,
+body.dr-theme:not(.desertrio-index-v3) .shop-detail-copy h1,
+body.dr-theme:not(.desertrio-index-v3) .shop-page-head h1,
+body.dr-theme:not(.desertrio-index-v3) .auth-card h2,
+body.dr-theme:not(.desertrio-index-v3) .sf-member-hero h1,
+body.dr-theme:not(.desertrio-index-v3) .sf-member-welcome-card h1,
+body.dr-theme:not(.desertrio-index-v3) .sf-member-section-head h2,
+body.dr-theme:not(.desertrio-index-v3) .sf-admin-panel-head h2 {
+  color: var(--dr-display-color) !important;
+}
+
+/* Functional light-surface text remains dark and readable. */
+body.dr-theme:not(.desertrio-index-v3) .dr-comment-wrap h1,
+body.dr-theme:not(.desertrio-index-v3) .dr-comment-wrap h2,
+body.dr-theme:not(.desertrio-index-v3) .dr-comment-wrap h3,
+body.dr-theme:not(.desertrio-index-v3) .sf-inline-comments h1,
+body.dr-theme:not(.desertrio-index-v3) .sf-inline-comments h2,
+body.dr-theme:not(.desertrio-index-v3) .sf-inline-comments h3,
+body.dr-theme:not(.desertrio-index-v3) .sf-access-gate h1,
+body.dr-theme:not(.desertrio-index-v3) .sf-access-gate h2,
+body.dr-theme:not(.desertrio-index-v3) .sf-access-gate h3,
+body.dr-theme:not(.desertrio-index-v3) .sf-admin-list-row h1,
+body.dr-theme:not(.desertrio-index-v3) .sf-admin-list-row h2,
+body.dr-theme:not(.desertrio-index-v3) .sf-admin-list-row h3,
+body.dr-theme:not(.desertrio-index-v3) .cart-summary-panel h2,
+body.dr-theme:not(.desertrio-index-v3) .cart-empty-state h2 {
+  color: #111 !important;
+}
+
+/* Dark photographic and playback surfaces keep white display type. */
+body.dr-theme:not(.desertrio-index-v3).episode-detail-page .dr-detail-hero h1,
+body.dr-theme:not(.desertrio-index-v3).episode-detail-page .dr-detail-hero h2,
+body.dr-theme:not(.desertrio-index-v3).episode-detail-page .dr-detail-hero h3,
+body.dr-theme:not(.desertrio-index-v3).watch-page .dr-watch-shell h1,
+body.dr-theme:not(.desertrio-index-v3).watch-page .dr-watch-shell h2,
+body.dr-theme:not(.desertrio-index-v3).watch-page .dr-watch-shell h3,
+body.dr-theme:not(.desertrio-index-v3).auth-template .auth-poster-copy h1,
+body.dr-theme:not(.desertrio-index-v3) .dr-story-card-overlay h1,
+body.dr-theme:not(.desertrio-index-v3) .dr-story-card-overlay h2,
+body.dr-theme:not(.desertrio-index-v3) .dr-story-card-overlay h3 {
+  color: #fff !important;
+}
