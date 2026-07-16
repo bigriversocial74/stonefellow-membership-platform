@@ -39,3 +39,8 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
         sf_install_redirect('admin');
     }
 }
+
+// Handle installer POST actions with MySQL/MariaDB metadata compatibility.
+// Successful actions redirect and exit before setup/index.php reaches the
+// original handler; GET requests pass through without side effects.
+sf_install_handle_post_compat();
