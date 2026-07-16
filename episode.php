@@ -2,34 +2,106 @@
 require __DIR__ . '/includes/data.php';
 require __DIR__ . '/includes/membership.php';
 require_once __DIR__ . '/includes/posts.php';
+require __DIR__ . '/includes/desertrio_theme.php';
 
 $slug = $_GET['slug'] ?? 'first-to-fall';
 $currentEpisode = sf_episode_by_slug($episodes, $slug);
 $episodeVideo = sf_video_by_episode_slug($videoCatalog, $currentEpisode['slug'] ?? $slug, 'episode') ?? $videoCatalog[0];
 $trailerVideo = sf_video_by_episode_slug($videoCatalog, $currentEpisode['slug'] ?? $slug, 'trailer') ?? $videoCatalog[1];
-$relatedSongs = sf_songs_for_episode($catalogSongs, $currentEpisode['title'] ?? 'First to Fall');
 $member = sf_member_snapshot();
 $canWatch = sf_access_allows($episodeVideo['access_level'] ?? 'subscriber', $member['access_level']);
 
-$pageTitle = ($currentEpisode['number'] ?? 'Episode') . ' — ' . ($currentEpisode['title'] ?? 'Stonefellow');
-$pageDescription = $currentEpisode['description'] ?? 'Stonefellow episode page with watch access, member progress, soundtrack links, and fan comments.';
-$pageClass = 'episode-detail-page membership-page';
+$displayEpisode = $desertRioEpisodes[0];
+foreach ($desertRioEpisodes as $candidate) {
+    if (($candidate['slug'] ?? '') === ($currentEpisode['slug'] ?? $slug)) {
+        $displayEpisode = $candidate;
+        break;
+    }
+}
+
+$pageTitle = ($displayEpisode['season'] ?? 'Episode') . ' — ' . ($displayEpisode['title'] ?? 'DesertRio');
+$pageDescription = $displayEpisode['description'] ?? 'DesertRio episode details, membership access, watch progress, and fan comments.';
+$pageClass = 'episode-detail-page membership-page desertrio-episode-detail-template';
+$pageExtraStyles = ['css/desertrio-video.css'];
 require __DIR__ . '/includes/header.php';
 ?>
-<section class="sf-membership-shell sf-episode-detail-shell">
-  <section class="sf-episode-hero" style="--episode-hero:url('<?= sf_asset($episodeVideo['hero'] ?? $currentEpisode['image']) ?>')">
-    <div class="sf-episode-hero-copy">
-      <div class="sf-kicker-row"><span><?= htmlspecialchars($currentEpisode['number'] ?? 'Season 1') ?></span><span><?= htmlspecialchars(sf_access_label($episodeVideo['access_level'] ?? 'subscriber')) ?></span></div>
-      <h1><?= htmlspecialchars($currentEpisode['title'] ?? 'Stonefellow Episode') ?></h1>
-      <p><?= htmlspecialchars($currentEpisode['description'] ?? $episodeVideo['description'] ?? '') ?></p>
-      <div class="sf-episode-meta-row"><span><?= htmlspecialchars($episodeVideo['runtime'] ?? $currentEpisode['runtime'] ?? '48 min') ?></span><span><?= htmlspecialchars($episodeVideo['status'] === 'published' ? 'Available now' : 'Coming soon') ?></span><span><?= htmlspecialchars($member['access_label']) ?></span><span><?= (int)sf_post_comment_count('episode', (int)($currentEpisode['id'] ?? 0), (string)($currentEpisode['slug'] ?? $slug)) ?> comments</span></div>
-      <div class="sf-episode-action-row"><?php if ($canWatch && ($episodeVideo['status'] ?? '') === 'published'): ?><a class="sf-primary-action" href="<?= sf_url('watch.php?slug=' . urlencode($episodeVideo['slug'])) ?>">▶ Watch Episode</a><?php else: ?><a class="sf-primary-action" href="<?= sf_url('subscribe.php') ?>">Unlock Episode</a><?php endif; ?><a class="sf-secondary-action" href="<?= sf_url('watch.php?slug=' . urlencode($trailerVideo['slug'])) ?>">Watch Trailer</a><a class="sf-secondary-action" href="#fan-thread">Comments</a></div>
+
+<section class="dr-episode-detail">
+  <section class="dr-detail-hero" aria-labelledby="dr-detail-title">
+    <div class="dr-detail-hero-media">
+      <img src="<?= sf_asset($displayEpisode['image']) ?>" alt="<?= htmlspecialchars($displayEpisode['title'], ENT_QUOTES, 'UTF-8') ?> episode scene" fetchpriority="high">
     </div>
-    <div class="sf-episode-hero-card"><img src="<?= sf_asset($episodeVideo['poster'] ?? $currentEpisode['image']) ?>" alt="<?= htmlspecialchars($currentEpisode['title'] ?? 'Episode') ?> poster"><div class="sf-access-card"><strong><?= $canWatch ? 'Ready to watch' : 'Membership required' ?></strong><span><?= $canWatch ? 'Episode tracking and resume are enabled.' : 'Subscribe to unlock full episode playback.' ?></span></div></div>
+    <div class="dr-detail-hero-shade" aria-hidden="true"></div>
+    <div class="dr-detail-hero-inner">
+      <div class="dr-detail-copy">
+        <div class="dr-detail-kicker">
+          <span><?= htmlspecialchars($displayEpisode['season'], ENT_QUOTES, 'UTF-8') ?></span>
+          <span><?= htmlspecialchars(sf_access_label($episodeVideo['access_level'] ?? 'subscriber'), ENT_QUOTES, 'UTF-8') ?></span>
+          <span><?= htmlspecialchars(($episodeVideo['status'] ?? '') === 'published' ? 'Available Now' : 'Coming Soon', ENT_QUOTES, 'UTF-8') ?></span>
+        </div>
+        <h1 id="dr-detail-title"><?= htmlspecialchars($displayEpisode['title'], ENT_QUOTES, 'UTF-8') ?></h1>
+        <p><?= htmlspecialchars($displayEpisode['description'], ENT_QUOTES, 'UTF-8') ?></p>
+        <div class="dr-detail-meta">
+          <span><?= htmlspecialchars($displayEpisode['runtime'], ENT_QUOTES, 'UTF-8') ?></span>
+          <span><?= htmlspecialchars($member['access_label'], ENT_QUOTES, 'UTF-8') ?></span>
+          <span><?= (int)sf_post_comment_count('episode', (int)($currentEpisode['id'] ?? 0), (string)($currentEpisode['slug'] ?? $slug)) ?> Comments</span>
+        </div>
+        <div class="dr-detail-actions">
+          <?php if ($canWatch && ($episodeVideo['status'] ?? '') === 'published'): ?>
+            <a class="dr-button dr-button-primary" href="<?= sf_url('watch.php?slug=' . urlencode($episodeVideo['slug'])) ?>">Watch Episode <span class="dr-button-play" aria-hidden="true">▷</span></a>
+          <?php else: ?>
+            <a class="dr-button dr-button-primary" href="<?= sf_url('subscribe.php') ?>">Unlock Episode</a>
+          <?php endif; ?>
+          <a class="dr-button" href="<?= sf_url('watch.php?slug=' . urlencode($trailerVideo['slug'])) ?>">Watch Trailer</a>
+          <a class="dr-button" href="#fan-thread">Comments</a>
+        </div>
+      </div>
+
+      <aside class="dr-access-card">
+        <strong><?= $canWatch ? 'Ready to Watch' : 'Membership Required' ?></strong>
+        <p><?= $canWatch ? 'Secure playback, resume tracking, and member library tools are enabled for this episode.' : 'Subscribe to unlock the full episode, progress sync, and member viewing features.' ?></p>
+        <a class="dr-button dr-button-primary" href="<?= sf_url($canWatch ? 'member.php' : 'subscribe.php') ?>"><?= $canWatch ? 'Open Member Home' : 'View Membership' ?></a>
+      </aside>
+    </div>
   </section>
-  <section class="sf-member-grid sf-episode-grid"><article class="sf-member-panel sf-progress-panel"><span class="sf-panel-eyebrow">Episode Tracking</span><h2>Continue from any device</h2><p>Watch events are sent to the tracking endpoint, then stored in video and episode progress tables when a member is signed in.</p><div class="sf-progress-stack"><div><strong>Watch progress</strong><span><?= (int)($episodeVideo['resume_percent'] ?? 0) ?>%</span></div><div class="sf-wide-progress"><i style="width:<?= (int)($episodeVideo['resume_percent'] ?? 0) ?>%"></i></div></div></article><article class="sf-member-panel sf-access-panel"><span class="sf-panel-eyebrow">Access Rule</span><h2><?= htmlspecialchars(sf_access_label($episodeVideo['access_level'] ?? 'subscriber')) ?></h2><p>This page checks the member access level before linking to the full watch screen. Public trailer access remains available for guests.</p><a href="<?= sf_url('member.php') ?>">Open member dashboard</a></article></section>
-  <section class="sf-member-section"><div class="sf-member-section-head"><div><span class="sf-panel-eyebrow">Episode Videos</span><h2>Watch options</h2></div><a href="<?= sf_url('episodes.php') ?>">All Episodes</a></div><div class="sf-video-card-grid"><?php foreach ([$episodeVideo, $trailerVideo] as $video): ?><a class="sf-video-card" href="<?= sf_url('watch.php?slug=' . urlencode($video['slug'])) ?>"><img src="<?= sf_asset($video['poster']) ?>" alt="<?= htmlspecialchars($video['title']) ?> poster"><span><?= htmlspecialchars(sf_access_label($video['access_level'])) ?></span><strong><?= htmlspecialchars($video['title']) ?></strong><small><?= htmlspecialchars($video['runtime']) ?> · <?= htmlspecialchars(str_replace('_', ' ', $video['video_type'])) ?></small></a><?php endforeach; ?></div></section>
-  <section class="sf-member-section"><div class="sf-member-section-head"><div><span class="sf-panel-eyebrow">Soundtrack Links</span><h2>Songs from this episode</h2></div><a href="<?= sf_url('player.php') ?>">Open Player</a></div><div class="sf-audio-list-panel"><?php foreach ($relatedSongs as $song): ?><a class="sf-audio-list-row" href="<?= sf_url('song.php?slug=' . urlencode($song['slug'])) ?>"><img src="<?= sf_asset($song['cover']) ?>" alt="<?= htmlspecialchars($song['title']) ?> cover"><span><?= htmlspecialchars($song['track']) ?></span><strong><?= htmlspecialchars($song['title']) ?></strong><em><?= htmlspecialchars($song['duration']) ?></em></a><?php endforeach; ?></div></section>
-  <div id="fan-thread"><?php sf_inline_comment_widget('episode', (int)($currentEpisode['id'] ?? 0), (string)($currentEpisode['slug'] ?? $slug), 'Episode comments'); ?></div>
+
+  <section class="dr-detail-content">
+    <div class="dr-detail-grid">
+      <article class="dr-detail-panel">
+        <small>Episode Tracking</small>
+        <h2>Continue From Any Device</h2>
+        <p>Playback events continue to use the shared platform tracking runtime, including saved position, resume state, and member library synchronization.</p>
+        <div class="dr-progress-row">
+          <div class="dr-progress-head"><strong>Watch Progress</strong><span><?= (int)($episodeVideo['resume_percent'] ?? 0) ?>%</span></div>
+          <div class="dr-progress-track"><i style="width:<?= (int)($episodeVideo['resume_percent'] ?? 0) ?>%"></i></div>
+        </div>
+      </article>
+      <article class="dr-detail-panel">
+        <small>Access</small>
+        <h2><?= htmlspecialchars(sf_access_label($episodeVideo['access_level'] ?? 'subscriber'), ENT_QUOTES, 'UTF-8') ?></h2>
+        <p>Guest trailer access remains public. Full episodes continue to respect the existing member access level and secure media delivery rules.</p>
+      </article>
+    </div>
+  </section>
+
+  <section class="dr-related-section" aria-labelledby="dr-related-title">
+    <header class="dr-section-head">
+      <div><span></span><h2 id="dr-related-title">More Episodes</h2><span></span></div>
+      <p>Continue inside the DesertRio circle.</p>
+    </header>
+    <div class="dr-related-grid">
+      <?php foreach (array_slice($desertRioEpisodes, 0, 4) as $episode): ?>
+        <a class="dr-related-card" href="<?= sf_url('episode.php?slug=' . urlencode($episode['slug'])) ?>">
+          <img src="<?= sf_asset($episode['image']) ?>" alt="<?= htmlspecialchars($episode['title'], ENT_QUOTES, 'UTF-8') ?> episode scene" loading="lazy" decoding="async">
+          <div><small><?= htmlspecialchars($episode['season'], ENT_QUOTES, 'UTF-8') ?></small><strong><?= htmlspecialchars($episode['title'], ENT_QUOTES, 'UTF-8') ?></strong><span><?= htmlspecialchars($episode['runtime'], ENT_QUOTES, 'UTF-8') ?></span></div>
+        </a>
+      <?php endforeach; ?>
+    </div>
+  </section>
+
+  <div class="dr-comment-wrap" id="fan-thread">
+    <?php sf_inline_comment_widget('episode', (int)($currentEpisode['id'] ?? 0), (string)($currentEpisode['slug'] ?? $slug), 'Episode comments'); ?>
+  </div>
 </section>
+
 <?php require __DIR__ . '/includes/footer.php'; ?>
