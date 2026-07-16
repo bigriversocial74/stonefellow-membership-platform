@@ -39,7 +39,7 @@
       </nav>
       <p class="dr-copyright">© <?= date('Y') ?> DesertRio. All Rights Reserved.</p>
     </footer>
-    <link rel="stylesheet" href="<?= sf_asset('css/desertrio-public-fixes.css') ?>">
+    <link rel="stylesheet" href="<?= sf_asset('css/desertrio-public-fixes.css') ?>?v=20260716-2">
   <?php endif; ?>
 
   <script>
