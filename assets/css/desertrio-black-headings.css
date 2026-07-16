@@ -1,0 +1,71 @@
+/* DesertRio global heading correction: black display type on light pages. */
+
+body.dr-theme:not(.desertrio-index-v3) main h1,
+body.dr-theme:not(.desertrio-index-v3) main h2,
+body.dr-theme:not(.desertrio-index-v3) main h3,
+body.dr-theme:not(.desertrio-index-v3) main h4,
+body.dr-theme:not(.desertrio-index-v3) main h5,
+body.dr-theme:not(.desertrio-index-v3) main h6,
+body.dr-theme:not(.desertrio-index-v3) .dr-display,
+body.dr-theme:not(.desertrio-index-v3) .dr-inner-hero-copy h1,
+body.dr-theme:not(.desertrio-index-v3) .dr-about-copy h2,
+body.dr-theme:not(.desertrio-index-v3) .dr-editorial-card h3,
+body.dr-theme:not(.desertrio-index-v3) .dr-episode-list-head h1,
+body.dr-theme:not(.desertrio-index-v3) .dr-episode-feature-copy h2,
+body.dr-theme:not(.desertrio-index-v3) .dr-cast-profile h2,
+body.dr-theme:not(.desertrio-index-v3) .dr-cast-relationships h2,
+body.dr-theme:not(.desertrio-index-v3) .shop-hero-copy h1,
+body.dr-theme:not(.desertrio-index-v3) .shop-section-head h2,
+body.dr-theme:not(.desertrio-index-v3) .shop-product-body h3,
+body.dr-theme:not(.desertrio-index-v3) .shop-detail-copy h1,
+body.dr-theme:not(.desertrio-index-v3) .shop-page-head h1,
+body.dr-theme:not(.desertrio-index-v3) .auth-card h2,
+body.dr-theme:not(.desertrio-index-v3) .sf-member-hero h1,
+body.dr-theme:not(.desertrio-index-v3) .sf-member-welcome-card h1,
+body.dr-theme:not(.desertrio-index-v3) .sf-member-section-head h2,
+body.dr-theme:not(.desertrio-index-v3) .sf-admin-panel-head h2,
+body.dr-theme:not(.desertrio-index-v3) .sf-member-panel h2,
+body.dr-theme:not(.desertrio-index-v3) .sf-dashboard-stat strong,
+body.dr-theme:not(.desertrio-index-v3) .sf-member-status-card strong,
+body.dr-theme:not(.desertrio-index-v3) .sf-member-access-card strong {
+  color: #111111 !important;
+}
+
+/* Body, metadata, form, and functional text remain dark and readable. */
+body.dr-theme:not(.desertrio-index-v3) main p,
+body.dr-theme:not(.desertrio-index-v3) main li,
+body.dr-theme:not(.desertrio-index-v3) main label,
+body.dr-theme:not(.desertrio-index-v3) main small,
+body.dr-theme:not(.desertrio-index-v3) main em,
+body.dr-theme:not(.desertrio-index-v3) main td,
+body.dr-theme:not(.desertrio-index-v3) main th {
+  color: #3f3933;
+}
+
+/* Dark photographic and playback surfaces keep white text. */
+body.dr-theme:not(.desertrio-index-v3).episode-detail-page .dr-detail-hero,
+body.dr-theme:not(.desertrio-index-v3).episode-detail-page .dr-detail-hero h1,
+body.dr-theme:not(.desertrio-index-v3).episode-detail-page .dr-detail-hero h2,
+body.dr-theme:not(.desertrio-index-v3).episode-detail-page .dr-detail-hero h3,
+body.dr-theme:not(.desertrio-index-v3).episode-detail-page .dr-detail-hero p,
+body.dr-theme:not(.desertrio-index-v3).episode-detail-page .dr-detail-hero span,
+body.dr-theme:not(.desertrio-index-v3).episode-detail-page .dr-detail-hero small,
+body.dr-theme:not(.desertrio-index-v3).watch-page .dr-watch-shell,
+body.dr-theme:not(.desertrio-index-v3).watch-page .dr-watch-shell h1,
+body.dr-theme:not(.desertrio-index-v3).watch-page .dr-watch-shell h2,
+body.dr-theme:not(.desertrio-index-v3).watch-page .dr-watch-shell h3,
+body.dr-theme:not(.desertrio-index-v3).watch-page .dr-watch-shell p,
+body.dr-theme:not(.desertrio-index-v3).watch-page .dr-watch-shell span,
+body.dr-theme:not(.desertrio-index-v3).watch-page .dr-watch-shell small,
+body.dr-theme:not(.desertrio-index-v3).auth-template .auth-poster-copy,
+body.dr-theme:not(.desertrio-index-v3).auth-template .auth-poster-copy h1,
+body.dr-theme:not(.desertrio-index-v3).auth-template .auth-poster-copy p,
+body.dr-theme:not(.desertrio-index-v3) .dr-story-card-overlay,
+body.dr-theme:not(.desertrio-index-v3) .dr-story-card-overlay h1,
+body.dr-theme:not(.desertrio-index-v3) .dr-story-card-overlay h2,
+body.dr-theme:not(.desertrio-index-v3) .dr-story-card-overlay h3,
+body.dr-theme:not(.desertrio-index-v3) .dr-story-card-overlay p,
+body.dr-theme:not(.desertrio-index-v3) .dr-story-card-overlay span,
+body.dr-theme:not(.desertrio-index-v3) .dr-story-card-overlay small {
+  color: #ffffff !important;
+}
