@@ -1,159 +1,123 @@
 <?php
 $pageTitle = 'Home';
-$pageDescription = 'Watch the Stonefellow series, stream the soundtrack, and subscribe for access.';
-$pageClass = 'home-template';
+$pageDescription = 'Watch the Stonefellow series, stream the soundtrack, meet the band, and join the story.';
+$pageClass = 'home-template sf-reskin-home';
 require __DIR__ . '/includes/data.php';
 require __DIR__ . '/includes/theme_public.php';
 
 $homeHero = sf_theme_public_image_src('home_hero', 'images/home/hero-reference-crop.png');
 $homeEpisodePoster = sf_theme_public_image_src('episode_poster', 'images/home/pilot-reference-card.png');
 $homeMusicHero = sf_theme_public_image_src('music_hero', 'images/home/live-reference-card.png');
-$homeAlbumCover = sf_theme_public_image_src('album_cover', 'images/music/soundtrack-cover.png');
-$homeTracks = [
-  ['n' => '1', 'title' => 'Born to Burn', 'time' => '3:48'],
-  ['n' => '2', 'title' => 'Blackout in the Rearview', 'time' => '3:35'],
-  ['n' => '3', 'title' => 'Tearing Down the Walls', 'time' => '4:02'],
-  ['n' => '4', 'title' => 'Heart of a Loaded Gun', 'time' => '3:57'],
-  ['n' => '5', 'title' => 'Saint or Sinner', 'time' => '3:41'],
+
+$homeCast = [
+  ['name' => 'Jax Stonefellow', 'role' => 'The Voice', 'image' => 'images/cast/cast-jax.png'],
+  ['name' => 'Cash Hawthorne', 'role' => 'The Rebel', 'image' => 'images/cast/cast-cash.png'],
+  ['name' => 'Violet Graves', 'role' => 'The Anchor', 'image' => 'images/cast/cast-violet.png'],
+  ['name' => 'Sawyer Creed', 'role' => 'The Pulse', 'image' => 'images/cast/cast-sawyer.png'],
+  ['name' => 'Luke Mercer', 'role' => 'The Soul', 'image' => 'images/cast/cast-luke.png'],
 ];
+
+$homeStories = [
+  ['kicker' => 'Pilot Episode', 'title' => 'First to Fall', 'image' => 'images/episodes/template-card-01.png', 'href' => 'episode.php?slug=first-to-fall'],
+  ['kicker' => 'Trust Is Earned', 'title' => 'Riptide Hearts', 'image' => 'images/episodes/template-card-02.png', 'href' => 'episode.php?slug=riptide-hearts'],
+  ['kicker' => 'The Road Calls', 'title' => 'The Long Road Home', 'image' => 'images/episodes/template-card-03.png', 'href' => 'episode.php?slug=the-long-road-home'],
+  ['kicker' => 'Featured Music', 'title' => 'Born to Burn', 'image' => 'images/home/live-reference-card.png', 'href' => 'music.php'],
+];
+
 require __DIR__ . '/includes/header.php';
 ?>
 <?= sf_theme_css_variables_tag(null, '.home-template') ?>
-<section class="home-full home-hero-full">
-  <div class="home-shell">
-    <section class="home-hero-grid">
-    <div class="home-copy">
-      <h1>Watch the Series. Stream the Soundtrack.</h1>
-      <p>Stonefellow is a rock &amp; roll drama about brotherhood, betrayal, and the price of greatness. Stream every episode. Listen to every song. Live the story.</p>
-      <div class="home-actions">
-        <a class="home-btn home-btn-primary" href="subscribe.php"><span class="icon-play"></span>Subscribe to Watch</a>
-        <a class="home-btn home-btn-outline" href="music.php"><span class="icon-wave"></span>Stream the Music</a>
-      </div>
+
+<section class="sf-lux-hero" aria-labelledby="sf-home-title">
+  <div class="sf-lux-hero-media">
+    <img src="<?= htmlspecialchars($homeHero, ENT_QUOTES, 'UTF-8') ?>" alt="Stonefellow performing live on stage" fetchpriority="high">
+  </div>
+  <div class="sf-lux-hero-wash" aria-hidden="true"></div>
+  <div class="sf-lux-hero-copy">
+    <p class="sf-lux-eyebrow">THE ROAD IS LOUD.<br>THE TRUTH IS LOUDER.</p>
+    <h1 id="sf-home-title">Stonefellow</h1>
+    <div class="sf-lux-ornament" aria-hidden="true"><span></span><b>✦</b><span></span></div>
+    <h2>ROCK. BROTHERHOOD. DRAMA.</h2>
+    <p class="sf-lux-tagline">EVERY SONG LEAVES A SCAR.</p>
+    <div class="sf-lux-actions">
+      <a class="sf-lux-btn sf-lux-btn-primary" href="<?= sf_url('subscribe.php') ?>">STREAM NOW <span aria-hidden="true">▷</span></a>
+      <button class="sf-lux-btn sf-lux-btn-outline" type="button" data-home-video-open data-video-src="https://www.youtube.com/embed/jMlQMre7LcA?start=14&amp;autoplay=1&amp;rel=0&amp;modestbranding=1" aria-haspopup="dialog" aria-controls="home-video-modal">WATCH TRAILER <span aria-hidden="true">▷</span></button>
     </div>
-    <div class="home-hero-image">
-      <img src="<?= htmlspecialchars($homeHero) ?>" alt="Stonefellow performing live on stage">
-      <button
-        class="home-video-trigger"
-        type="button"
-        data-home-video-open
-        data-video-src="https://www.youtube.com/embed/jMlQMre7LcA?start=14&amp;autoplay=1&amp;rel=0&amp;modestbranding=1"
-        aria-haspopup="dialog"
-        aria-controls="home-video-modal"
-      >
-        <span class="home-video-trigger-icon" aria-hidden="true"></span>
-        <span>Play Video</span>
-      </button>
-    </div>
-    </section>
   </div>
 </section>
 
-<section class="home-shell">
-  <section class="home-featured-section">
-    <div class="home-section-title"><span>Featured</span></div>
-    <div class="home-feature-grid">
-      <a class="feature-card" href="episodes.php">
-        <div class="feature-image"><img src="<?= htmlspecialchars($homeEpisodePoster) ?>" alt="Pilot episode still"></div>
-        <div class="feature-info">
-          <h3>Pilot Episode</h3>
-          <p>Watch the beginning.</p>
-        </div>
-      </a>
-      <a class="feature-card feature-card-soundtrack" href="music.php">
-        <div class="feature-image soundtrack-art"><img src="<?= htmlspecialchars($homeAlbumCover) ?>" alt="Official soundtrack cover"></div>
-        <div class="feature-info">
-          <h3>Official Soundtrack</h3>
-          <p>Listen to every song.</p>
-        </div>
-      </a>
-      <a class="feature-card" href="music.php">
-        <div class="feature-image"><img src="<?= htmlspecialchars($homeMusicHero) ?>" alt="Stonefellow live sessions"></div>
-        <div class="feature-info">
-          <h3>Live Sessions</h3>
-          <p>Acoustic &amp; live performances.</p>
-        </div>
-      </a>
+<section class="sf-lux-welcome" id="about" aria-labelledby="sf-welcome-title">
+  <div class="sf-lux-welcome-art">
+    <img src="<?= htmlspecialchars($homeMusicHero, ENT_QUOTES, 'UTF-8') ?>" alt="Stonefellow live performance">
+    <span class="sf-lux-script">Born on the road</span>
+  </div>
+  <div class="sf-lux-welcome-copy">
+    <p class="sf-lux-section-kicker">WELCOME TO</p>
+    <h2 id="sf-welcome-title">A Story Written<br><em>In Sound and Fire.</em></h2>
+    <div class="sf-lux-small-ornament" aria-hidden="true"><span></span><b>✦</b><span></span></div>
+    <p>Follow five musicians bound by brotherhood, broken by ambition, and pulled forward by the music they cannot leave behind.</p>
+    <div class="sf-lux-feature-grid">
+      <a href="<?= sf_url('music.php') ?>"><b aria-hidden="true">♫</b><span>ORIGINAL MUSIC</span></a>
+      <a href="<?= sf_url('episodes.php') ?>"><b aria-hidden="true">▷</b><span>FULL EPISODES</span></a>
+      <a href="<?= sf_url('cast.php') ?>"><b aria-hidden="true">✦</b><span>THE BAND</span></a>
+      <a href="<?= sf_url('merch.php') ?>"><b aria-hidden="true">◆</b><span>OFFICIAL MERCH</span></a>
     </div>
-  </section>
-
-  <section class="home-player-panel">
-    <div class="album-column">
-      <div class="album-art-wrap">
-        <img src="<?= htmlspecialchars($homeAlbumCover) ?>" alt="Born to Burn artwork">
-      </div>
-    </div>
-    <div class="player-column">
-      <div class="now-playing-label">Now Playing</div>
-      <h2>Born to Burn</h2>
-      <div class="artist-line">Stonefellow</div>
-      <div class="time-row"><span>1:24</span><span>3:48</span></div>
-      <div class="progress-line"><span></span></div>
-      <div class="player-controls">
-        <button type="button">↺</button>
-        <button type="button">◀</button>
-        <button type="button" class="play-circle">❚❚</button>
-        <button type="button">▶</button>
-        <button type="button">↻</button>
-      </div>
-    </div>
-    <div class="track-column">
-      <ol class="home-tracklist">
-        <?php foreach ($homeTracks as $track): ?>
-          <li>
-            <span class="track-number"><?= htmlspecialchars($track['n']) ?></span>
-            <span class="track-title"><?= htmlspecialchars($track['title']) ?></span>
-            <span class="track-time"><?= htmlspecialchars($track['time']) ?></span>
-          </li>
-        <?php endforeach; ?>
-      </ol>
-      <a class="track-link" href="music.php">View Full Soundtrack →</a>
-    </div>
-  </section>
-
-  <section class="home-access-panel">
-    <div class="access-price-block">
-      <div class="access-kicker">Choose Your Access</div>
-      <div class="access-price"><span class="currency">$</span>9<span class="cents">99</span><span class="period">/ Month</span></div>
-      <a class="home-btn home-btn-primary access-btn" href="subscribe.php">Subscribe Now</a>
-      <div class="access-note">Cancel anytime.</div>
-    </div>
-    <ul class="access-list">
-      <li>Watch every episode in HD</li>
-      <li>Stream the full soundtrack</li>
-      <li>Exclusive content &amp; behind-the-scenes</li>
-      <li>Early access to new episodes</li>
-    </ul>
-  </section>
-
-  <section class="home-app-panel">
-    <div class="app-image-col">
-      <img src="<?= sf_asset('images/app/app-promo.png') ?>" alt="Stonefellow mobile app promo">
-    </div>
-    <div class="app-copy-col">
-      <h2>Take Stonefellow<br>Wherever You Go</h2>
-      <p>Stream the series. Listen to the music.<br>Download the app for iOS &amp; Android.</p>
-    </div>
-    <div class="store-buttons-col">
-      <a href="app.php" class="store-badge">Download on the App Store</a>
-      <a href="app.php" class="store-badge">Get it on Google Play</a>
-    </div>
-  </section>
+  </div>
 </section>
 
-<div class="home-video-modal" id="home-video-modal" role="dialog" aria-modal="true" aria-label="Stonefellow video preview" hidden data-home-video-modal>
+<section class="sf-lux-section sf-lux-cast" id="cast" aria-labelledby="sf-cast-title">
+  <header class="sf-lux-section-head">
+    <div><span></span><h2 id="sf-cast-title">THE BAND</h2><span></span></div>
+    <p>FIVE LIVES. ONE SOUND. NO EASY WAY HOME.</p>
+  </header>
+  <div class="sf-lux-cast-grid">
+    <?php foreach ($homeCast as $member): ?>
+      <article class="sf-lux-cast-card">
+        <a href="<?= sf_url('cast.php') ?>" aria-label="View <?= htmlspecialchars($member['name'], ENT_QUOTES, 'UTF-8') ?> in the cast">
+          <img src="<?= sf_asset($member['image']) ?>" alt="<?= htmlspecialchars($member['name'], ENT_QUOTES, 'UTF-8') ?>">
+          <div><h3><?= htmlspecialchars($member['name'], ENT_QUOTES, 'UTF-8') ?></h3><p><?= htmlspecialchars($member['role'], ENT_QUOTES, 'UTF-8') ?></p><span aria-hidden="true">+</span></div>
+        </a>
+      </article>
+    <?php endforeach; ?>
+  </div>
+  <a class="sf-lux-text-link" href="<?= sf_url('cast.php') ?>">MEET THE FULL CAST <span aria-hidden="true">→</span></a>
+</section>
+
+<section class="sf-lux-section sf-lux-drama" id="episodes" aria-labelledby="sf-drama-title">
+  <header class="sf-lux-section-head">
+    <div><span></span><h2 id="sf-drama-title">THE STORY RUNS DEEP</h2><span></span></div>
+    <p>SONGS. SECRETS. BROKEN PROMISES.</p>
+  </header>
+  <div class="sf-lux-story-grid">
+    <?php foreach ($homeStories as $story): ?>
+      <article class="sf-lux-story-card">
+        <a href="<?= sf_url($story['href']) ?>">
+          <img src="<?= sf_asset($story['image']) ?>" alt="<?= htmlspecialchars($story['title'], ENT_QUOTES, 'UTF-8') ?>">
+          <div><small><?= htmlspecialchars($story['kicker'], ENT_QUOTES, 'UTF-8') ?></small><h3><?= htmlspecialchars($story['title'], ENT_QUOTES, 'UTF-8') ?></h3><span aria-hidden="true">▷</span></div>
+        </a>
+      </article>
+    <?php endforeach; ?>
+  </div>
+</section>
+
+<section class="sf-lux-membership" aria-labelledby="sf-membership-title">
+  <div>
+    <p class="sf-lux-section-kicker">THE COMPLETE EXPERIENCE</p>
+    <h2 id="sf-membership-title">Watch the Series.<br><em>Stream the Soundtrack.</em></h2>
+    <p>Unlock every episode, the complete music catalog, member playlists, progress tracking, exclusive releases, and behind-the-scenes content.</p>
+  </div>
+  <div class="sf-lux-membership-actions">
+    <a class="sf-lux-btn sf-lux-btn-primary" href="<?= sf_url('subscribe.php') ?>">JOIN STONEFELLOW</a>
+    <a class="sf-lux-btn sf-lux-btn-outline" href="<?= sf_url('series.php') ?>">EXPLORE THE SERIES</a>
+  </div>
+  <img src="<?= htmlspecialchars($homeEpisodePoster, ENT_QUOTES, 'UTF-8') ?>" alt="Stonefellow series artwork">
+</section>
+
+<div class="home-video-modal" id="home-video-modal" role="dialog" aria-modal="true" aria-label="Stonefellow trailer" hidden data-home-video-modal>
   <div class="home-video-backdrop" data-home-video-close></div>
   <div class="home-video-dialog" role="document">
-    <button class="home-video-close" type="button" aria-label="Close video" data-home-video-close>×</button>
-    <div class="home-video-frame-wrap">
-      <iframe
-        data-home-video-frame
-        title="Stonefellow video preview"
-        src=""
-        loading="lazy"
-        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-        allowfullscreen
-      ></iframe>
-    </div>
+    <button class="home-video-close" type="button" aria-label="Close trailer" data-home-video-close>×</button>
+    <div class="home-video-frame-wrap"><iframe data-home-video-frame title="Stonefellow trailer" src="" loading="lazy" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe></div>
   </div>
 </div>
 
@@ -164,37 +128,24 @@ require __DIR__ . '/includes/header.php';
   const frame = document.querySelector('[data-home-video-frame]');
   const closeButtons = document.querySelectorAll('[data-home-video-close]');
   if (!openButton || !modal || !frame) return;
-
   let previousFocus = null;
-
   function openVideoModal(){
     previousFocus = document.activeElement;
     frame.src = openButton.dataset.videoSrc || '';
     modal.hidden = false;
     document.body.classList.add('home-video-modal-open');
-
     const closeButton = modal.querySelector('.home-video-close');
     if (closeButton) closeButton.focus();
   }
-
   function closeVideoModal(){
     modal.hidden = true;
     frame.src = '';
     document.body.classList.remove('home-video-modal-open');
-
-    if (previousFocus && typeof previousFocus.focus === 'function') {
-      previousFocus.focus();
-    }
+    if (previousFocus && typeof previousFocus.focus === 'function') previousFocus.focus();
   }
-
   openButton.addEventListener('click', openVideoModal);
   closeButtons.forEach((button) => button.addEventListener('click', closeVideoModal));
-
-  document.addEventListener('keydown', (event) => {
-    if (event.key === 'Escape' && !modal.hidden) {
-      closeVideoModal();
-    }
-  });
+  document.addEventListener('keydown', (event) => { if (event.key === 'Escape' && !modal.hidden) closeVideoModal(); });
 })();
 </script>
 
