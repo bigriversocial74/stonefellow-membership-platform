@@ -39,12 +39,14 @@
       </nav>
       <p class="dr-copyright">© <?= date('Y') ?> DesertRio. All Rights Reserved.</p>
     </footer>
+    <link rel="stylesheet" href="<?= sf_asset('css/desertrio-public-fixes.css') ?>">
   <?php endif; ?>
 
   <script>
     window.STONEFELLOW_PWA = {
       serviceWorker: "<?= sf_url('service-worker.js') ?>",
-      offline: "<?= sf_url('offline.php') ?>"
+      offline: "<?= sf_url('offline.php') ?>",
+      brandName: "<?= $sfIsAdminSurface ? 'Stonefellow' : 'DesertRio' ?>"
     };
     window.STONEFELLOW_RUNTIME = {
       libraryApi: "<?= sf_url('api/library.php') ?>",
@@ -56,5 +58,8 @@
   <script defer src="<?= sf_asset('js/pwa-upload.js') ?>"></script>
   <script defer src="<?= sf_asset('js/customer-ui.js') ?>"></script>
   <script defer src="<?= sf_asset('js/frontend-quality.js') ?>"></script>
+  <?php if (!$sfIsAdminSurface): ?>
+    <script defer src="<?= sf_asset('js/desertrio-public-fixes.js') ?>"></script>
+  <?php endif; ?>
 </body>
 </html>
