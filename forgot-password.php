@@ -1,7 +1,8 @@
 <?php
 $pageTitle = 'Forgot Password';
-$pageDescription = 'Reset your Stonefellow account password.';
-$pageClass = 'auth-template';
+$pageDescription = 'Reset your DesertRio account password.';
+$pageClass = 'auth-template desertrio-auth-template';
+$pageExtraStyles = ['css/desertrio-account.css'];
 require __DIR__ . '/includes/data.php';
 require __DIR__ . '/includes/auth.php';
 
@@ -23,7 +24,7 @@ require __DIR__ . '/includes/header.php';
 <section class="auth-page compact-auth">
   <div class="auth-shell single">
     <section class="auth-card" aria-labelledby="forgot-title">
-      <div class="auth-mark">SF</div><span class="auth-kicker">Account recovery</span><h2 id="forgot-title">Reset your password</h2><p class="auth-intro">Enter your email. The response is intentionally identical whether or not an account exists.</p>
+      <div class="auth-mark">DR</div><span class="auth-kicker">Account Recovery</span><h2 id="forgot-title">Reset your password</h2><p class="auth-intro">Enter your email address and we will send instructions when a matching account exists.</p>
       <form class="auth-form" action="<?= sf_url('forgot-password.php') ?>" method="post">
         <?= sf_csrf_field() ?><label for="forgot-email">Email address</label><input id="forgot-email" name="email" type="email" autocomplete="email" maxlength="190" placeholder="you@example.com" value="<?= sf_auth_h($email) ?>" required><button class="auth-submit" type="submit">Send Reset Instructions</button>
       </form>
