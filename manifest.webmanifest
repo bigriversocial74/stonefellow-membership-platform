@@ -10,8 +10,8 @@
   "theme_color": "#050505",
   "categories": ["entertainment", "video", "comedy"],
   "icons": [
-    {"src": "likenessing-asset.php?name=favicon&v=20260716", "sizes": "192x192", "type": "image/png", "purpose": "any maskable"},
-    {"src": "likenessing-asset.php?name=logo&v=20260716", "sizes": "279x99", "type": "image/webp", "purpose": "any"}
+    {"src": "likenessing-asset.php?name=favicon&v=20260716", "sizes": "any", "type": "image/png", "purpose": "any maskable"},
+    {"src": "likenessing-asset.php?name=logo&v=20260716", "sizes": "any", "type": "image/webp", "purpose": "any"}
   ],
   "shortcuts": [
     {"name": "Watch", "url": "episodes.php", "description": "Open episodes"},
