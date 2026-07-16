@@ -1,201 +1,88 @@
 <?php
 $pageTitle = 'Home';
-$pageDescription = 'Watch the Stonefellow series, stream the soundtrack, and subscribe for access.';
-$pageClass = 'home-template';
+$pageDescription = 'Likenessing is an original dark comedy about actors, agents, studios, artificial intelligence, and the contracts that can turn a face into a business model.';
+$pageClass = 'home-template likenessing-home';
 require __DIR__ . '/includes/data.php';
-require __DIR__ . '/includes/theme_public.php';
-
-$homeHero = sf_theme_public_image_src('home_hero', 'images/home/hero-reference-crop.png');
-$homeEpisodePoster = sf_theme_public_image_src('episode_poster', 'images/home/pilot-reference-card.png');
-$homeMusicHero = sf_theme_public_image_src('music_hero', 'images/home/live-reference-card.png');
-$homeAlbumCover = sf_theme_public_image_src('album_cover', 'images/music/soundtrack-cover.png');
-$homeTracks = [
-  ['n' => '1', 'title' => 'Born to Burn', 'time' => '3:48'],
-  ['n' => '2', 'title' => 'Blackout in the Rearview', 'time' => '3:35'],
-  ['n' => '3', 'title' => 'Tearing Down the Walls', 'time' => '4:02'],
-  ['n' => '4', 'title' => 'Heart of a Loaded Gun', 'time' => '3:57'],
-  ['n' => '5', 'title' => 'Saint or Sinner', 'time' => '3:41'],
-];
 require __DIR__ . '/includes/header.php';
+
+$cast = [
+  ['title' => 'The Movie Star', 'name' => 'Charming. Bankable.', 'description' => 'Always has a deal on the table.', 'position' => '0%'],
+  ['title' => 'The Agent', 'name' => 'Ruthless negotiator.', 'description' => 'Will sell ice to an Eskimo.', 'position' => '16.666%'],
+  ['title' => 'The Manager', 'name' => 'Numbers guy.', 'description' => 'Sees opportunity everywhere.', 'position' => '33.333%'],
+  ['title' => 'The Lawyer', 'name' => 'Protects the talent.', 'description' => 'And their future. For a fee.', 'position' => '50%'],
+  ['title' => 'The Newcomer', 'name' => 'Big dreams.', 'description' => 'No idea what he is really signing.', 'position' => '66.666%'],
+  ['title' => 'The Studio Exec', 'name' => 'Owns the game.', 'description' => 'Makes the rules. Changes them daily.', 'position' => '83.333%'],
+  ['title' => 'The Publicist', 'name' => 'Controls the narrative.', 'description' => 'And the damage control.', 'position' => '100%'],
+];
+
+$episodes = [
+  ['number' => 'EP 1', 'title' => 'Pilot', 'description' => 'A struggling actor gets an offer that could change everything.', 'position' => '0%'],
+  ['number' => 'EP 2', 'title' => 'Fine Print', 'description' => 'One clause can make you rich. Another can own your soul.', 'position' => '25%'],
+  ['number' => 'EP 3', 'title' => 'Double Exposure', 'description' => 'Two versions of you. One problem.', 'position' => '50%'],
+  ['number' => 'EP 4', 'title' => 'Commercial Break', 'description' => 'Your likeness sells soap. And your dignity.', 'position' => '75%'],
+  ['number' => 'EP 5', 'title' => "Who's Driving?", 'description' => 'When your AI books the role you wanted.', 'position' => '100%'],
+];
 ?>
-<?= sf_theme_css_variables_tag(null, '.home-template') ?>
-<section class="home-full home-hero-full">
-  <div class="home-shell">
-    <section class="home-hero-grid">
-    <div class="home-copy">
-      <h1>Watch the Series. Stream the Soundtrack.</h1>
-      <p>Stonefellow is a rock &amp; roll drama about brotherhood, betrayal, and the price of greatness. Stream every episode. Listen to every song. Live the story.</p>
-      <div class="home-actions">
-        <a class="home-btn home-btn-primary" href="subscribe.php"><span class="icon-play"></span>Subscribe to Watch</a>
-        <a class="home-btn home-btn-outline" href="music.php"><span class="icon-wave"></span>Stream the Music</a>
-      </div>
+<section class="lk-hero" aria-labelledby="lk-home-title">
+  <img class="lk-hero-image" src="<?= lk_asset_url('hero') ?>" alt="Actors and representatives meeting in a Hollywood office overlooking Los Angeles">
+  <div class="lk-hero-shade" aria-hidden="true"></div>
+  <div class="lk-hero-content">
+    <p class="lk-eyebrow">Fame. Fortune.<br>Full control.</p>
+    <h1 id="lk-home-title"><span>Likeness</span><strong>ing</strong></h1>
+    <h2>Your face. Your voice. Their contract.</h2>
+    <p>In a world where AI can be you, a group of actors and agents navigate the wild, ridiculous, and sometimes shady business of licensing their likenesses—and trying not to lose themselves in the fine print.</p>
+    <div class="lk-actions">
+      <a class="lk-button lk-button-gold" href="<?= sf_url('episodes.php') ?>"><span class="lk-icon lk-icon-play" aria-hidden="true"></span>Watch Trailer</a>
+      <a class="lk-button lk-button-dark" href="<?= sf_url('watchlist.php') ?>"><span class="lk-icon lk-icon-plus" aria-hidden="true"></span>My List</a>
     </div>
-    <div class="home-hero-image">
-      <img src="<?= htmlspecialchars($homeHero) ?>" alt="Stonefellow performing live on stage">
-      <button
-        class="home-video-trigger"
-        type="button"
-        data-home-video-open
-        data-video-src="https://www.youtube.com/embed/jMlQMre7LcA?start=14&amp;autoplay=1&amp;rel=0&amp;modestbranding=1"
-        aria-haspopup="dialog"
-        aria-controls="home-video-modal"
-      >
-        <span class="home-video-trigger-icon" aria-hidden="true"></span>
-        <span>Play Video</span>
-      </button>
-    </div>
-    </section>
   </div>
 </section>
 
-<section class="home-shell">
-  <section class="home-featured-section">
-    <div class="home-section-title"><span>Featured</span></div>
-    <div class="home-feature-grid">
-      <a class="feature-card" href="episodes.php">
-        <div class="feature-image"><img src="<?= htmlspecialchars($homeEpisodePoster) ?>" alt="Pilot episode still"></div>
-        <div class="feature-info">
-          <h3>Pilot Episode</h3>
-          <p>Watch the beginning.</p>
-        </div>
-      </a>
-      <a class="feature-card feature-card-soundtrack" href="music.php">
-        <div class="feature-image soundtrack-art"><img src="<?= htmlspecialchars($homeAlbumCover) ?>" alt="Official soundtrack cover"></div>
-        <div class="feature-info">
-          <h3>Official Soundtrack</h3>
-          <p>Listen to every song.</p>
-        </div>
-      </a>
-      <a class="feature-card" href="music.php">
-        <div class="feature-image"><img src="<?= htmlspecialchars($homeMusicHero) ?>" alt="Stonefellow live sessions"></div>
-        <div class="feature-info">
-          <h3>Live Sessions</h3>
-          <p>Acoustic &amp; live performances.</p>
-        </div>
-      </a>
-    </div>
-  </section>
-
-  <section class="home-player-panel">
-    <div class="album-column">
-      <div class="album-art-wrap">
-        <img src="<?= htmlspecialchars($homeAlbumCover) ?>" alt="Born to Burn artwork">
-      </div>
-    </div>
-    <div class="player-column">
-      <div class="now-playing-label">Now Playing</div>
-      <h2>Born to Burn</h2>
-      <div class="artist-line">Stonefellow</div>
-      <div class="time-row"><span>1:24</span><span>3:48</span></div>
-      <div class="progress-line"><span></span></div>
-      <div class="player-controls">
-        <button type="button">↺</button>
-        <button type="button">◀</button>
-        <button type="button" class="play-circle">❚❚</button>
-        <button type="button">▶</button>
-        <button type="button">↻</button>
-      </div>
-    </div>
-    <div class="track-column">
-      <ol class="home-tracklist">
-        <?php foreach ($homeTracks as $track): ?>
-          <li>
-            <span class="track-number"><?= htmlspecialchars($track['n']) ?></span>
-            <span class="track-title"><?= htmlspecialchars($track['title']) ?></span>
-            <span class="track-time"><?= htmlspecialchars($track['time']) ?></span>
-          </li>
-        <?php endforeach; ?>
-      </ol>
-      <a class="track-link" href="music.php">View Full Soundtrack →</a>
-    </div>
-  </section>
-
-  <section class="home-access-panel">
-    <div class="access-price-block">
-      <div class="access-kicker">Choose Your Access</div>
-      <div class="access-price"><span class="currency">$</span>9<span class="cents">99</span><span class="period">/ Month</span></div>
-      <a class="home-btn home-btn-primary access-btn" href="subscribe.php">Subscribe Now</a>
-      <div class="access-note">Cancel anytime.</div>
-    </div>
-    <ul class="access-list">
-      <li>Watch every episode in HD</li>
-      <li>Stream the full soundtrack</li>
-      <li>Exclusive content &amp; behind-the-scenes</li>
-      <li>Early access to new episodes</li>
-    </ul>
-  </section>
-
-  <section class="home-app-panel">
-    <div class="app-image-col">
-      <img src="<?= sf_asset('images/app/app-promo.png') ?>" alt="Stonefellow mobile app promo">
-    </div>
-    <div class="app-copy-col">
-      <h2>Take Stonefellow<br>Wherever You Go</h2>
-      <p>Stream the series. Listen to the music.<br>Download the app for iOS &amp; Android.</p>
-    </div>
-    <div class="store-buttons-col">
-      <a href="app.php" class="store-badge">Download on the App Store</a>
-      <a href="app.php" class="store-badge">Get it on Google Play</a>
-    </div>
-  </section>
-</section>
-
-<div class="home-video-modal" id="home-video-modal" role="dialog" aria-modal="true" aria-label="Stonefellow video preview" hidden data-home-video-modal>
-  <div class="home-video-backdrop" data-home-video-close></div>
-  <div class="home-video-dialog" role="document">
-    <button class="home-video-close" type="button" aria-label="Close video" data-home-video-close>×</button>
-    <div class="home-video-frame-wrap">
-      <iframe
-        data-home-video-frame
-        title="Stonefellow video preview"
-        src=""
-        loading="lazy"
-        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-        allowfullscreen
-      ></iframe>
+<section class="lk-shell lk-premise" aria-labelledby="lk-premise-title">
+  <div class="lk-premise-image"><img src="<?= lk_asset_url('premise') ?>" alt="A performer standing on a studio lot beneath a digital artificial intelligence likeness"></div>
+  <div class="lk-premise-copy">
+    <p class="lk-label">The Premise</p>
+    <h2 id="lk-premise-title">Every opportunity comes with a contract.</h2>
+    <p>Studios, brands, and technology companies want more than your talent. They want you. Forever. From blockbuster roles to voice clones, from ad campaigns to digital influencers—AI can work 24/7. The question is: what are you willing to license?</p>
+    <div class="lk-benefits">
+      <article><span class="lk-icon lk-icon-account" aria-hidden="true"></span><strong>More Roles</strong><span>Work anywhere.</span></article>
+      <article><span class="lk-icon lk-icon-star" aria-hidden="true"></span><strong>Passive Income</strong><span>Get paid while you sleep.</span></article>
+      <article><span class="lk-icon lk-icon-lock" aria-hidden="true"></span><strong>Keep Control</strong><span>Own your rights.</span></article>
+      <article><span class="lk-icon lk-icon-info" aria-hidden="true"></span><strong>Play It Risky</strong><span>Every deal has a price.</span></article>
     </div>
   </div>
-</div>
+</section>
 
-<script>
-(function(){
-  const openButton = document.querySelector('[data-home-video-open]');
-  const modal = document.querySelector('[data-home-video-modal]');
-  const frame = document.querySelector('[data-home-video-frame]');
-  const closeButtons = document.querySelectorAll('[data-home-video-close]');
-  if (!openButton || !modal || !frame) return;
+<section class="lk-shell lk-section" aria-labelledby="lk-cast-title">
+  <div class="lk-section-head"><h2 id="lk-cast-title">The Cast</h2><p>A cast of characters. A world of egos.</p></div>
+  <div class="lk-cast-grid">
+    <?php foreach ($cast as $person): ?>
+      <a class="lk-cast-card" href="<?= sf_url('cast.php') ?>">
+        <div class="lk-cast-photo" style="background-image:url('<?= lk_asset_url('cast') ?>');background-position:<?= $person['position'] ?> center" role="img" aria-label="<?= htmlspecialchars($person['title'], ENT_QUOTES, 'UTF-8') ?>"></div>
+        <div><strong><?= htmlspecialchars($person['title'], ENT_QUOTES, 'UTF-8') ?></strong><p><?= htmlspecialchars($person['name'], ENT_QUOTES, 'UTF-8') ?><br><?= htmlspecialchars($person['description'], ENT_QUOTES, 'UTF-8') ?></p></div>
+      </a>
+    <?php endforeach; ?>
+  </div>
+</section>
 
-  let previousFocus = null;
+<section class="lk-shell lk-section" aria-labelledby="lk-episodes-title">
+  <div class="lk-section-head"><h2 id="lk-episodes-title">Latest Episodes</h2><a href="<?= sf_url('episodes.php') ?>">View All Episodes <span aria-hidden="true">›</span></a></div>
+  <div class="lk-episode-grid">
+    <?php foreach ($episodes as $episode): ?>
+      <a class="lk-episode-card" href="<?= sf_url('episodes.php') ?>">
+        <div class="lk-episode-art"><div class="lk-episode-photo" style="background-image:url('<?= lk_asset_url('episodes') ?>');background-position:<?= $episode['position'] ?> center" role="img" aria-label="<?= htmlspecialchars($episode['title'], ENT_QUOTES, 'UTF-8') ?> episode still"></div><span><?= htmlspecialchars($episode['number'], ENT_QUOTES, 'UTF-8') ?></span></div>
+        <div class="lk-episode-body"><strong><?= htmlspecialchars($episode['title'], ENT_QUOTES, 'UTF-8') ?></strong><p><?= htmlspecialchars($episode['description'], ENT_QUOTES, 'UTF-8') ?></p><span class="lk-card-play lk-icon lk-icon-play" aria-label="Play"></span></div>
+      </a>
+    <?php endforeach; ?>
+  </div>
+</section>
 
-  function openVideoModal(){
-    previousFocus = document.activeElement;
-    frame.src = openButton.dataset.videoSrc || '';
-    modal.hidden = false;
-    document.body.classList.add('home-video-modal-open');
-
-    const closeButton = modal.querySelector('.home-video-close');
-    if (closeButton) closeButton.focus();
-  }
-
-  function closeVideoModal(){
-    modal.hidden = true;
-    frame.src = '';
-    document.body.classList.remove('home-video-modal-open');
-
-    if (previousFocus && typeof previousFocus.focus === 'function') {
-      previousFocus.focus();
-    }
-  }
-
-  openButton.addEventListener('click', openVideoModal);
-  closeButtons.forEach((button) => button.addEventListener('click', closeVideoModal));
-
-  document.addEventListener('keydown', (event) => {
-    if (event.key === 'Escape' && !modal.hidden) {
-      closeVideoModal();
-    }
-  });
-})();
-</script>
-
+<section class="lk-newsletter" aria-labelledby="lk-newsletter-title">
+  <div class="lk-shell lk-newsletter-inner">
+    <div><h2 id="lk-newsletter-title">Stay in the Loop</h2><p>Get exclusive content, behind-the-scenes gossip, and early access to new episodes.</p></div>
+    <form action="<?= sf_url('signup.php') ?>" method="get"><label class="sr-only" for="lk-news-email">Email address</label><input id="lk-news-email" type="email" name="email" placeholder="Enter your email" required><button type="submit">Subscribe</button></form>
+    <img src="<?= lk_asset_url('newsletter') ?>" alt="Behind-the-scenes Likenessing production photographs">
+    <p class="lk-signoff">See you<br>on set.</p>
+  </div>
+</section>
 <?php require __DIR__ . '/includes/footer.php'; ?>
