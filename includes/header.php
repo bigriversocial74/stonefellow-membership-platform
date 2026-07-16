@@ -93,6 +93,8 @@ $sfRobots = (string)($pageRobots ?? ($sfIsAdminSurface
   <link rel="stylesheet" href="<?= sf_asset('css/frontend-quality.css') ?>">
   <?php if (!$sfIsAdminSurface): ?>
     <link rel="stylesheet" href="<?= sf_asset('css/desertrio.css') ?>">
+    <link rel="stylesheet" href="<?= sf_asset('css/desertrio-pages.css') ?>">
+    <link rel="stylesheet" href="<?= sf_asset('css/desertrio-responsive.css') ?>">
   <?php endif; ?>
   <?php if ($sfIsAdminSurface): ?>
     <link rel="stylesheet" href="<?= sf_asset('css/admin-polish.css') ?>">
