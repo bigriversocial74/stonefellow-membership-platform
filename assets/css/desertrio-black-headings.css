@@ -27,7 +27,9 @@ body.dr-theme:not(.desertrio-index-v3) .sf-admin-panel-head h2,
 body.dr-theme:not(.desertrio-index-v3) .sf-member-panel h2,
 body.dr-theme:not(.desertrio-index-v3) .sf-dashboard-stat strong,
 body.dr-theme:not(.desertrio-index-v3) .sf-member-status-card strong,
-body.dr-theme:not(.desertrio-index-v3) .sf-member-access-card strong {
+body.dr-theme:not(.desertrio-index-v3) .sf-member-access-card strong,
+body.dr-theme:not(.desertrio-index-v3) .dr-newsletter h2,
+body.dr-theme:not(.desertrio-index-v3) .dr-newsletter-copy h2 {
   color: #111111 !important;
 }
 
