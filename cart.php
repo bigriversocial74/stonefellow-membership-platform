@@ -1,7 +1,8 @@
 <?php
 $pageTitle = 'Cart';
-$pageDescription = 'Review your Stonefellow merch cart.';
-$pageClass = 'shop-page cart-page';
+$pageDescription = 'Review your DesertRio shop cart.';
+$pageClass = 'shop-page cart-page desertrio-cart-template';
+$pageExtraStyles = ['css/desertrio-commerce.css'];
 require __DIR__ . '/includes/store.php';
 
 if ($_SERVER['REQUEST_METHOD'] === 'GET' && !empty($_GET['add'])) {
@@ -49,9 +50,9 @@ $totals = sf_store_cart_totals($cartItems);
 require __DIR__ . '/includes/header.php';
 ?>
 <section class="shop-page-head shop-full-section">
-  <span class="shop-kicker">Shopping Cart</span>
-  <h1>Your Stonefellow Gear</h1>
-  <p>Review quantities, remove items, and continue to sandbox checkout. Database mode persists the cart by member/session and converts it into an order.</p>
+  <span class="shop-kicker">DesertRio Shop</span>
+  <h1>Your Cart</h1>
+  <p>Review your collection, update quantities, or continue to secure checkout. The existing cart, inventory, member-session, and order logic remains unchanged.</p>
 </section>
 <section class="cart-layout shop-full-section">
   <div class="cart-items-panel">
@@ -61,10 +62,10 @@ require __DIR__ . '/includes/header.php';
 
     <?php if (!$cartItems): ?>
       <article class="cart-empty-state">
-        <span class="shop-kicker">Cart Empty</span>
-        <h2>No merch in your cart yet.</h2>
-        <p>Browse the official Stonefellow store and add a tee, vinyl, poster, or subscriber bundle.</p>
-        <a class="shop-btn shop-btn-primary" href="<?= sf_url('merch.php') ?>">Shop Merch</a>
+        <span class="shop-kicker">Your Cart Is Waiting</span>
+        <h2>Find your DesertRio favorite.</h2>
+        <p>Browse official apparel, accessories, premiere pieces, and member-only releases.</p>
+        <a class="shop-btn shop-btn-primary" href="<?= sf_url('merch.php') ?>">Explore the Shop</a>
       </article>
     <?php else: ?>
       <form action="<?= sf_url('cart.php') ?>" method="post" class="cart-update-form">
@@ -95,15 +96,11 @@ require __DIR__ . '/includes/header.php';
             <strong><?= sf_store_money($lineTotal) ?></strong>
           </article>
         <?php endforeach; ?>
-        <div class="cart-form-actions">
-          <button class="shop-btn shop-btn-outline" type="submit">Update Cart</button>
-        </div>
+        <div class="cart-form-actions"><button class="shop-btn shop-btn-outline" type="submit">Update Cart</button></div>
       </form>
       <?php foreach ($cartItems as $index => $row): $itemKey = (string)($row['cart_item_id'] ?? $row['key'] ?? $index); ?>
         <form id="remove-<?= preg_replace('/[^a-zA-Z0-9_-]/', '-', $itemKey) ?>" action="<?= sf_url('cart.php') ?>" method="post" class="sf-hidden-form">
-          <?= sf_csrf_field() ?>
-          <input type="hidden" name="action" value="remove">
-          <input type="hidden" name="item_key" value="<?= sf_store_h($itemKey) ?>">
+          <?= sf_csrf_field() ?><input type="hidden" name="action" value="remove"><input type="hidden" name="item_key" value="<?= sf_store_h($itemKey) ?>">
         </form>
       <?php endforeach; ?>
     <?php endif; ?>
@@ -118,11 +115,7 @@ require __DIR__ . '/includes/header.php';
     <div class="summary-line summary-total"><span>Total</span><strong><?= sf_store_money((int)$totals['total_cents']) ?></strong></div>
     <?php if ($cartItems): ?>
       <a class="shop-btn shop-btn-primary" href="<?= sf_url('checkout.php') ?>">Continue to Checkout</a>
-      <form action="<?= sf_url('cart.php') ?>" method="post" class="cart-clear-form">
-        <?= sf_csrf_field() ?>
-        <input type="hidden" name="action" value="clear">
-        <button class="shop-text-link shop-link-button" type="submit">Clear Cart</button>
-      </form>
+      <form action="<?= sf_url('cart.php') ?>" method="post" class="cart-clear-form"><?= sf_csrf_field() ?><input type="hidden" name="action" value="clear"><button class="shop-text-link shop-link-button" type="submit">Clear Cart</button></form>
     <?php endif; ?>
     <a class="shop-text-link" href="<?= sf_url('merch.php') ?>">← Keep Shopping</a>
   </aside>
