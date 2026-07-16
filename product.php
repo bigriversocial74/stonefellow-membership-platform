@@ -1,8 +1,10 @@
 <?php
 $pageTitle = 'Product';
-$pageDescription = 'Official Stonefellow product detail.';
-$pageClass = 'shop-page product-detail-page';
+$pageDescription = 'Official DesertRio product detail.';
+$pageClass = 'shop-page product-detail-page desertrio-product-template';
+$pageExtraStyles = ['css/desertrio-commerce.css'];
 require __DIR__ . '/includes/store.php';
+require __DIR__ . '/includes/desertrio_theme.php';
 
 $slug = trim((string)($_GET['slug'] ?? ''));
 $product = sf_store_product_by_slug($slug) ?: sf_store_featured_product();
@@ -21,7 +23,7 @@ require __DIR__ . '/includes/header.php';
     <img src="<?= sf_store_h(sf_store_image_url($product['image_path'] ?? '')) ?>" alt="<?= sf_store_h($product['name'] ?? '') ?>">
   </div>
   <div class="shop-detail-copy">
-    <span class="shop-kicker"><?= sf_store_h($product['category_name'] ?? 'Merch') ?> / <?= sf_store_h($product['badge_label'] ?? 'Official') ?></span>
+    <span class="shop-kicker"><?= sf_store_h($product['category_name'] ?? 'DesertRio Collection') ?> / <?= sf_store_h($product['badge_label'] ?? 'Official') ?></span>
     <h1><?= sf_store_h($product['name'] ?? '') ?></h1>
     <div class="shop-detail-price"><?= sf_store_money((int)($product['price_cents'] ?? 0)) ?></div>
     <p><?= sf_store_h($product['description'] ?? $product['short_description'] ?? '') ?></p>
@@ -31,10 +33,10 @@ require __DIR__ . '/includes/header.php';
     <?php endforeach; ?>
 
     <?php if ($locked): ?>
-      <div class="shop-detail-note"><strong>Membership drop:</strong> this item requires <?= sf_store_h(sf_access_label((string)($product['access_level'] ?? 'subscriber'))) ?> access.</div>
-      <div class="shop-actions"><a class="shop-btn shop-btn-primary" href="<?= sf_url('subscribe.php') ?>">Unlock Drop</a><a class="shop-btn shop-btn-outline" href="<?= sf_url('signin.php') ?>">Sign In</a></div>
+      <div class="shop-detail-note"><strong>Member release:</strong> this item requires <?= sf_store_h(sf_access_label((string)($product['access_level'] ?? 'subscriber'))) ?> access.</div>
+      <div class="shop-actions"><a class="shop-btn shop-btn-primary" href="<?= sf_url('subscribe.php') ?>">Unlock Release</a><a class="shop-btn shop-btn-outline" href="<?= sf_url('signin.php') ?>">Sign In</a></div>
     <?php elseif ($soldOut): ?>
-      <div class="shop-detail-note"><strong>Sold out:</strong> this item is currently unavailable. Check back after the next merch drop.</div>
+      <div class="shop-detail-note"><strong>Sold out:</strong> this release is currently unavailable. Check back for the next DesertRio collection update.</div>
     <?php else: ?>
       <form class="shop-product-form" action="<?= sf_url('cart.php') ?>" method="post">
         <?= sf_csrf_field() ?>
@@ -67,13 +69,11 @@ require __DIR__ . '/includes/header.php';
       </form>
     <?php endif; ?>
 
-    <div class="shop-detail-note">
-      <strong>Runtime status:</strong> carts, inventory, order totals, and sandbox payment records are now operational in session preview mode and database mode.
-    </div>
+    <div class="shop-detail-note"><strong>Secure ordering:</strong> cart persistence, inventory, order totals, payment records, and member purchase history continue through the existing commerce runtime.</div>
   </div>
 </section>
 <section class="shop-section shop-full-section">
-  <div class="shop-section-head"><div><span class="shop-kicker">You May Also Like</span><h2>More Official Gear</h2></div><a class="shop-pill-link" href="<?= sf_url('merch.php') ?>">Back to Store</a></div>
+  <div class="shop-section-head"><div><span class="shop-kicker">Complete the Look</span><h2>More From DesertRio</h2></div><a class="shop-pill-link" href="<?= sf_url('merch.php') ?>">Back to Store</a></div>
   <div class="shop-related-grid">
     <?php foreach (array_slice(sf_store_products(), 0, 4) as $item): if (($item['slug'] ?? '') === ($product['slug'] ?? '')) continue; ?>
       <a class="shop-mini-card" href="<?= sf_store_h(sf_store_product_url($item)) ?>">
