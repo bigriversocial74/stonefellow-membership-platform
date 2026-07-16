@@ -1,117 +1,120 @@
 <?php
 $pageTitle = 'Episodes';
-$pageDescription = 'Browse Stonefellow episodes, previews, watch progress, and behind-the-song content.';
-$pageClass = 'episodes-template';
+$pageDescription = 'Browse DesertRio episodes, previews, and subscriber access.';
+$pageClass = 'episodes-template desertrio-episodes-template';
+
 require __DIR__ . '/includes/data.php';
-require __DIR__ . '/includes/theme_public.php';
-
-$themeEpisodePosterPath = sf_theme_public_image('episode_poster', 'images/episodes/template-card-01.png');
-$themeEpisodePoster = sf_asset($themeEpisodePosterPath);
-$episodeCards = [
-  ['num'=>'1','title'=>'First to Fall','time'=>'48 min','image'=>$themeEpisodePosterPath,'slug'=>'first-to-fall','video_slug'=>'first-to-fall-full-episode'],
-  ['num'=>'2','title'=>'Riptide Hearts','time'=>'44 min','image'=>'images/episodes/template-card-02.png','slug'=>'riptide-hearts','video_slug'=>'riptide-hearts-full-episode'],
-  ['num'=>'3','title'=>'The Long Road Home','time'=>'46 min','image'=>'images/episodes/template-card-03.png','slug'=>'the-long-road-home','video_slug'=>'the-long-road-home-full-episode'],
-  ['num'=>'4','title'=>'Burn It Down','time'=>'47 min','image'=>'images/episodes/template-card-04.png','slug'=>'first-to-fall','video_slug'=>'first-to-fall-trailer'],
-  ['num'=>'5','title'=>'Nothing Left','time'=>'43 min','image'=>'images/episodes/template-card-05.png','slug'=>'first-to-fall','video_slug'=>'first-to-fall-trailer'],
-];
+require __DIR__ . '/includes/desertrio_theme.php';
 require __DIR__ . '/includes/header.php';
+
+$featuredEpisode = $desertRioEpisodes[0];
 ?>
-<?= sf_theme_css_variables_tag(null, '.episodes-template') ?>
-<section class="episodes-page">
-  <section class="episodes-hero">
-    <div class="episodes-hero-copy">
-      <h1>Episodes</h1>
-      <p>Every chapter tells the story.<br>Stream every episode. Live the journey.</p>
-      <div class="episodes-actions">
-        <a href="subscribe.php" class="ep-btn ep-primary"><span class="ep-play-small"></span>Start Watching</a>
-        <a href="#pilot" class="ep-btn ep-outline"><span class="ep-circle-icon">▶</span>Trailer</a>
+
+<div class="dr-inner-page">
+  <section class="dr-episodes-layout" aria-labelledby="dr-episodes-title">
+    <aside class="dr-episode-list-panel">
+      <div class="dr-episode-list-head">
+        <h1 id="dr-episodes-title">Episodes</h1>
+        <label>
+          <span class="sr-only">Choose season</span>
+          <select class="dr-season-select" aria-label="Choose season">
+            <option>Season 1</option>
+          </select>
+        </label>
       </div>
-    </div>
-    <div class="episodes-hero-art">
-      <img src="<?= htmlspecialchars($themeEpisodePoster) ?>" alt="Stonefellow band episode hero">
-    </div>
+
+      <div class="dr-episode-list" role="list">
+        <?php foreach ($desertRioEpisodes as $index => $episode): ?>
+          <button
+            class="dr-episode-list-item<?= $index === 0 ? ' is-active' : '' ?>"
+            type="button"
+            role="listitem"
+            data-dr-episode
+            data-index="<?= $index ?>"
+            data-title="<?= htmlspecialchars($episode['title'], ENT_QUOTES, 'UTF-8') ?>"
+            data-season="<?= htmlspecialchars($episode['season'], ENT_QUOTES, 'UTF-8') ?>"
+            data-runtime="<?= htmlspecialchars($episode['runtime'], ENT_QUOTES, 'UTF-8') ?>"
+            data-description="<?= htmlspecialchars($episode['description'], ENT_QUOTES, 'UTF-8') ?>"
+            data-image="<?= sf_asset($episode['image']) ?>"
+            data-watch-url="<?= sf_url('watch.php?slug=' . urlencode($episode['video_slug'])) ?>"
+            data-detail-url="<?= sf_url('episode.php?slug=' . urlencode($episode['slug'])) ?>"
+            aria-pressed="<?= $index === 0 ? 'true' : 'false' ?>"
+          >
+            <strong><?= htmlspecialchars($episode['number'], ENT_QUOTES, 'UTF-8') ?></strong>
+            <img src="<?= sf_asset($episode['image']) ?>" alt="" loading="lazy" decoding="async">
+            <span><h2><?= htmlspecialchars($episode['title'], ENT_QUOTES, 'UTF-8') ?></h2><small><?= htmlspecialchars($episode['runtime'], ENT_QUOTES, 'UTF-8') ?></small></span>
+          </button>
+        <?php endforeach; ?>
+      </div>
+    </aside>
+
+    <section class="dr-episode-feature" aria-live="polite">
+      <div class="dr-episode-feature-media">
+        <img data-dr-feature-image src="<?= sf_asset($featuredEpisode['image']) ?>" alt="<?= htmlspecialchars($featuredEpisode['title'], ENT_QUOTES, 'UTF-8') ?> episode artwork">
+        <a data-dr-feature-watch class="dr-episode-feature-play" href="<?= sf_url('watch.php?slug=' . urlencode($featuredEpisode['video_slug'])) ?>" aria-label="Watch <?= htmlspecialchars($featuredEpisode['title'], ENT_QUOTES, 'UTF-8') ?>">▷</a>
+      </div>
+      <div class="dr-episode-feature-copy">
+        <div>
+          <small data-dr-feature-season><?= htmlspecialchars($featuredEpisode['season'], ENT_QUOTES, 'UTF-8') ?></small>
+          <h2 data-dr-feature-title><?= htmlspecialchars($featuredEpisode['title'], ENT_QUOTES, 'UTF-8') ?></h2>
+          <p data-dr-feature-description><?= htmlspecialchars($featuredEpisode['description'], ENT_QUOTES, 'UTF-8') ?></p>
+        </div>
+        <div class="dr-episode-feature-runtime" data-dr-feature-runtime><?= htmlspecialchars($featuredEpisode['runtime'], ENT_QUOTES, 'UTF-8') ?></div>
+        <div class="dr-episode-feature-actions">
+          <a data-dr-feature-watch-button class="dr-button dr-button-primary dr-button-square" href="<?= sf_url('watch.php?slug=' . urlencode($featuredEpisode['video_slug'])) ?>">Watch Episode <span class="dr-button-play" aria-hidden="true">▷</span></a>
+          <a data-dr-feature-detail class="dr-button dr-button-square" href="<?= sf_url('episode.php?slug=' . urlencode($featuredEpisode['slug'])) ?>">Episode Details</a>
+        </div>
+      </div>
+    </section>
   </section>
 
-  <section id="pilot" class="pilot-feature-panel">
-    <div class="pilot-image-wrap">
-      <img src="<?= htmlspecialchars($themeEpisodePoster) ?>" alt="Pilot episode preview">
-      <span class="large-play">▶</span>
-    </div>
-    <div class="pilot-copy">
-      <span class="pilot-kicker">Pilot Episode</span>
-      <h2>First to Fall</h2>
-      <small>48 min</small>
-      <p>The band’s rise begins in the ashes of everything they thought they were. One night. One decision. Everything changes.</p>
-      <a href="<?= sf_url('watch.php?slug=first-to-fall-full-episode') ?>" class="ep-btn ep-primary compact">Watch Now</a>
-    </div>
-  </section>
-
-  <section class="episodes-library-section">
-    <div class="episodes-section-head">
-      <h2>All Episodes</h2>
-      <button type="button" class="season-select">Season 1⌄</button>
-    </div>
-    <div class="episodes-card-row">
-      <?php foreach ($episodeCards as $ep): ?>
-        <a class="episode-tile" href="<?= sf_url('episode.php?slug=' . urlencode($ep['slug'])) ?>">
-          <div class="episode-thumb">
-            <img src="<?= sf_asset($ep['image']) ?>" alt="<?= htmlspecialchars($ep['title']) ?> episode thumbnail">
-            <span class="tile-play">▶</span>
-          </div>
-          <div class="episode-tile-body">
-            <span><?= htmlspecialchars($ep['num']) ?></span>
-            <h3><?= htmlspecialchars($ep['title']) ?></h3>
-            <small><?= htmlspecialchars($ep['time']) ?></small>
-          </div>
+  <section class="dr-gallery-section" id="gallery" aria-labelledby="dr-gallery-title">
+    <header class="dr-section-head">
+      <div><span></span><h2 id="dr-gallery-title">From the Series</h2><span></span></div>
+      <p>Poolside promises, private conversations, and Arizona after dark.</p>
+    </header>
+    <div class="dr-gallery-grid">
+      <?php foreach ($desertRioStories as $story): ?>
+        <a href="<?= sf_url($story['href']) ?>" aria-label="<?= htmlspecialchars($story['title'], ENT_QUOTES, 'UTF-8') ?>">
+          <img src="<?= sf_asset($story['image']) ?>" alt="<?= htmlspecialchars($story['title'], ENT_QUOTES, 'UTF-8') ?>" loading="lazy" decoding="async">
         </a>
       <?php endforeach; ?>
     </div>
   </section>
+</div>
 
-  <section class="continue-section">
-    <h2>Continue Watching</h2>
-    <div class="continue-grid">
-      <a class="continue-item" href="<?= sf_url('watch.php?slug=first-to-fall-full-episode') ?>">
-        <div class="continue-thumb"><img src="<?= sf_asset('images/episodes/template-continue-01.png') ?>" alt="Burn it Down episode"><span class="tile-play">▶</span></div>
-        <div class="continue-info">
-          <h3>Burn It Down</h3>
-          <p>Episode 4</p>
-          <div class="watch-progress"><span style="width:56%"></span></div>
-          <small>32 min left</small>
-        </div>
-      </a>
-      <a class="continue-item" href="<?= sf_url('watch.php?slug=the-long-road-home-full-episode') ?>">
-        <div class="continue-thumb"><img src="<?= sf_asset('images/episodes/template-continue-02.png') ?>" alt="Long Road Home episode"></div>
-        <div class="continue-info">
-          <h3>Long Road Home</h3>
-          <p>Episode 3</p>
-          <div class="watch-progress"><span style="width:70%"></span></div>
-          <small>18 min left</small>
-        </div>
-      </a>
-    </div>
-  </section>
+<script>
+(function () {
+  const items = Array.from(document.querySelectorAll('[data-dr-episode]'));
+  const image = document.querySelector('[data-dr-feature-image]');
+  const season = document.querySelector('[data-dr-feature-season]');
+  const title = document.querySelector('[data-dr-feature-title]');
+  const description = document.querySelector('[data-dr-feature-description]');
+  const runtime = document.querySelector('[data-dr-feature-runtime]');
+  const watchLinks = document.querySelectorAll('[data-dr-feature-watch], [data-dr-feature-watch-button]');
+  const detailLink = document.querySelector('[data-dr-feature-detail]');
 
-  <section class="behind-song-section">
-    <div class="behind-copy">
-      <h2>Behind the Song</h2>
-      <p>Go deeper into the music with exclusive stories and studio sessions.</p>
-      <a href="music.php" class="ep-btn ep-outline compact">View All</a>
-    </div>
-    <div class="behind-grid">
-      <a href="music.php" class="behind-card"><img src="<?= sf_asset('images/episodes/template-behind-01.png') ?>" alt="Studio session"><span class="tile-play">▶</span></a>
-      <a href="music.php" class="behind-card"><img src="<?= sf_asset('images/episodes/template-behind-02.png') ?>" alt="Mixing console"><span class="tile-play">▶</span></a>
-      <a href="music.php" class="behind-card"><img src="<?= sf_asset('images/episodes/template-behind-03.png') ?>" alt="Songwriting session"></a>
-    </div>
-  </section>
+  if (!items.length || !image || !title) return;
 
-  <section class="episodes-cta-banner">
-    <img src="<?= sf_asset('images/episodes/template-cta-road.png') ?>" alt="Road banner background">
-    <div class="episodes-cta-copy">
-      <h2>Watch the Series. Stream the Soundtrack.</h2>
-      <p>Join the journey of Stonefellow.</p>
-      <a href="subscribe.php" class="ep-btn ep-primary compact">Join Now</a>
-    </div>
-  </section>
-</section>
+  items.forEach((item) => {
+    item.addEventListener('click', () => {
+      items.forEach((candidate) => {
+        const active = candidate === item;
+        candidate.classList.toggle('is-active', active);
+        candidate.setAttribute('aria-pressed', active ? 'true' : 'false');
+      });
+
+      image.src = item.dataset.image || image.src;
+      image.alt = (item.dataset.title || 'DesertRio') + ' episode artwork';
+      season.textContent = item.dataset.season || '';
+      title.textContent = item.dataset.title || '';
+      description.textContent = item.dataset.description || '';
+      runtime.textContent = item.dataset.runtime || '';
+      watchLinks.forEach((link) => { link.href = item.dataset.watchUrl || '#'; });
+      if (detailLink) detailLink.href = item.dataset.detailUrl || '#';
+    });
+  });
+})();
+</script>
+
 <?php require __DIR__ . '/includes/footer.php'; ?>
