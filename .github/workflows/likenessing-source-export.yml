@@ -1,0 +1,27 @@
+name: Likenessing Source Export
+
+on:
+  pull_request:
+    branches:
+      - main
+    types: [opened, synchronize, reopened]
+
+permissions:
+  contents: read
+
+jobs:
+  export:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out source branch
+        uses: actions/checkout@v4
+      - name: Remove Git metadata
+        run: rm -rf .git
+      - name: Upload platform source
+        uses: actions/upload-artifact@v4
+        with:
+          name: likenessing-source
+          path: .
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 1
